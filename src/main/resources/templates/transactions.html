@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Transaction History - Goldencat Bank</title>
+    <title>Transaction History - Wells Fargo</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(to right, #000000, #ffd700);
-            color: #ffffff;
+            font-family: 'Times New Roman', Georgia, serif;
+            background-color: #F7F3E9;
+            color: #2E2A2B;
             margin: 0;
             padding: 0;
             height: 100vh;
@@ -18,11 +18,12 @@
         }
 
         .navbar-custom {
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: #7A1216;
             position: fixed;
             top: 0;
             width: 100%;
             z-index: 1000;
+            border-bottom: 2px solid #B08D57;
         }
 
         .navbar-custom a {
@@ -35,7 +36,7 @@
 
         .container {
             max-width: 1000px;
-            margin-top: 80px; /* Reduced margin for the table to be closer to the top */
+            margin-top: 80px;
             text-align: center;
         }
 
@@ -44,26 +45,27 @@
         }
 
         .table-custom {
-            background-color: rgba(0, 0, 0, 0.8); /* Darker background for better contrast */
+            background-color: #FFFFFF;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            overflow-x: auto; /* Ensures table is responsive */
+            border-radius: 0;
+            border: 1px solid #B08D57;
+            box-shadow: none;
+            overflow-x: auto;
         }
 
         .table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(255, 255, 255, 0.1); /* Slightly lighter row color */
+            background-color: rgba(218, 165, 50, 0.1);
         }
 
         .table-striped td, .table-striped th {
-            color: #ffffff; /* White text color for visibility */
-            font-weight: bold; /* Bolder text for readability */
-            padding: 15px; /* Increase padding for better spacing */
-            border-bottom: 1px solid #ffd700; /* Yellow border for rows */
+            color: #2E2A2B;
+            font-weight: bold;
+            padding: 15px;
+            border-bottom: 1px solid #B08D57;
         }
 
         .table-striped th {
-            background-color: rgba(255, 215, 0, 0.2); /* Light golden background for headers */
+            background-color: rgba(218, 165, 50, 0.15);
         }
 
         .text-success {
@@ -75,20 +77,22 @@
         }
 
         .custom-link {
-            color: #ffd700;
+            color: #7A1216;
             text-decoration: none;
             font-weight: bold;
         }
 
         .custom-link:hover {
-            color: #ffecb3;
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-custom">
-    <a class="navbar-brand" href="#">Goldencat Bank</a>
+    <a class="navbar-brand d-flex align-items-center" href="#">
+        <img src="/images/wells-fargo-logo.png" alt="Wells Fargo" style="height:28px;margin-right:10px;">
+        Wells Fargo
+    </a>
     <ul class="navbar-nav ml-auto">
         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
