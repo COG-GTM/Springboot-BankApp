@@ -1,0 +1,65 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: 'Docker tag from CI job'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: DevOps
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Docker Image Tag
+        run: |
+          echo "DOCKER TAG RECEIVED: ${{ github.event.inputs.docker_tag || github.event.workflow_run.head_sha }}"
+
+      - name: Update Kubernetes manifest
+        run: |
+          cd kubernetes
+          sed -i -e 's|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${{ github.event.inputs.docker_tag || github.event.workflow_run.head_sha }}|g' bankapp-deployment.yml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add kubernetes/bankapp-deployment.yml
+          git commit -m "Updated K8s Deployment Docker Image Version to ${{ github.event.inputs.docker_tag || github.event.workflow_run.head_sha }}"
+          git push
+
+      - name: Send notification email
+        uses: dawidd6/action-send-mail@v3
+        if: always()
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: trainwithshubham@gmail.com
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "BankApp Application Deployment - ${{ job.status }}"
+          html_body: |
+            <html>
+            <body>
+              <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">Project: ${{ github.repository }}</p>
+              </div>
+              <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">Run Number: ${{ github.run_number }}</p>
+              </div>
+              <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+              </div>
+            </body>
+            </html>
+          to: trainwithshubham@gmail.com
+          content_type: text/html
