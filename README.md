@@ -1,5 +1,43 @@
 ## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
-- This is a multi-tier bank an application written in Java (Springboot).
+- This is a multi-tier bank application written in Java (Springboot).
+
+## Migration from Jenkins to GitHub Actions
+
+This repository has been migrated from Jenkins-based CI/CD to GitHub Actions workflows. The legacy Jenkins configuration files are preserved in the `legacy/jenkins/` directory for reference.
+
+### GitHub Actions Workflows
+
+The CI/CD pipeline now consists of two main GitHub Actions workflows:
+
+#### CI Pipeline (`.github/workflows/ci.yml`)
+1. **Code Checkout**: Retrieves source code from GitHub
+2. **Java Setup**: Configures Java 17 environment
+3. **Security Scanning**: 
+   - Trivy filesystem scan for vulnerabilities
+   - OWASP dependency check for known security issues
+4. **Code Quality**: SonarQube analysis with quality gates
+5. **Container Operations**: Docker image build and push to registry
+6. **Trigger CD**: Initiates the GitOps deployment workflow
+
+#### CD Pipeline (`.github/workflows/cd.yml`)
+1. **Manifest Updates**: Updates Kubernetes deployment manifests with new image tags
+2. **GitOps Commit**: Commits and pushes changes to trigger ArgoCD synchronization
+3. **Notifications**: Sends email notifications about deployment status
+
+### Required Secrets
+
+See `.github/SECRETS.md` for the complete list of required repository secrets for Docker Hub, SonarQube, and email notifications.
+
+### Setup Instructions
+
+1. **Configure GitHub Actions Secrets**:
+   - Follow the instructions in `.github/SECRETS.md`
+   - Add all required secrets to repository settings
+
+2. **Pipeline Execution**:
+   - Push changes to the `DevOps` branch to trigger CI pipeline
+   - Use workflow dispatch to manually trigger builds with custom Docker tags
+   - CD pipeline automatically triggers after successful CI builds
 
 ![Login diagram](images/login.png)
 ![Transactions diagram](images/transactions.png)
@@ -86,33 +124,15 @@ sudo su
   ```
 > [!Note]
 >  Make sure the ssh-public-key "eks-nodegroup-key is available in your aws account"
-- <b>Install Jenkins</b>
-```bash
-sudo apt update -y
-sudo apt install fontconfig openjdk-17-jre -y
+- <b>GitHub Actions Setup (Replaces Jenkins)</b>
+  - No server installation required - GitHub Actions runs in the cloud
+  - Configure repository secrets as documented in `.github/SECRETS.md`
+  - Workflows automatically trigger on push to DevOps branch
+  - Manual triggers available via workflow dispatch
 
-sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-  
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
-  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-  /etc/apt/sources.list.d/jenkins.list > /dev/null
-  
-sudo apt-get update -y
-sudo apt-get install jenkins -y
-```
-
-- After installing Jenkins, change the default port of jenkins from 8080 to 8081. Because our bankapp application will be running on 8080.
-  - Open /usr/lib/systemd/system/jenkins.service file and change JENKINS_PORT environment variable 
-![image](https://github.com/user-attachments/assets/6320ae49-82d4-4ae3-9811-bd6f06778483)
-  - Reload daemon
-  ```bash
-  sudo systemctl daemon-reload 
-  ```
-  - Restart Jenkins
-  ```bash
-  sudo systemctl restart jenkins
-  ```
+- <b>Legacy Jenkins Installation (For Reference)</b>
+  - Original Jenkins setup preserved in `legacy/jenkins/` directory
+  - Jenkins configuration replaced by GitHub Actions workflows
 #
 
 - <b id="docker">Install docker</b>
