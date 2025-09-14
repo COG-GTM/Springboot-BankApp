@@ -1,108 +1,79 @@
-#### CICD Workflow
-- Cloning the Project code from GitHub.
-- Build docker image and push it to docker hub.
-- Pull image from docker hub and deploy application using docker compose .
+#### CICD Workflow (GitHub Actions)
+- Cloning the Project code from GitHub using actions/checkout@v4
+- Security scanning with Trivy and OWASP dependency check
+- Code quality analysis with SonarQube
+- Build docker image and push it to docker hub
+- GitOps deployment by updating Kubernetes manifests
+- Email notifications for deployment status
 
     ![Login diagram](images/flow.png)
-#### Creating CICD pipeline 
 
- 1. #### Install Jenkins and access on port 8080
-    ```bash 
-        http://<Instance_IP>:8080
-        # Development environment only
-        http://<Instance_IP>:8080
-        
-        # Production environment (recommended)
-        # Access through reverse proxy with HTTPS
-        https://<your-domain>/jenkins
-     ```
-    Login and install Suggested Plugins.
+## Migration from Jenkins to GitHub Actions
 
-2. #### Jenkins Configuration.
-    - SetUp Agent
-        - Agents are used for distribute the builds in parallel execution
-        ![Agent](images/agent.png)
+This repository has been migrated from Jenkins-based CI/CD to GitHub Actions workflows. The legacy Jenkins configuration files are preserved in the `legacy/jenkins/` directory for reference.
 
-        - Install Docker and docker-compose:V2 on worker node and add the user who is executing the Jenkins job into the docker group. because we are going to deploy application in worker node itself.
+### Jenkins to GitHub Actions Mapping
 
-        **Note**    Security Considerations for Docker Setup. When configuring Docker for Jenkins:
+| Jenkins Function | GitHub Actions Equivalent |
+|------------------|---------------------------|
+| `code_checkout()` | `actions/checkout@v4` |
+| `trivy_scan()` | Trivy CLI installation and execution |
+| `owasp_dependency()` | `dependency-check/Dependency-Check_Action@main` |
+| `sonarqube_analysis()` | SonarQube Scanner CLI |
+| `sonarqube_code_quality()` | `sonarqube-quality-gate-action@master` |
+| `docker_build()` | Docker CLI commands |
+| `docker_push()` | `docker/login-action@v3` + Docker CLI |
 
-        - Avoid adding the Jenkins user to the Docker group, as it grants root-level access.
-        - Use Rootless Docker to run Docker daemons and containers without root privileges. [Official Guide](https://docs.docker.com/engine/security/rootless/).
-        - Configure sudo for Docker commands:
-        - Grant specific permissions in the sudoers file.
-        - Use sudo in your pipeline scripts to execute Docker commands.
-        - Implement access control mechanisms using Docker authorization plugins or socket proxies.
+#### Creating CICD pipeline (GitHub Actions)
 
-        
+ 1. #### Configure GitHub Actions (Replaces Jenkins)
+    - No server installation required
+    - Configure repository secrets in GitHub repository settings
+    - Access workflows at: `https://github.com/COG-GTM/Springboot-BankApp/actions`
+    - Workflows automatically trigger on code changes
 
-    - Configure Shared Library
-        - Configure the task effectively in centralized manner.
-        -  Configure shared library for your Jenkins Server Navigate through Dashboard > Manage Jenkins > System, and add Global Trusted Pipeline Libraries. (Modern SCM)
+2. #### GitHub Actions Configuration.
+    - **Runners**: GitHub-hosted runners (ubuntu-latest) provide isolated execution environment
+    - **Security**: Built-in Docker support with secure credential management
+    - **Secrets Management**: 
+        - Configure repository secrets in Settings > Secrets and variables > Actions
+        - Required secrets documented in `.github/SECRETS.md`
+        - Includes Docker Hub, SonarQube, and email notification credentials
+    - **Workflow Triggers**:
+        - Automatic triggers on push/PR to DevOps/main branches
+        - Manual triggers via workflow dispatch
+        - Repository dispatch for CI/CD pipeline coordination
 
-        ![Shared-library](images/shared_library.png)
-
-
-    - Configure Crendentials.
-        - Credentials that are requied during job execution. 
-        - e.g. DockerHub credentials for push and pull images.
-        
-        ![Shared-library](images/credentials.png)
-
-3. #### Create a Pipeline, Execute Job and Configure Webhook
+3. #### GitHub Actions Workflows and Triggers
  
-    - Configure Pipeline.
-        - Configure job to get pipeline from SCM.
-        ![pipeline](images/pipeline.png)
-    - Build Job and Check
-        - Build the Job
-    - Configure WebHook and poll SCM.
-        - Webhook Configuration       
-
-            1. **Install GitHub Plugin**
-            - Go to `Manage Jenkins > Manage Plugins > Available`.
-            - Search for **GitHub Integration Plugin**, install, and restart Jenkins if needed.
-
-            2. **Configure Jenkins Job**
-            - In job configuration, enable **GitHub hook trigger for GITScm polling** under **Build Triggers**.
-
-            3. **Set Up Webhook in GitHub**
-            - Go to `Repository > Settings > Webhooks > Add webhook`.
-            - Configure:
-                - **Payload URL**: `http://<your-jenkins-server>:8080/github-webhook/`
-                - **Content type**: `application/json`
-                - **Events**: Select **push** or others as needed.
-            - (Optional) Add a secret token for security.
-
-            4. **Test Webhook**
-            - Push changes to the repo and verify the job is triggered.
-            - Check webhook status under **Recent Deliveries** in GitHub.
-
-        - SCM Polling Configuration 
-
-            1. **Enable SCM Polling**
-            - In job configuration, select **Poll SCM** under **Build Triggers**.
-            - Add a cron expression in **Schedule**:
-                - Every 5 minutes: `H/5 * * * *`
-                - Every 15 minutes: `H/15 * * * *`
-
-            2. **Test Polling**
-            - Push changes to the repo and wait for the next polling interval.
-            - Verify in **Polling Log** under the Jenkins job dashboard.
-
-
-        - Key Notes
-
-            - **Webhooks vs Polling**:
-            - Webhooks are immediate and resource-efficient.
-            - Polling introduces delays and higher resource usage.
-
-            - **Security**:
-            - Use SSL/TLS for GitHub-Jenkins communication.
-            - Ensure Jenkins is accessible via the firewall.
-
-            - **Jenkins Pipeline**:
-            - Ensure `Jenkinsfile` is correctly configured to check out the repo and branch.
+    - **CI Workflow** (`.github/workflows/ci.yml`):
+        - Triggers on push/PR to DevOps/main branches
+        - Manual trigger via workflow dispatch with custom Docker tags
+        - Includes all security scanning, code quality, and Docker operations
+        
+    - **CD Workflow** (`.github/workflows/cd.yml`):
+        - Triggers via repository dispatch from CI workflow
+        - Manual trigger for specific Docker tag deployments
+        - Updates Kubernetes manifests and sends notifications
+        
+    - **Automatic Triggers**:
+        - No webhook configuration needed - GitHub Actions triggers automatically
+        - Built-in integration with GitHub repository events
+        - Secure and immediate execution without polling delays
+        
+    - **Manual Execution**:
+        ```bash
+        # Trigger CI workflow manually
+        gh workflow run ci.yml --ref DevOps -f docker_tag=manual-v1.0
+        
+        # Trigger CD workflow manually  
+        gh workflow run cd.yml --ref DevOps -f docker_tag=manual-v1.0
+        ```
+        
+    - **Monitoring**:
+        - View workflow runs at: `https://github.com/COG-GTM/Springboot-BankApp/actions`
+        - Real-time logs and status updates
+        - Email notifications for deployment status
 
 
 
