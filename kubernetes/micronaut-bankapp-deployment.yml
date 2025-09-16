@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: micronaut-bankapp-deploy
+  name: micronaut-bankapp-deploy
+  namespace: bankapp-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: micronaut-bankapp-deploy
+  template:
+    metadata:
+      labels:
+        app: micronaut-bankapp-deploy
+    spec:
+      containers:
+      - name: micronaut-bankapp
+        image: trainwithshubham/micronaut-bankapp:v1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DATASOURCES_DEFAULT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: bankapp-config
+              key: MICRONAUT_DATASOURCE_URL
+        - name: DATASOURCES_DEFAULT_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: bankapp-config
+              key: SPRING_DATASOURCE_USERNAME
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: bankapp-config
+              key: MYSQL_DATABASE
+        - name: DATASOURCES_DEFAULT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: SPRING_DATASOURCE_PASSWORD
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: micronaut-bankapp-service
+  namespace: bankapp-namespace
+spec:
+  selector:
+    app: micronaut-bankapp-deploy
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8080
+  type: ClusterIP
