@@ -26,7 +26,7 @@ public interface MicronautBankingClient extends BankingService {
         return findAccountByUsername(username);
     }
 
-    @PostMapping("/api/register")
+    @PostMapping(value = "/api/register", consumes = "application/json")
     Map<String, String> registerAccountInternal(@RequestParam("username") String username, @RequestParam("password") String password);
 
     @Override
@@ -35,7 +35,7 @@ public interface MicronautBankingClient extends BankingService {
         depositInternal(amount, account.getUsername());
     }
 
-    @PostMapping("/api/deposit")
+    @PostMapping(value = "/api/deposit", consumes = "application/json")
     Map<String, String> depositInternal(@RequestParam("amount") BigDecimal amount, @RequestParam("username") String username);
 
     @Override
@@ -44,7 +44,7 @@ public interface MicronautBankingClient extends BankingService {
         withdrawInternal(amount, account.getUsername());
     }
 
-    @PostMapping("/api/withdraw")
+    @PostMapping(value = "/api/withdraw", consumes = "application/json")
     Map<String, String> withdrawInternal(@RequestParam("amount") BigDecimal amount, @RequestParam("username") String username);
 
     @Override
@@ -62,6 +62,6 @@ public interface MicronautBankingClient extends BankingService {
         transferAmountInternal(toUsername, amount, fromAccount.getUsername());
     }
 
-    @PostMapping("/api/transfer")
+    @PostMapping(value = "/api/transfer", consumes = "application/json")
     Map<String, String> transferAmountInternal(@RequestParam("toUsername") String toUsername, @RequestParam("amount") BigDecimal amount, @RequestParam("fromUsername") String fromUsername);
 }
