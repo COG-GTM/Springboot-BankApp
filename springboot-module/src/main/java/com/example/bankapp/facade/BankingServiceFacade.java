@@ -1,5 +1,6 @@
 package com.example.bankapp.facade;
 
+import com.example.bankapp.client.MicronautBankingClient;
 import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.service.AccountService;
@@ -20,7 +21,8 @@ public class BankingServiceFacade implements BankingService {
     @Autowired
     private AccountService springBootService;
     
-    private BankingService micronautService;
+    @Autowired(required = false)
+    private MicronautBankingClient micronautService;
     
     public Account findAccountByUsername(String username) {
         try {
