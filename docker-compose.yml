@@ -17,9 +17,9 @@ services:
       retries: 3
       start_period: 30s
 
-  mainapp:
-    image: ${DUSER}/${IMAGE}
-    container_name: Bankapp
+  springboot-app:
+    image: ${DUSER}/${SPRING_IMAGE}
+    container_name: SpringBoot-Bankapp
     environment:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -34,6 +34,28 @@ services:
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  micronaut-app:
+    image: ${DUSER}/${MICRONAUT_IMAGE}
+    container_name: Micronaut-Bankapp
+    environment:
+      - DATASOURCES_DEFAULT_USERNAME=root
+      - DATASOURCES_DEFAULT_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - DATASOURCES_DEFAULT_PASSWORD=Test@123
+    ports:
+      - "8081:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - bankapp
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
