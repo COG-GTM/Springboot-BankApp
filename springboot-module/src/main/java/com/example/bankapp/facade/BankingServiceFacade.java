@@ -37,14 +37,23 @@ public class BankingServiceFacade implements BankingService {
     }
     
     public Account registerAccount(String username, String password) {
+        logger.info("BankingServiceFacade.registerAccount called for username: {}", username);
+        logger.info("micronautService is null: {}", micronautService == null);
+        
         try {
             if (micronautService != null) {
-                return micronautService.registerAccount(username, password);
+                logger.info("Attempting to call Micronaut service for registration");
+                Account result = micronautService.registerAccount(username, password);
+                logger.info("Micronaut service call successful for username: {}", username);
+                return result;
+            } else {
+                logger.warn("micronautService is null, falling back to Spring Boot service");
             }
         } catch (Exception e) {
             logger.error("Defaulting to Spring boot due to micronaut failure: " + e.getMessage(), e);
         }
         
+        logger.info("Using Spring Boot service for registration");
         return springBootService.registerAccount(username, password);
     }
     
