@@ -13,25 +13,25 @@ import java.util.Map;
 public interface MicronautBankingClient {
 
     @GetMapping("/api/account")
-    Account findAccountByUsername(@RequestParam("username") String username);
+    Account findAccountByUsername(@RequestParam(value = "username") String username);
 
     @PostMapping("/api/register")
-    Map<String, String> registerAccountRaw(@RequestParam("username") String username, 
-                                          @RequestParam("password") String password);
+    Map<String, String> registerAccountRaw(@RequestParam(value = "username") String username, 
+                                          @RequestParam(value = "password") String password);
 
     @PostMapping("/api/deposit")
-    Map<String, String> depositRaw(@RequestParam("amount") BigDecimal amount, 
-                                  @RequestParam("username") String username);
+    Map<String, String> depositRaw(@RequestParam(value = "amount") BigDecimal amount, 
+                                  @RequestParam(value = "username") String username);
 
     @PostMapping("/api/withdraw")
-    Map<String, String> withdrawRaw(@RequestParam("amount") BigDecimal amount, 
-                                   @RequestParam("username") String username);
+    Map<String, String> withdrawRaw(@RequestParam(value = "amount") BigDecimal amount, 
+                                   @RequestParam(value = "username") String username);
 
     @GetMapping("/api/transactions")
-    List<Transaction> getTransactionsByUsername(@RequestParam("username") String username);
+    List<Transaction> getTransactionsByUsername(@RequestParam(value = "username") String username);
 
     @PostMapping("/api/transfer")
-    Map<String, String> transferRaw(@RequestParam("toUsername") String toUsername,
-                                   @RequestParam("amount") BigDecimal amount,
-                                   @RequestParam("fromUsername") String fromUsername);
+    Map<String, String> transferRaw(@RequestParam(value = "toUsername") String toUsername,
+                                   @RequestParam(value = "amount") BigDecimal amount,
+                                   @RequestParam(value = "fromUsername") String fromUsername);
 }
