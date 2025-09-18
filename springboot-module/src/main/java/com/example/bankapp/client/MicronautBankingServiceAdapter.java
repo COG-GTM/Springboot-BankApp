@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service("micronautBankingService")
 public class MicronautBankingServiceAdapter implements BankingService {
@@ -22,18 +24,27 @@ public class MicronautBankingServiceAdapter implements BankingService {
 
     @Override
     public Account registerAccount(String username, String password) {
-        client.registerAccountRaw(username, password);
+        Map<String, String> request = new HashMap<>();
+        request.put("username", username);
+        request.put("password", password);
+        client.registerAccountRaw(request);
         return client.findAccountByUsername(username);
     }
 
     @Override
     public void deposit(Account account, BigDecimal amount) {
-        client.depositRaw(amount, account.getUsername());
+        Map<String, Object> request = new HashMap<>();
+        request.put("amount", amount);
+        request.put("username", account.getUsername());
+        client.depositRaw(request);
     }
 
     @Override
     public void withdraw(Account account, BigDecimal amount) {
-        client.withdrawRaw(amount, account.getUsername());
+        Map<String, Object> request = new HashMap<>();
+        request.put("amount", amount);
+        request.put("username", account.getUsername());
+        client.withdrawRaw(request);
     }
 
     @Override
@@ -43,6 +54,10 @@ public class MicronautBankingServiceAdapter implements BankingService {
 
     @Override
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        client.transferRaw(toUsername, amount, fromAccount.getUsername());
+        Map<String, Object> request = new HashMap<>();
+        request.put("toUsername", toUsername);
+        request.put("amount", amount);
+        request.put("fromUsername", fromAccount.getUsername());
+        client.transferRaw(request);
     }
 }

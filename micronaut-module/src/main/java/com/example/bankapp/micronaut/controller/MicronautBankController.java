@@ -7,6 +7,9 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.annotation.Body;
+import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Consumes;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -32,8 +35,9 @@ public class MicronautBankController {
     }
 
     @Post("/api/register")
-    public HttpResponse<Map<String, String>> registerAccount(@QueryValue String username, 
-                                                           @QueryValue String password) {
+    public HttpResponse<Map<String, String>> registerAccount(@Body Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
         try {
             accountService.registerAccount(username, password);
             Map<String, String> response = new HashMap<>();
@@ -47,7 +51,9 @@ public class MicronautBankController {
     }
 
     @Post("/api/deposit")
-    public HttpResponse<Map<String, String>> deposit(@QueryValue BigDecimal amount, @QueryValue String username) {
+    public HttpResponse<Map<String, String>> deposit(@Body Map<String, Object> request) {
+        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+        String username = request.get("username").toString();
         try {
             Account account = accountService.findAccountByUsername(username);
             accountService.deposit(account, amount);
@@ -62,7 +68,9 @@ public class MicronautBankController {
     }
 
     @Post("/api/withdraw")
-    public HttpResponse<Map<String, String>> withdraw(@QueryValue BigDecimal amount, @QueryValue String username) {
+    public HttpResponse<Map<String, String>> withdraw(@Body Map<String, Object> request) {
+        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+        String username = request.get("username").toString();
         try {
             Account account = accountService.findAccountByUsername(username);
             accountService.withdraw(account, amount);
@@ -89,9 +97,10 @@ public class MicronautBankController {
     }
 
     @Post("/api/transfer")
-    public HttpResponse<Map<String, String>> transfer(@QueryValue String toUsername, 
-                                                    @QueryValue BigDecimal amount, 
-                                                    @QueryValue String fromUsername) {
+    public HttpResponse<Map<String, String>> transfer(@Body Map<String, Object> request) {
+        String toUsername = request.get("toUsername").toString();
+        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+        String fromUsername = request.get("fromUsername").toString();
         try {
             Account fromAccount = accountService.findAccountByUsername(fromUsername);
             accountService.transferAmount(fromAccount, toUsername, amount);
