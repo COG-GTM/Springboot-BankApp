@@ -7,6 +7,7 @@ import com.example.bankapp.service.BankingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -20,6 +21,8 @@ public class BankingServiceFacade implements BankingService {
     @Autowired
     private AccountService springBootService;
     
+    @Autowired
+    @Qualifier("micronautBankingService")
     private BankingService micronautService;
     
     public Account findAccountByUsername(String username) {
