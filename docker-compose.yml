@@ -18,7 +18,9 @@ services:
       start_period: 30s
 
   springboot-app:
-    image: ${DUSER}/${SPRING_IMAGE}
+    build:
+      context: .
+      dockerfile: springboot-module/Dockerfile
     container_name: SpringBoot-Bankapp
     environment:
       - SPRING_DATASOURCE_USERNAME=root
@@ -41,7 +43,9 @@ services:
       start_period: 30s
 
   micronaut-app:
-    image: ${DUSER}/${MICRONAUT_IMAGE}
+    build:
+      context: .
+      dockerfile: micronaut-module/Dockerfile
     container_name: Micronaut-Bankapp
     environment:
       - DATASOURCES_DEFAULT_USERNAME=root
