@@ -2,7 +2,7 @@ FROM openjdk:17-jdk-slim
 
 WORKDIR /app
 
-COPY target/springboot-module-*.jar app.jar
+COPY springboot-module/target/springboot-module-*.jar app.jar
 
 EXPOSE 8080
 
