@@ -18,17 +18,20 @@ services:
       start_period: 30s
 
   springboot-app:
-    image: ${DUSER}/${SPRING_IMAGE}
+    build:
+      context: ./springboot-module
+      dockerfile: Dockerfile
     container_name: SpringBoot-Bankapp
     environment:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - SPRING_DATASOURCE_PASSWORD=Test@123
+      - MICRONAUT_SERVICE_URL=http://micronaut-app:8080
     ports:
       - "8080:8080"
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
+      - micronaut-app
     networks:
       - bankapp
     restart: always
@@ -40,7 +43,9 @@ services:
       start_period: 30s
 
   micronaut-app:
-    image: ${DUSER}/${MICRONAUT_IMAGE}
+    build:
+      context: ./micronaut-module
+      dockerfile: Dockerfile
     container_name: Micronaut-Bankapp
     environment:
       - DATASOURCES_DEFAULT_USERNAME=root
@@ -54,12 +59,6 @@ services:
     networks:
       - bankapp
     restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
 networks:
   bankapp:

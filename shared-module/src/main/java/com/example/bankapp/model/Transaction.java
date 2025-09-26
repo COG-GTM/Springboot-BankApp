@@ -1,10 +1,13 @@
 package com.example.bankapp.model;
 
+import io.micronaut.core.annotation.Introspected;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Serdeable.Serializable
+@Introspected
 public class Transaction {
 
     @Id

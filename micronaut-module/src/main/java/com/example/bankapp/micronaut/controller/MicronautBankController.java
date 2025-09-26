@@ -1,18 +1,24 @@
 package com.example.bankapp.micronaut.controller;
 
 import com.example.bankapp.model.Account;
+import com.example.bankapp.model.Transaction;
 import com.example.bankapp.micronaut.service.MicronautAccountService;
+import com.example.bankapp.micronaut.dto.AccountRequest;
+import com.example.bankapp.micronaut.dto.AccountResponse;
+import com.example.bankapp.micronaut.dto.DepositWithdrawRequest;
+import com.example.bankapp.micronaut.dto.TransactionRequest;
+import com.example.bankapp.micronaut.dto.TransactionResponse;
+import com.example.bankapp.micronaut.dto.TransferRequest;
+import java.util.Map;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
-import io.micronaut.http.annotation.QueryValue;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-@Controller
+@Controller("/api")
 public class MicronautBankController {
 
     private final MicronautAccountService accountService;
@@ -21,87 +27,84 @@ public class MicronautBankController {
         this.accountService = accountService;
     }
 
-    @Get("/api/account")
-    public HttpResponse<Account> getAccount(@QueryValue String username) {
+    @Post("/account/find")
+    public HttpResponse<?> findAccount(@Body AccountRequest request) {
         try {
-            Account account = accountService.findAccountByUsername(username);
-            return HttpResponse.ok(account);
-        } catch (Exception e) {
-            return HttpResponse.serverError();
-        }
-    }
-
-    @Post("/api/register")
-    public HttpResponse<Map<String, String>> registerAccount(@QueryValue String username, 
-                                                           @QueryValue String password) {
-        try {
-            accountService.registerAccount(username, password);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Account registered successfully");
-            return HttpResponse.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return HttpResponse.badRequest(error);
-        }
-    }
-
-    @Post("/api/deposit")
-    public HttpResponse<Map<String, String>> deposit(@QueryValue BigDecimal amount, @QueryValue String username) {
-        try {
-            Account account = accountService.findAccountByUsername(username);
-            accountService.deposit(account, amount);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Deposit successful");
+            Account account = accountService.findAccountByUsername(request.getUsername());
+            AccountResponse response = new AccountResponse(account.getId(), account.getUsername(), account.getBalance());
             return HttpResponse.ok(response);
         } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return HttpResponse.badRequest(error);
+            return HttpResponse.serverError().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @Post("/api/withdraw")
-    public HttpResponse<Map<String, String>> withdraw(@QueryValue BigDecimal amount, @QueryValue String username) {
+    @Post("/test")
+    public HttpResponse<?> test() {
+        return HttpResponse.ok().body(Map.of("message", "Micronaut service is working"));
+    }
+
+    @Get("/test")
+    public HttpResponse<?> testGet() {
+        return HttpResponse.ok().body(Map.of("message", "Micronaut GET test endpoint is working"));
+    }
+
+    @Post("/account/register")
+    public HttpResponse<?> registerAccount(@Body AccountRequest request) {
         try {
-            Account account = accountService.findAccountByUsername(username);
-            accountService.withdraw(account, amount);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Withdrawal successful");
+            Account account = accountService.registerAccount(request.getUsername(), request.getPassword());
+            AccountResponse response = new AccountResponse(account.getId(), account.getUsername(), account.getBalance());
             return HttpResponse.ok(response);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return HttpResponse.badRequest(error);
-        }
-    }
-
-    @Get("/api/transactions")
-    public HttpResponse<?> getTransactions(@QueryValue String username) {
-        try {
-            Account account = accountService.findAccountByUsername(username);
-            return HttpResponse.ok(accountService.getTransactionHistory(account));
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return HttpResponse.serverError(error);
+            return HttpResponse.serverError().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @Post("/api/transfer")
-    public HttpResponse<Map<String, String>> transfer(@QueryValue String toUsername, 
-                                                    @QueryValue BigDecimal amount, 
-                                                    @QueryValue String fromUsername) {
+    @Post("/account/deposit")
+    public HttpResponse<?> deposit(@Body DepositWithdrawRequest request) {
         try {
-            Account fromAccount = accountService.findAccountByUsername(fromUsername);
-            accountService.transferAmount(fromAccount, toUsername, amount);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Transfer successful");
-            return HttpResponse.ok(response);
+            Account account = accountService.findAccountByUsername(request.getUsername());
+            accountService.deposit(account, request.getAmount());
+            return HttpResponse.ok().body(Map.of("message", "Deposit successful"));
+        } catch (Exception e) {
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Post("/account/withdraw")
+    public HttpResponse<?> withdraw(@Body DepositWithdrawRequest request) {
+        try {
+            Account account = accountService.findAccountByUsername(request.getUsername());
+            accountService.withdraw(account, request.getAmount());
+            return HttpResponse.ok().body(Map.of("message", "Withdrawal successful"));
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return HttpResponse.badRequest(error);
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Post("/account/transactions")
+    public HttpResponse<?> getTransactions(@Body TransactionRequest request) {
+        try {
+            Account account = accountService.findAccountByUsername(request.getUsername());
+            List<Transaction> transactions = accountService.getTransactionHistory(account);
+            List<TransactionResponse> transactionResponses = transactions.stream()
+                .map(t -> new TransactionResponse(t.getId(), t.getAmount(), t.getDescription(), t.getTimestamp(), t.getAccount().getUsername()))
+                .collect(java.util.stream.Collectors.toList());
+            return HttpResponse.ok(transactionResponses);
+        } catch (Exception e) {
+            return HttpResponse.serverError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Post("/account/transfer")
+    public HttpResponse<?> transfer(@Body TransferRequest request) {
+        try {
+            Account fromAccount = accountService.findAccountByUsername(request.getFromUsername());
+            accountService.transferAmount(fromAccount, request.getToUsername(), request.getAmount());
+            return HttpResponse.ok().body(Map.of("message", "Transfer successful"));
+        } catch (RuntimeException e) {
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
