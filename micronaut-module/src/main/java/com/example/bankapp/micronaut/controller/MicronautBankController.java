@@ -42,6 +42,11 @@ public class MicronautBankController {
         return HttpResponse.ok().body(Map.of("message", "Micronaut service is working"));
     }
 
+    @Get("/test")
+    public HttpResponse<?> testGet() {
+        return HttpResponse.ok().body(Map.of("message", "Micronaut GET test endpoint is working"));
+    }
+
     @Post("/account/register")
     public HttpResponse<?> registerAccount(@Body AccountRequest request) {
         try {
