@@ -9,6 +9,7 @@ import com.example.bankapp.micronaut.dto.DepositWithdrawRequest;
 import com.example.bankapp.micronaut.dto.TransactionRequest;
 import com.example.bankapp.micronaut.dto.TransactionResponse;
 import com.example.bankapp.micronaut.dto.TransferRequest;
+import java.util.Map;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -37,13 +38,15 @@ public class MicronautBankController {
     }
 
     @Post("/account/register")
-    public HttpResponse<AccountResponse> registerAccount(@Body AccountRequest request) {
+    public HttpResponse<?> registerAccount(@Body AccountRequest request) {
         try {
             Account account = accountService.registerAccount(request.getUsername(), request.getPassword());
             AccountResponse response = new AccountResponse(account.getId(), account.getUsername(), account.getBalance());
             return HttpResponse.ok(response);
         } catch (RuntimeException e) {
-            return HttpResponse.badRequest();
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return HttpResponse.serverError().body(Map.of("error", e.getMessage()));
         }
     }
 
