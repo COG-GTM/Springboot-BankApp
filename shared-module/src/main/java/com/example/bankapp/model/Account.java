@@ -1,5 +1,6 @@
 package com.example.bankapp.model;
 
+import io.micronaut.core.annotation.Introspected;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @Entity
 @Serdeable
+@Introspected
 public class Account implements UserDetails {
 
     @Id
