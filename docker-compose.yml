@@ -30,10 +30,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      mysql:
-        condition: service_healthy
-      micronaut-app:
-        condition: service_healthy
+      - mysql
+      - micronaut-app
     networks:
       - bankapp
     restart: always
