@@ -62,7 +62,7 @@ services:
       - bankapp
     restart: always
     healthcheck:
-      test: ["CMD", "sh", "-c", "netstat -an | grep 8080 | grep LISTEN || exit 1"]
+      test: ["CMD", "sh", "-c", "wget -q --spider http://localhost:8080/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
