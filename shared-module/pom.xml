@@ -26,6 +26,12 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>io.micronaut.serde</groupId>
+			<artifactId>micronaut-serde-jackson</artifactId>
+			<version>2.9.0</version>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 	
 	<build>
@@ -33,6 +39,15 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>io.micronaut.serde</groupId>
+							<artifactId>micronaut-serde-processor</artifactId>
+							<version>2.9.0</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
