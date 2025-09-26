@@ -1,23 +1,22 @@
 package com.example.bankapp.micronaut.dto;
 
-import com.example.bankapp.model.Account;
 import io.micronaut.serde.annotation.Serdeable;
 
 @Serdeable
 public class TransactionRequest {
-    private Account account;
+    private String username;
 
     public TransactionRequest() {}
 
-    public TransactionRequest(Account account) {
-        this.account = account;
+    public TransactionRequest(String username) {
+        this.username = username;
     }
 
-    public Account getAccount() {
-        return account;
+    public String getUsername() {
+        return username;
     }
 
-    public void setAccount(Account account) {
-        this.account = account;
+    public void setUsername(String username) {
+        this.username = username;
     }
 }

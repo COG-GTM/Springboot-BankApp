@@ -49,7 +49,8 @@ public class MicronautBankController {
     @Post("/account/deposit")
     public HttpResponse<Void> deposit(@Body DepositWithdrawRequest request) {
         try {
-            accountService.deposit(request.getAccount(), request.getAmount());
+            Account account = accountService.findAccountByUsername(request.getUsername());
+            accountService.deposit(account, request.getAmount());
             return HttpResponse.ok();
         } catch (Exception e) {
             return HttpResponse.badRequest();
@@ -59,7 +60,8 @@ public class MicronautBankController {
     @Post("/account/withdraw")
     public HttpResponse<Void> withdraw(@Body DepositWithdrawRequest request) {
         try {
-            accountService.withdraw(request.getAccount(), request.getAmount());
+            Account account = accountService.findAccountByUsername(request.getUsername());
+            accountService.withdraw(account, request.getAmount());
             return HttpResponse.ok();
         } catch (RuntimeException e) {
             return HttpResponse.badRequest();
@@ -69,7 +71,8 @@ public class MicronautBankController {
     @Post("/account/transactions")
     public HttpResponse<List<Transaction>> getTransactions(@Body TransactionRequest request) {
         try {
-            List<Transaction> transactions = accountService.getTransactionHistory(request.getAccount());
+            Account account = accountService.findAccountByUsername(request.getUsername());
+            List<Transaction> transactions = accountService.getTransactionHistory(account);
             return HttpResponse.ok(transactions);
         } catch (Exception e) {
             return HttpResponse.serverError();
@@ -79,7 +82,8 @@ public class MicronautBankController {
     @Post("/account/transfer")
     public HttpResponse<Void> transfer(@Body TransferRequest request) {
         try {
-            accountService.transferAmount(request.getFromAccount(), request.getToUsername(), request.getAmount());
+            Account fromAccount = accountService.findAccountByUsername(request.getFromUsername());
+            accountService.transferAmount(fromAccount, request.getToUsername(), request.getAmount());
             return HttpResponse.ok();
         } catch (RuntimeException e) {
             return HttpResponse.badRequest();

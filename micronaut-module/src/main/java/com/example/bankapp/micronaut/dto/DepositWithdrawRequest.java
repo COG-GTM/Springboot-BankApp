@@ -1,27 +1,26 @@
 package com.example.bankapp.micronaut.dto;
 
-import com.example.bankapp.model.Account;
 import io.micronaut.serde.annotation.Serdeable;
 import java.math.BigDecimal;
 
 @Serdeable
 public class DepositWithdrawRequest {
-    private Account account;
+    private String username;
     private BigDecimal amount;
 
     public DepositWithdrawRequest() {}
 
-    public DepositWithdrawRequest(Account account, BigDecimal amount) {
-        this.account = account;
+    public DepositWithdrawRequest(String username, BigDecimal amount) {
+        this.username = username;
         this.amount = amount;
     }
 
-    public Account getAccount() {
-        return account;
+    public String getUsername() {
+        return username;
     }
 
-    public void setAccount(Account account) {
-        this.account = account;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public BigDecimal getAmount() {
