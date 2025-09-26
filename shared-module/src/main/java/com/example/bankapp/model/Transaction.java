@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Serdeable
+@Serdeable.Serializable
 @Introspected
 public class Transaction {
 
