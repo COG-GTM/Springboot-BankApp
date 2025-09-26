@@ -4,6 +4,7 @@ import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.micronaut.service.MicronautAccountService;
 import com.example.bankapp.micronaut.dto.AccountRequest;
+import com.example.bankapp.micronaut.dto.AccountResponse;
 import com.example.bankapp.micronaut.dto.DepositWithdrawRequest;
 import com.example.bankapp.micronaut.dto.TransactionRequest;
 import com.example.bankapp.micronaut.dto.TransferRequest;
@@ -24,20 +25,22 @@ public class MicronautBankController {
     }
 
     @Post("/account/find")
-    public HttpResponse<Account> findAccount(@Body AccountRequest request) {
+    public HttpResponse<AccountResponse> findAccount(@Body AccountRequest request) {
         try {
             Account account = accountService.findAccountByUsername(request.getUsername());
-            return HttpResponse.ok(account);
+            AccountResponse response = new AccountResponse(account.getId(), account.getUsername(), account.getBalance());
+            return HttpResponse.ok(response);
         } catch (Exception e) {
             return HttpResponse.serverError();
         }
     }
 
     @Post("/account/register")
-    public HttpResponse<Account> registerAccount(@Body AccountRequest request) {
+    public HttpResponse<AccountResponse> registerAccount(@Body AccountRequest request) {
         try {
             Account account = accountService.registerAccount(request.getUsername(), request.getPassword());
-            return HttpResponse.ok(account);
+            AccountResponse response = new AccountResponse(account.getId(), account.getUsername(), account.getBalance());
+            return HttpResponse.ok(response);
         } catch (RuntimeException e) {
             return HttpResponse.badRequest();
         }
