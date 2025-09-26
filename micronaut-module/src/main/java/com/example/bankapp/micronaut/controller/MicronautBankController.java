@@ -7,6 +7,7 @@ import com.example.bankapp.micronaut.dto.AccountRequest;
 import com.example.bankapp.micronaut.dto.AccountResponse;
 import com.example.bankapp.micronaut.dto.DepositWithdrawRequest;
 import com.example.bankapp.micronaut.dto.TransactionRequest;
+import com.example.bankapp.micronaut.dto.TransactionResponse;
 import com.example.bankapp.micronaut.dto.TransferRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
@@ -69,11 +70,14 @@ public class MicronautBankController {
     }
 
     @Post("/account/transactions")
-    public HttpResponse<List<Transaction>> getTransactions(@Body TransactionRequest request) {
+    public HttpResponse<List<TransactionResponse>> getTransactions(@Body TransactionRequest request) {
         try {
             Account account = accountService.findAccountByUsername(request.getUsername());
             List<Transaction> transactions = accountService.getTransactionHistory(account);
-            return HttpResponse.ok(transactions);
+            List<TransactionResponse> transactionResponses = transactions.stream()
+                .map(t -> new TransactionResponse(t.getId(), t.getAmount(), t.getDescription(), t.getTimestamp(), t.getAccount().getUsername()))
+                .collect(java.util.stream.Collectors.toList());
+            return HttpResponse.ok(transactionResponses);
         } catch (Exception e) {
             return HttpResponse.serverError();
         }
