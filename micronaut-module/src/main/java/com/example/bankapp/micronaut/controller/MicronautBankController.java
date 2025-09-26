@@ -27,13 +27,13 @@ public class MicronautBankController {
     }
 
     @Post("/account/find")
-    public HttpResponse<AccountResponse> findAccount(@Body AccountRequest request) {
+    public HttpResponse<?> findAccount(@Body AccountRequest request) {
         try {
             Account account = accountService.findAccountByUsername(request.getUsername());
             AccountResponse response = new AccountResponse(account.getId(), account.getUsername(), account.getBalance());
             return HttpResponse.ok(response);
         } catch (Exception e) {
-            return HttpResponse.serverError();
+            return HttpResponse.serverError().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -51,29 +51,29 @@ public class MicronautBankController {
     }
 
     @Post("/account/deposit")
-    public HttpResponse<Void> deposit(@Body DepositWithdrawRequest request) {
+    public HttpResponse<?> deposit(@Body DepositWithdrawRequest request) {
         try {
             Account account = accountService.findAccountByUsername(request.getUsername());
             accountService.deposit(account, request.getAmount());
-            return HttpResponse.ok();
+            return HttpResponse.ok().body(Map.of("message", "Deposit successful"));
         } catch (Exception e) {
-            return HttpResponse.badRequest();
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @Post("/account/withdraw")
-    public HttpResponse<Void> withdraw(@Body DepositWithdrawRequest request) {
+    public HttpResponse<?> withdraw(@Body DepositWithdrawRequest request) {
         try {
             Account account = accountService.findAccountByUsername(request.getUsername());
             accountService.withdraw(account, request.getAmount());
-            return HttpResponse.ok();
+            return HttpResponse.ok().body(Map.of("message", "Withdrawal successful"));
         } catch (RuntimeException e) {
-            return HttpResponse.badRequest();
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @Post("/account/transactions")
-    public HttpResponse<List<TransactionResponse>> getTransactions(@Body TransactionRequest request) {
+    public HttpResponse<?> getTransactions(@Body TransactionRequest request) {
         try {
             Account account = accountService.findAccountByUsername(request.getUsername());
             List<Transaction> transactions = accountService.getTransactionHistory(account);
@@ -82,18 +82,18 @@ public class MicronautBankController {
                 .collect(java.util.stream.Collectors.toList());
             return HttpResponse.ok(transactionResponses);
         } catch (Exception e) {
-            return HttpResponse.serverError();
+            return HttpResponse.serverError().body(Map.of("error", e.getMessage()));
         }
     }
 
     @Post("/account/transfer")
-    public HttpResponse<Void> transfer(@Body TransferRequest request) {
+    public HttpResponse<?> transfer(@Body TransferRequest request) {
         try {
             Account fromAccount = accountService.findAccountByUsername(request.getFromUsername());
             accountService.transferAmount(fromAccount, request.getToUsername(), request.getAmount());
-            return HttpResponse.ok();
+            return HttpResponse.ok().body(Map.of("message", "Transfer successful"));
         } catch (RuntimeException e) {
-            return HttpResponse.badRequest();
+            return HttpResponse.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
