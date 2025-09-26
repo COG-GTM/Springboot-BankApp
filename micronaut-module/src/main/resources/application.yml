@@ -3,32 +3,14 @@ micronaut:
     name: micronaut-bankapp
   server:
     port: 8080
-  security:
-    enabled: true
-    session:
-      enabled: true
-    endpoints:
-      login:
-        enabled: true
-      logout:
-        enabled: true
 
 datasources:
   default:
-    url: jdbc:mysql://localhost:3306/bankappdb?useSSL=false&serverTimezone=UTC
+    url: ${DATASOURCES_DEFAULT_URL:`jdbc:mysql://localhost:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC`}
     driverClassName: com.mysql.cj.jdbc.Driver
-    username: root
-    password: Test@123
+    username: ${DATASOURCES_DEFAULT_USERNAME:root}
+    password: ${DATASOURCES_DEFAULT_PASSWORD:Test@123}
     dialect: MYSQL
-
-jpa:
-  default:
-    properties:
-      hibernate:
-        hbm2ddl:
-          auto: update
-        show_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
 
 endpoints:
   health:
