@@ -15,6 +15,7 @@ spec:
       labels:
         app: bankapp-deploy
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
       - name: bankapp
         image: trainwithshubham/bankapp-eks:v2
@@ -41,18 +42,22 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: SPRING_DATASOURCE_PASSWORD
-        # readinessProbe:
-        #   httpGet:
-        #     path: /actuator/health  # Update this based on your app's health endpoint
-        #     port: 8080
-        #   initialDelaySeconds: 10
-        #   periodSeconds: 5
-        # livenessProbe:
-        #   httpGet:
-        #     path: /actuator/health  # Update this based on your app's health endpoint
-        #     port: 8080
-        #   initialDelaySeconds: 30
-        #   periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         resources:
           requests:
             memory: "512Mi"
