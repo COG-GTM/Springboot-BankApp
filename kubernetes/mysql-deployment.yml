@@ -16,25 +16,27 @@ spec:
         app: mysql
     spec:
       containers:
-      - name: mysql
-        image: mysql:8.0  # Use a specific, stable version for production
+      - name: postgres
+        image: postgres:16
         ports:
-        - containerPort: 3306
+        - containerPort: 5432
         env:
-        - name: MYSQL_ROOT_PASSWORD
+        - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mysql-secret
               key: MYSQL_ROOT_PASSWORD
-        - name: MYSQL_DATABASE
+        - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
               key: MYSQL_DATABASE
+        - name: POSTGRES_USER
+          value: root
         volumeMounts:
         - name: mysql-pv-storage
-          mountPath: /var/lib/mysql
-          subPath: mysql-data  # Optional: Ensure a subdirectory is used for better volume organization
+          mountPath: /var/lib/postgresql/data
+          subPath: mysql-data
       volumes:
       - name: mysql-pv-storage
         persistentVolumeClaim:
