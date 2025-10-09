@@ -1,17 +1,18 @@
 version: "3.8"
 services:
-  mysql:
-    image: mysql:latest
-    container_name: mysql
+  postgres:
+    image: postgres:16
+    container_name: postgres
     environment:
-      - MYSQL_ROOT_PASSWORD=Test@123
-      - MYSQL_DATABASE=BankDB
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=BankDB
+      - POSTGRES_USER=root
     volumes:
-      - bankapp-volume:/var/lib/mysql
+      - bankapp-volume:/var/lib/postgresql/data
     networks:
       - bankapp
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U root"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -22,12 +23,12 @@ services:
     container_name: Bankapp
     environment:
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - SPRING_DATASOURCE_PASSWORD=Test@123
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/BankDB
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
     ports:
       - "8080:8080"
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     networks:
       - bankapp
