@@ -18,7 +18,7 @@ spec:
       initContainers:
       - name: "wait-for-{{ .Values.db_statefulset.name }}"
         image: busybox:1.28
-        command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 3306; do echo waiting for mysql; sleep 5; done;']
+        command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 5432; do echo waiting for postgres; sleep 5; done;']
       containers:
       - name: {{ .Values.app_deployment.name }}
         image: {{ .Values.image.app }}
@@ -38,7 +38,7 @@ spec:
         - name: SPRING_DATASOURCE_PASSWORD        
           valueFrom:
             secretKeyRef:
-              name: mysql-secret  
+              name: postgres-secret  
               key: SPRING_DATASOURCE_PASSWORD      
         livenessProbe:
           httpGet:
