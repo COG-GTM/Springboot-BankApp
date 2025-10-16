@@ -4,6 +4,6 @@ metadata:
   name: bankapp-config
   namespace: bankapp-namespace
 data:
-  MYSQL_DATABASE: BankDB
-  SPRING_DATASOURCE_URL: jdbc:mysql://mysql-svc.bankapp-namespace.svc.cluster.local:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-  SPRING_DATASOURCE_USERNAME: root
+  POSTGRES_DB: BankDB
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-svc.bankapp-namespace.svc.cluster.local:5432/BankDB
+  SPRING_DATASOURCE_USERNAME: postgres
