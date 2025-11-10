@@ -3,7 +3,7 @@
 #----------------------------------
 
 # Import docker image with maven installed
-FROM maven:3.9.9-openjdk-21 as builder
+FROM maven:3.9-eclipse-temurin-21 as builder
 
 # Add maintainer, so that new user will understand who had written this Dockerfile
 MAINTAINER Madhup Pandey<madhuppandey2908@gmail.com>
