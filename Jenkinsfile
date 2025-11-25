@@ -28,6 +28,14 @@ pipeline {
             }
         }
         
+        stage("Maven: Run Tests"){
+            steps{
+                script{
+                    sh 'mvn test'
+                }
+            }
+        }
+        
         stage("Trivy: Filesystem scan"){
             steps{
                 script{
