@@ -17,8 +17,8 @@ WORKDIR /src
 # Copy source code from local to container
 COPY . /src
 
-# Build application and skip test cases
-RUN mvn clean install -DskipTests=true
+# Build application and run tests
+RUN mvn clean install
 
 #--------------------------------------
 # Stage 2
