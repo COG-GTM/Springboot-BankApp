@@ -2,8 +2,15 @@
 pipeline {
     agent any
     
+    tools {
+        jdk 'JDK11'  // Configure JDK 11 in Jenkins Global Tool Configuration
+        maven 'Maven3'  // Ensure Maven 3.x is configured
+    }
+    
     environment{
         SONAR_HOME = tool "Sonar"
+        JAVA_HOME = "${tool 'JDK11'}"
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
     }
     
     parameters {

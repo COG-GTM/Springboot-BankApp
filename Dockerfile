@@ -2,8 +2,8 @@
 # Stage 1
 #----------------------------------
 
-# Import docker image with maven installed
-FROM maven:3.8.3-openjdk-17 as builder 
+# Import docker image with maven installed (Java 11 for migration)
+FROM maven:3.8.8-eclipse-temurin-11 as builder
 
 # Add maintainer, so that new user will understand who had written this Dockerfile
 MAINTAINER Madhup Pandey<madhuppandey2908@gmail.com>
@@ -24,8 +24,8 @@ RUN mvn clean install -DskipTests=true
 # Stage 2
 #--------------------------------------
 
-# Import small size java image
-FROM openjdk:17-alpine as deployer
+# Import small size java image (Java 11 for migration)
+FROM eclipse-temurin:11-jre-alpine as deployer
 
 # Copy build from stage 1 (builder)
 COPY --from=builder /src/target/*.jar /src/target/bankapp.jar
