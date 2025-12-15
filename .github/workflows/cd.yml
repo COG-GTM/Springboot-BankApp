@@ -1,0 +1,41 @@
+name: CD Pipeline
+
+on:
+  repository_dispatch:
+    types: [cd-trigger]
+
+jobs:
+  cd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update Kubernetes manifest
+        run: |
+          cd kubernetes
+          sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${{ github.event.client_payload.docker_tag }}|g" bankapp-deployment.yaml
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Updated K8s Deployment Docker Image Version"
+          git push
+      
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "BankApp Application has been updated and deployed"
+          body: |
+            Project: ${{ github.repository }}
+            Build Number: ${{ github.run_number }}
+            URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: trainwithshubham@gmail.com
