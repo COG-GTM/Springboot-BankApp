@@ -14,8 +14,10 @@ This document describes the migration of the Spring Boot BankApp application fro
 - Updated compiler source and target from `1.8` to `22`
 
 #### 2. Dockerfile Updates
-- Stage 1 (Build): Changed from `maven:3.8.3-openjdk-17` to `maven:3.9.6-openjdk-22`
-- Stage 2 (Runtime): Changed from `openjdk:17-alpine` to `openjdk:22-alpine`
+- Stage 1 (Build): Changed from `maven:3.8.3-openjdk-17` to `maven:3.9.6-eclipse-temurin-22`
+- Stage 2 (Runtime): Changed from `openjdk:17-alpine` to `eclipse-temurin:22-alpine`
+
+**Note:** The original OpenJDK images (`maven:3.9.6-openjdk-22` and `openjdk:22-alpine`) do not exist on Docker Hub. Eclipse Temurin is the recommended replacement for OpenJDK Docker images.
 
 ### Dependency Compatibility
 
