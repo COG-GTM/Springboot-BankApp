@@ -89,7 +89,14 @@ sudo su
 - <b>Install Jenkins</b>
 ```bash
 sudo apt update -y
-sudo apt install fontconfig openjdk-22-jre -y
+sudo apt install fontconfig -y
+
+# Install Eclipse Temurin JDK 22 (openjdk-22 is not available in Ubuntu apt repositories)
+sudo apt install -y wget apt-transport-https gpg
+wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | sudo gpg --dearmor -o /usr/share/keyrings/adoptium.gpg
+echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/adoptium.list
+sudo apt update -y
+sudo apt install temurin-22-jdk -y
 
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
