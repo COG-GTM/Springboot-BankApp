@@ -14,6 +14,24 @@
 - ArgoCD (CD)
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
+
+## Java Requirements
+
+This application requires **Java 11** or later. The build is configured to target Java 11 bytecode and will enforce this minimum version requirement via the Maven Enforcer plugin.
+
+To build and run locally:
+```bash
+# Verify Java version (must be 11+)
+java -version
+
+# Build the application
+./mvnw clean package
+
+# Run tests
+./mvnw test
+```
+
+For detailed migration notes from Java 8 to Java 11, see [MIGRATION_NOTES.md](MIGRATION_NOTES.md).
   
 ### Steps to deploy:
 
