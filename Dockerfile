@@ -33,5 +33,7 @@ COPY --from=builder /src/target/*.jar /src/target/bankapp.jar
 # Expose application port 
 EXPOSE 8080
 
-# Start the application
-ENTRYPOINT ["java", "-jar", "/src/target/bankapp.jar"]
+# Start the application with Java 11 optimizations
+# -XX:+UseG1GC: Use G1 garbage collector (default in Java 11)
+# -Xlog:gc*: Enable unified GC logging (Java 9+ format)
+ENTRYPOINT ["java", "-XX:+UseG1GC", "-Xlog:gc*:file=/var/log/gc.log:time,uptime,level,tags", "-jar", "/src/target/bankapp.jar"]
