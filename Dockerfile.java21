@@ -1,0 +1,25 @@
+#----------------------------------
+# Stage 1
+#----------------------------------
+
+FROM maven:3.9-eclipse-temurin-21 AS builder
+
+LABEL app=bankapp
+
+WORKDIR /src
+
+COPY . /src
+
+RUN mvn clean install -DskipTests=true
+
+#--------------------------------------
+# Stage 2
+#--------------------------------------
+
+FROM eclipse-temurin:21-jre-alpine AS deployer
+
+COPY --from=builder /src/target/*.jar /src/target/bankapp.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "/src/target/bankapp.jar"]
