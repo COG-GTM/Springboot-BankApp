@@ -1,0 +1,10 @@
+environment             = "prod"
+aws_region              = "us-east-1"
+vpc_cidr                = "10.2.0.0/16"
+eks_cluster_version     = "1.29"
+eks_node_instance_types = ["t3.large"]
+eks_node_desired_size   = 3
+eks_node_min_size       = 2
+eks_node_max_size       = 6
+db_instance_class       = "db.r6g.large"
+db_name                 = "BankDB"
