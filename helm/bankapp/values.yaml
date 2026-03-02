@@ -23,7 +23,7 @@ app_deployment:
 
 ## image repository and tag of app and db.
 image:
-  app: trainwithshubham/springboot-bankapp:latest
+  app: trainwithshubham/springboot-bankapp:java21
   db: mysql:latest
 
 # NodePort svc for bankapp
