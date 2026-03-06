@@ -2,7 +2,9 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,8 +17,11 @@ import java.math.BigDecimal;
 @Controller
 public class BankController {
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
+
+    public BankController(AccountService accountService) {
+        this.accountService = accountService;
+    }
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -72,10 +77,13 @@ public class BankController {
     }
 
     @GetMapping("/transactions")
-    public String transactionHistory(Model model) {
+    public String transactionHistory(Model model,
+                                     @RequestParam(defaultValue = "0") int page,
+                                     @RequestParam(defaultValue = "20") int size) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
-        model.addAttribute("transactions", accountService.getTransactionHistory(account));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
+        model.addAttribute("transactions", accountService.getTransactionHistory(account, pageable));
         return "transactions";
     }
 
@@ -94,5 +102,4 @@ public class BankController {
 
         return "redirect:/dashboard";
     }
-
 }

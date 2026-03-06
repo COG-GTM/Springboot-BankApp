@@ -9,16 +9,21 @@ import java.util.Collection;
 import java.util.List;
 
 @Entity
+@Table(name = "account", indexes = {
+    @Index(name = "idx_account_username", columnList = "username", unique = true)
+})
 public class Account implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true)
     private String username;
     private String password;
     private BigDecimal balance;
 
-    @OneToMany(mappedBy = "account")
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private List<Transaction> transactions;
 
     @Transient
