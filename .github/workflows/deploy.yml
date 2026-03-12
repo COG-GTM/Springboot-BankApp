@@ -1,0 +1,49 @@
+name: BankApp Deploy (Docker Compose)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose configuration
+        run: docker compose config -q
+
+      - name: Graceful shutdown
+        run: docker compose down --timeout 30
+
+      - name: Verify all containers stopped
+        run: |
+          if docker compose ps -q | grep -q .; then
+            echo "Failed to stop all containers"
+            exit 1
+          fi
+
+      - name: Start services
+        run: docker compose up -d
+
+      - name: Health check
+        run: |
+          max_attempts=30
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            unhealthy_services=$(docker compose ps --format '{{.Name}}: {{.Status}}' | grep -v "(healthy)" || true)
+            if [ -z "$unhealthy_services" ]; then
+              echo "All services are healthy"
+              exit 0
+            else
+              echo "Unhealthy services detected:"
+              echo "$unhealthy_services"
+            fi
+            echo "Waiting for services to be healthy (attempt $attempt/$max_attempts)..."
+            sleep 10
+            attempt=$((attempt + 1))
+          done
+          echo "Health check timeout after $max_attempts attempts"
+          docker compose ps
+          exit 1
