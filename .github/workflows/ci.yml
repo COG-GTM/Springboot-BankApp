@@ -24,9 +24,11 @@ jobs:
 
       - name: Set Docker tag
         id: tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.DOCKER_TAG }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "DOCKER_TAG=${{ github.event.inputs.DOCKER_TAG }}" >> $GITHUB_ENV
+            echo "DOCKER_TAG=$INPUT_TAG" >> $GITHUB_ENV
           else
             echo "DOCKER_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
           fi

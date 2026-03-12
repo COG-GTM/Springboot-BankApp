@@ -21,11 +21,14 @@ jobs:
           token: ${{ secrets.GIT_TOKEN }}
 
       - name: Set Docker tag
+        env:
+          DISPATCH_TAG: ${{ github.event.client_payload.docker_tag }}
+          INPUT_TAG: ${{ github.event.inputs.DOCKER_TAG }}
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "DOCKER_TAG=${{ github.event.client_payload.docker_tag }}" >> $GITHUB_ENV
+            echo "DOCKER_TAG=$DISPATCH_TAG" >> $GITHUB_ENV
           else
-            echo "DOCKER_TAG=${{ github.event.inputs.DOCKER_TAG }}" >> $GITHUB_ENV
+            echo "DOCKER_TAG=$INPUT_TAG" >> $GITHUB_ENV
           fi
 
       - name: Verify Docker Image Tag
