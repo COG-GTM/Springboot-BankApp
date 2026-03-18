@@ -146,6 +146,9 @@
 									</limits>
 								</rule>
 							</rules>
+								<includes>
+								<include>com/example/bankapp/service/**</include>
+							</includes>
 							<excludes>
 								<exclude>**/generated/**</exclude>
 							</excludes>
