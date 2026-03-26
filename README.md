@@ -88,7 +88,7 @@ sudo su
 >  Make sure the ssh-public-key "eks-nodegroup-key is available in your aws account"
 - <b>Install Jenkins</b>
 > [!Note]
-> openjdk-22-jre is not available in standard Ubuntu repositories. Use openjdk-21-jre (which supports running Java 22 compiled code) or install Java 22 from Eclipse Temurin/Adoptium.
+> openjdk-23-jre is not available in standard Ubuntu repositories. Use openjdk-21-jre (which supports running Java 23 compiled code) or install Java 23 from Eclipse Temurin/Adoptium.
 ```bash
 sudo apt update -y
 sudo apt install fontconfig openjdk-21-jre -y

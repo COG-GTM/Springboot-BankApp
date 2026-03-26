@@ -1,7 +1,13 @@
-# Java 17 to Java 22 Migration Notes
+# Migration Notes
 
 ## Overview
-This document outlines the migration from Java 17 to Java 22 for the Springboot-BankApp application.
+This document outlines the Java version migrations for the Springboot-BankApp application.
+
+---
+
+# Java 17 to Java 22 Migration
+
+This section covers the migration from Java 17 to Java 22.
 
 ## Compatibility Assessment
 
@@ -119,3 +125,62 @@ This document outlines the migration from Java 17 to Java 22 for the Springboot-
 ### Communication
 - Notify stakeholders of planned maintenance window
 - Prepare status update templates for deployment progress
+
+---
+
+# Java 22 to Java 23 Migration
+
+This section covers the migration from Java 22 to Java 23.
+
+## Changes Made
+
+### pom.xml
+- Updated Spring Boot parent version from `3.3.3` to `3.4.4` for official Java 23 support
+- Updated `java.version` property from `22` to `23`
+- Updated `maven-compiler-plugin` version from `3.8.0` to `3.13.0` for proper Java 23 support
+- Updated compiler `<source>` and `<target>` from `22` to `23`
+
+### Dockerfile
+- **Build Stage**: Updated from `maven:3.9-eclipse-temurin-22-alpine` to `maven:3.9-eclipse-temurin-23-alpine`
+- **Runtime Stage**: Updated from `eclipse-temurin:22-jre-alpine` to `eclipse-temurin:23-jre-alpine`
+
+### README.md
+- Updated Java version references from Java 22 to Java 23 in Jenkins installation notes
+- Note about openjdk availability updated to reflect Java 23
+
+### README-K8S.md
+- Updated Jenkins installation instructions from `openjdk-17-jre` to `openjdk-21-jre` (was never updated during the Java 17→22 migration)
+- Added note about Java 23 availability from Eclipse Temurin/Adoptium
+
+### JAVA22_MIGRATION_NOTES.md
+- Renamed to `MIGRATION_NOTES.md` to serve as a unified migration history document
+- Added this Java 22→23 migration section
+
+## Compatibility Notes
+
+### Spring Boot 3.4.4
+- Spring Boot 3.4.x officially supports Java 17-23
+- Upgrading from 3.3.3 to 3.4.4 provides full Java 23 compatibility
+- All Spring Boot starters (Data JPA, Security, Thymeleaf, Web) are compatible with Java 23
+
+### MySQL Connector 8.0.33
+- MySQL Connector/J 8.0.33 supports Java 8+ and remains fully compatible with Java 23
+- No connector version upgrade required
+
+### maven-compiler-plugin 3.13.0
+- Upgraded from 3.8.0 to 3.13.0 for proper Java 23 bytecode generation
+- Supports `--release`, `<source>`, and `<target>` flags for Java 23
+
+## Java 23 Language Features Now Available
+
+### Finalized Features
+- **Pattern Matching for switch** (finalized) — exhaustive switch expressions with pattern matching
+- **Record Patterns** (finalized) — deconstruct record values in pattern matching
+
+### Preview Features (require `--enable-preview`)
+- **Primitive Types in Patterns** (preview) — extend pattern matching to support primitive type patterns
+- **Structured Concurrency** (preview) — simplify multithreaded programming via `StructuredTaskScope`
+- **Scoped Values** (preview) — share immutable data within and across threads efficiently
+- **Stream Gatherers** (preview) — custom intermediate stream operations
+- **Markdown Documentation Comments** — write JavaDoc comments using Markdown syntax
+- **Flexible Constructor Bodies** (preview) — allow statements before `super()` or `this()` in constructors
