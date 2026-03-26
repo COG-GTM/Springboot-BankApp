@@ -3,7 +3,7 @@
 #----------------------------------
 
 # Import docker image with maven installed
-FROM maven:3.9-eclipse-temurin-22-alpine as builder
+FROM maven:3.9-eclipse-temurin-23-alpine as builder
 
 # Add maintainer, so that new user will understand who had written this Dockerfile
 MAINTAINER Madhup Pandey<madhuppandey2908@gmail.com>
@@ -25,7 +25,7 @@ RUN mvn clean install -DskipTests=true
 #--------------------------------------
 
 # Import small size java image
-FROM eclipse-temurin:22-jre-alpine as deployer
+FROM eclipse-temurin:23-jre-alpine as deployer
 
 # Copy build from stage 1 (builder)
 COPY --from=builder /src/target/*.jar /src/target/bankapp.jar
