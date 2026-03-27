@@ -18,7 +18,7 @@ WORKDIR /src
 COPY . /src
 
 # Build application and skip test cases
-RUN mvn clean install -DskipTests=true
+RUN mvn clean install
 
 #--------------------------------------
 # Stage 2
