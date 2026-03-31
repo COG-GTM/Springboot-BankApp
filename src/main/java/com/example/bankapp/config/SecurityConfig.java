@@ -20,12 +20,12 @@ public class SecurityConfig {
     AccountService accountService;
 
     @Bean
-    public static PasswordEncoder passwordEncoder() {
+    public static PasswordEncoder password_encoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain security_filter_chain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
@@ -53,8 +53,8 @@ public class SecurityConfig {
     }
 
     @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(accountService).passwordEncoder(passwordEncoder());
+    public void configure_global(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(accountService).passwordEncoder(password_encoder());
 
     }
 }
