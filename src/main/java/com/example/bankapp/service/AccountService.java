@@ -7,6 +7,7 @@ import com.example.bankapp.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -31,25 +32,25 @@ public class AccountService implements UserDetailsService {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    public Account findAccountByUsername(String username) {
-        return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
+    public Account find_account_by_username(String username) {
+        return accountRepository.find_by_username(username).orElseThrow(() -> new RuntimeException("Account not found"));
     }
 
-    public Account registerAccount(String username, String password) {
-        if (accountRepository.findByUsername(username).isPresent()) {
+    public Account register_account(String username, String password) {
+        if (accountRepository.find_by_username(username).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
 
         Account account = new Account();
-        account.setUsername(username);
-        account.setPassword(passwordEncoder.encode(password)); // Encrypt password
-        account.setBalance(BigDecimal.ZERO); // Initial balance set to 0
+        account.set_username(username);
+        account.set_password(passwordEncoder.encode(password)); // Encrypt password
+        account.set_balance(BigDecimal.ZERO); // Initial balance set to 0
         return accountRepository.save(account);
     }
 
 
     public void deposit(Account account, BigDecimal amount) {
-        account.setBalance(account.getBalance().add(amount));
+        account.set_balance(account.get_balance().add(amount));
         accountRepository.save(account);
 
         Transaction transaction = new Transaction(
@@ -62,10 +63,10 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
-        if (account.getBalance().compareTo(amount) < 0) {
+        if (account.get_balance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
-        account.setBalance(account.getBalance().subtract(amount));
+        account.set_balance(account.get_balance().subtract(amount));
         accountRepository.save(account);
 
         Transaction transaction = new Transaction(
@@ -77,22 +78,20 @@ public class AccountService implements UserDetailsService {
         transactionRepository.save(transaction);
     }
 
-    public List<Transaction> getTransactionHistory(Account account) {
-        return transactionRepository.findByAccountId(account.getId());
+    public List<Transaction> get_transaction_history(Account account) {
+        return transactionRepository.find_by_account_id(account.get_id());
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        Account account = findAccountByUsername(username);
+        Account account = find_account_by_username(username);
         if (account == null) {
             throw new UsernameNotFoundException("Username or Password not found");
         }
-        return new Account(
-                account.getUsername(),
-                account.getPassword(),
-                account.getBalance(),
-                account.getTransactions(),
+        return new User(
+                account.get_username(),
+                account.get_password(),
                 authorities());
     }
 
@@ -100,26 +99,26 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
-    public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
+    public void transfer_amount(Account fromAccount, String toUsername, BigDecimal amount) {
+        if (fromAccount.get_balance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
-        Account toAccount = accountRepository.findByUsername(toUsername)
+        Account toAccount = accountRepository.find_by_username(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
 
         // Deduct from sender's account
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
+        fromAccount.set_balance(fromAccount.get_balance().subtract(amount));
         accountRepository.save(fromAccount);
 
         // Add to recipient's account
-        toAccount.setBalance(toAccount.getBalance().add(amount));
+        toAccount.set_balance(toAccount.get_balance().add(amount));
         accountRepository.save(toAccount);
 
         // Create transaction records for both accounts
         Transaction debitTransaction = new Transaction(
                 amount,
-                "Transfer Out to " + toAccount.getUsername(),
+                "Transfer Out to " + toAccount.get_username(),
                 LocalDateTime.now(),
                 fromAccount
         );
@@ -127,7 +126,7 @@ public class AccountService implements UserDetailsService {
 
         Transaction creditTransaction = new Transaction(
                 amount,
-                "Transfer In from " + fromAccount.getUsername(),
+                "Transfer In from " + fromAccount.get_username(),
                 LocalDateTime.now(),
                 toAccount
         );

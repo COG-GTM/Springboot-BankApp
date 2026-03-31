@@ -2,14 +2,13 @@ package com.example.bankapp.model;
 
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
 @Entity
-public class Account implements UserDetails {
+public class Account {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,52 +35,51 @@ public class Account implements UserDetails {
         this.authorities = authorities;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    public Collection<? extends GrantedAuthority> get_authorities() {
         return authorities;
     }
 
-    public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
+    public void set_authorities(Collection<? extends GrantedAuthority> authorities) {
         this.authorities = authorities;
     }
 
-    public Long getId() {
+    public Long get_id() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void set_id(Long id) {
         this.id = id;
     }
 
-    public String getUsername() {
+    public String get_username() {
         return username;
     }
 
-    public void setUsername(String username) {
+    public void set_username(String username) {
         this.username = username;
     }
 
-    public String getPassword() {
+    public String get_password() {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void set_password(String password) {
         this.password = password;
     }
 
-    public BigDecimal getBalance() {
+    public BigDecimal get_balance() {
         return balance;
     }
 
-    public void setBalance(BigDecimal balance) {
+    public void set_balance(BigDecimal balance) {
         this.balance = balance;
     }
 
-    public List<Transaction> getTransactions() {
+    public List<Transaction> get_transactions() {
         return transactions;
     }
 
-    public void setTransactions(List<Transaction> transactions) {
+    public void set_transactions(List<Transaction> transactions) {
         this.transactions = transactions;
     }
 }
