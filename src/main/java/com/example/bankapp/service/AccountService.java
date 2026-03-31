@@ -7,6 +7,7 @@ import com.example.bankapp.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -88,11 +89,9 @@ public class AccountService implements UserDetailsService {
         if (account == null) {
             throw new UsernameNotFoundException("Username or Password not found");
         }
-        return new Account(
+        return new User(
                 account.get_username(),
                 account.get_password(),
-                account.get_balance(),
-                account.get_transactions(),
                 authorities());
     }
 

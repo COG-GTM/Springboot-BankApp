@@ -2,14 +2,13 @@ package com.example.bankapp.model;
 
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
 @Entity
-public class Account implements UserDetails {
+public class Account {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,7 +35,6 @@ public class Account implements UserDetails {
         this.authorities = authorities;
     }
 
-    @Override
     public Collection<? extends GrantedAuthority> get_authorities() {
         return authorities;
     }
@@ -53,7 +51,6 @@ public class Account implements UserDetails {
         this.id = id;
     }
 
-    @Override
     public String get_username() {
         return username;
     }
@@ -62,7 +59,6 @@ public class Account implements UserDetails {
         this.username = username;
     }
 
-    @Override
     public String get_password() {
         return password;
     }
