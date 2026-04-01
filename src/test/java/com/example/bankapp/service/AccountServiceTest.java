@@ -34,6 +34,8 @@ class AccountServiceTest {
     @InjectMocks
     private AccountService accountService;
 
+    // Verifies that depositing funds increases the account balance and persists
+    // both the updated account and a "Deposit" transaction record.
     @Test
     void deposit_increasesBalanceAndSavesTransaction() {
         Account account = new Account();
@@ -50,6 +52,8 @@ class AccountServiceTest {
         assertEquals("Deposit", txCaptor.getValue().getType());
     }
 
+    // Verifies that withdrawing funds decreases the account balance and persists
+    // both the updated account and a withdrawal transaction record.
     @Test
     void withdraw_decreasesBalanceAndSavesTransaction() {
         Account account = new Account();
@@ -63,6 +67,8 @@ class AccountServiceTest {
         verify(transactionRepository).save(any(Transaction.class));
     }
 
+    // Verifies that withdrawing more than the available balance throws a
+    // RuntimeException with "Insufficient funds" and does not save anything.
     @Test
     void withdraw_insufficientFunds_throwsException() {
         Account account = new Account();
@@ -75,6 +81,8 @@ class AccountServiceTest {
         verify(accountRepository, never()).save(any());
     }
 
+    // Verifies that registering a new account encodes the password, sets the
+    // balance to zero, and saves the account with the correct username.
     @Test
     void registerAccount_success() {
         when(accountRepository.findByUsername("newuser")).thenReturn(Optional.empty());
@@ -92,6 +100,8 @@ class AccountServiceTest {
         assertEquals(BigDecimal.ZERO, saved.getBalance());
     }
 
+    // Verifies that registering with an already-taken username throws a
+    // RuntimeException with "Username already exists".
     @Test
     void registerAccount_duplicateUsername_throwsException() {
         Account existing = new Account();
@@ -104,6 +114,8 @@ class AccountServiceTest {
         assertEquals("Username already exists", ex.getMessage());
     }
 
+    // Verifies a successful transfer: sender balance decreases, recipient balance
+    // increases, and both a debit and credit transaction are saved.
     @Test
     void transferAmount_success() {
         Account fromAccount = new Account();
@@ -131,6 +143,8 @@ class AccountServiceTest {
         assertEquals("Transfer In from sender", credit.getType());
     }
 
+    // Verifies that transferring more than the sender's balance throws a
+    // RuntimeException with "Insufficient funds".
     @Test
     void transferAmount_insufficientFunds_throwsException() {
         Account fromAccount = new Account();
