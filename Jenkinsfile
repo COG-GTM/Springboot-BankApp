@@ -2,6 +2,10 @@
 pipeline {
     agent any
     
+    tools {
+        jdk 'JDK21'
+    }
+
     environment{
         SONAR_HOME = tool "Sonar"
     }
