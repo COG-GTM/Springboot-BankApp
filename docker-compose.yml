@@ -8,6 +8,7 @@ services:
       - MYSQL_DATABASE=BankDB
     volumes:
       - bankapp-volume:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
     networks:
       - bankapp
     healthcheck:
@@ -34,6 +35,30 @@ services:
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  example-api:
+    build:
+      context: ./example-api
+      dockerfile: Dockerfile
+    container_name: ExampleApi
+    environment:
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/ExampleDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - bankapp
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
