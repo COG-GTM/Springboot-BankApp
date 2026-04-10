@@ -48,7 +48,7 @@ services:
     environment:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/ExampleDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=Test@123
     ports:
       - "8081:8081"
     depends_on:
