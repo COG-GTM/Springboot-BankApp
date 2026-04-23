@@ -42,11 +42,6 @@ public class BankController {
         }
     }
 
-    @GetMapping("/login")
-    public String login() {
-        return "login";
-    }
-
     @PostMapping("/deposit")
     public String deposit(@RequestParam BigDecimal amount) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
