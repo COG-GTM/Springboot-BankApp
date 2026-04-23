@@ -41,10 +41,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/login", "/register", "/logout", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout(logout -> logout.disable())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
                                 response.sendRedirect("/login"))

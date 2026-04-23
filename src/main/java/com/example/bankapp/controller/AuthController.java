@@ -4,6 +4,10 @@ import com.example.bankapp.config.JwtUtil;
 import com.example.bankapp.service.AccountService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -50,13 +54,16 @@ public class AuthController {
     }
 
     @GetMapping("/logout")
-    public String logout(HttpServletResponse response) {
-        Cookie cookie = new Cookie("jwt", "");
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+    public ResponseEntity<Void> logout() {
         SecurityContextHolder.clearContext();
-        return "redirect:/login?logout";
+        ResponseCookie cookie = ResponseCookie.from("jwt", "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0)
+                .build();
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "/login?logout")
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .build();
     }
 }
