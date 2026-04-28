@@ -2,7 +2,6 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,8 +14,11 @@ import java.math.BigDecimal;
 @Controller
 public class BankController {
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
+
+    public BankController(AccountService accountService) {
+        this.accountService = accountService;
+    }
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -94,5 +96,4 @@ public class BankController {
 
         return "redirect:/dashboard";
     }
-
 }
