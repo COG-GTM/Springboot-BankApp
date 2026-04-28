@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,44 +36,63 @@ public class AccountService implements UserDetailsService {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
     }
 
+    @Transactional
     public Account registerAccount(String username, String password) {
+        if (username == null || !username.matches("^[a-zA-Z0-9_]{3,50}$")) {
+            throw new RuntimeException("Username must be 3-50 alphanumeric characters or underscores");
+        }
+        if (password == null || password.length() < 8) {
+            throw new RuntimeException("Password must be at least 8 characters");
+        }
         if (accountRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new RuntimeException("Registration failed. Please try a different username.");
         }
 
         Account account = new Account();
         account.setUsername(username);
-        account.setPassword(passwordEncoder.encode(password)); // Encrypt password
-        account.setBalance(BigDecimal.ZERO); // Initial balance set to 0
+        account.setPassword(passwordEncoder.encode(password));
+        account.setBalance(BigDecimal.ZERO);
         return accountRepository.save(account);
     }
 
 
+    @Transactional
     public void deposit(Account account, BigDecimal amount) {
-        account.setBalance(account.getBalance().add(amount));
-        accountRepository.save(account);
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Amount must be positive");
+        }
+        Account locked = accountRepository.findByUsernameForUpdate(account.getUsername())
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        locked.setBalance(locked.getBalance().add(amount));
+        accountRepository.save(locked);
 
         Transaction transaction = new Transaction(
                 amount,
                 "Deposit",
                 LocalDateTime.now(),
-                account
+                locked
         );
         transactionRepository.save(transaction);
     }
 
+    @Transactional
     public void withdraw(Account account, BigDecimal amount) {
-        if (account.getBalance().compareTo(amount) < 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Amount must be positive");
+        }
+        Account locked = accountRepository.findByUsernameForUpdate(account.getUsername())
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        if (locked.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
-        account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
+        locked.setBalance(locked.getBalance().subtract(amount));
+        accountRepository.save(locked);
 
         Transaction transaction = new Transaction(
                 amount,
                 "Withdrawal",
                 LocalDateTime.now(),
-                account
+                locked
         );
         transactionRepository.save(transaction);
     }
@@ -100,36 +120,59 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
+    @Transactional
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Amount must be positive");
+        }
+        String senderName = fromAccount.getUsername();
+        String recipientName = toUsername;
+
+        if (senderName.equals(recipientName)) {
+            throw new RuntimeException("Cannot transfer to yourself");
+        }
+
+        // Acquire locks in deterministic order to prevent ABBA deadlock
+        Account first, second;
+        if (senderName.compareTo(recipientName) < 0) {
+            first = accountRepository.findByUsernameForUpdate(senderName)
+                    .orElseThrow(() -> new RuntimeException("Account not found"));
+            second = accountRepository.findByUsernameForUpdate(recipientName)
+                    .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        } else {
+            second = accountRepository.findByUsernameForUpdate(recipientName)
+                    .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+            first = accountRepository.findByUsernameForUpdate(senderName)
+                    .orElseThrow(() -> new RuntimeException("Account not found"));
+        }
+
+        Account lockedFrom = senderName.equals(first.getUsername()) ? first : second;
+        Account lockedTo = senderName.equals(first.getUsername()) ? second : first;
+
+        if (lockedFrom.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
-        Account toAccount = accountRepository.findByUsername(toUsername)
-                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        lockedFrom.setBalance(lockedFrom.getBalance().subtract(amount));
+        accountRepository.save(lockedFrom);
 
-        // Deduct from sender's account
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        accountRepository.save(fromAccount);
-
-        // Add to recipient's account
-        toAccount.setBalance(toAccount.getBalance().add(amount));
-        accountRepository.save(toAccount);
+        lockedTo.setBalance(lockedTo.getBalance().add(amount));
+        accountRepository.save(lockedTo);
 
         // Create transaction records for both accounts
         Transaction debitTransaction = new Transaction(
                 amount,
-                "Transfer Out to " + toAccount.getUsername(),
+                "Transfer Out to " + lockedTo.getUsername(),
                 LocalDateTime.now(),
-                fromAccount
+                lockedFrom
         );
         transactionRepository.save(debitTransaction);
 
         Transaction creditTransaction = new Transaction(
                 amount,
-                "Transfer In from " + fromAccount.getUsername(),
+                "Transfer In from " + lockedFrom.getUsername(),
                 LocalDateTime.now(),
-                toAccount
+                lockedTo
         );
         transactionRepository.save(creditTransaction);
     }

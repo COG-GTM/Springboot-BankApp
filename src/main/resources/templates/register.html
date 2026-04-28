@@ -105,7 +105,7 @@
 
 <div class="container">
     <h2 class="text-left">Register a New Account</h2>
-    <form method="post" action="/register">
+    <form method="post" th:action="@{/register}">
         <div class="form-group">
             <label>Username:</label>
             <input type="text" class="form-control" name="username" required />
@@ -118,9 +118,7 @@
     </form>
     <p class="mt-3">Already have an account? <a href="/login" class="custom-link">Login here</a></p>
 
-    <div th:if="${error}" class="alert alert-danger mt-3 text-center">
-        User already present.
-    </div>
+    <div th:if="${error}" class="alert alert-danger mt-3 text-center" th:text="${error}"></div>
 </div>
 
 <footer class="footer">
