@@ -125,14 +125,29 @@ public class AccountService implements UserDetailsService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Amount must be positive");
         }
-        Account lockedFrom = accountRepository.findByUsernameForUpdate(fromAccount.getUsername())
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        String senderName = fromAccount.getUsername();
+        String recipientName = toUsername;
+
+        // Acquire locks in deterministic order to prevent ABBA deadlock
+        Account first, second;
+        if (senderName.compareTo(recipientName) < 0) {
+            first = accountRepository.findByUsernameForUpdate(senderName)
+                    .orElseThrow(() -> new RuntimeException("Account not found"));
+            second = accountRepository.findByUsernameForUpdate(recipientName)
+                    .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        } else {
+            second = accountRepository.findByUsernameForUpdate(recipientName)
+                    .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+            first = accountRepository.findByUsernameForUpdate(senderName)
+                    .orElseThrow(() -> new RuntimeException("Account not found"));
+        }
+
+        Account lockedFrom = senderName.equals(first.getUsername()) ? first : second;
+        Account lockedTo = senderName.equals(first.getUsername()) ? second : first;
+
         if (lockedFrom.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
-
-        Account lockedTo = accountRepository.findByUsernameForUpdate(toUsername)
-                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
 
         lockedFrom.setBalance(lockedFrom.getBalance().subtract(amount));
         accountRepository.save(lockedFrom);
