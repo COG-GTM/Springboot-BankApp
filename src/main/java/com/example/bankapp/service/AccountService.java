@@ -128,6 +128,10 @@ public class AccountService implements UserDetailsService {
         String senderName = fromAccount.getUsername();
         String recipientName = toUsername;
 
+        if (senderName.equals(recipientName)) {
+            throw new RuntimeException("Cannot transfer to yourself");
+        }
+
         // Acquire locks in deterministic order to prevent ABBA deadlock
         Account first, second;
         if (senderName.compareTo(recipientName) < 0) {
