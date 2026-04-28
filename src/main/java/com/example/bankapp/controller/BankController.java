@@ -3,6 +3,7 @@ package com.example.bankapp.controller;
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,7 +40,7 @@ public class BankController {
             accountService.registerAccount(username, password);
             return "redirect:/login";
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", extractErrorMessage(e));
             return "register";
         }
     }
@@ -65,7 +66,7 @@ public class BankController {
         try {
             accountService.withdraw(account, amount);
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", extractErrorMessage(e));
             model.addAttribute("account", account);
             return "dashboard";
         }
@@ -81,6 +82,13 @@ public class BankController {
         return "transactions";
     }
 
+    private String extractErrorMessage(RuntimeException e) {
+        if (e instanceof ResponseStatusException rse) {
+            return rse.getReason();
+        }
+        return e.getMessage();
+    }
+
     @PostMapping("/transfer")
     public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -89,7 +97,7 @@ public class BankController {
         try {
             accountService.transferAmount(fromAccount, toUsername, amount);
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", extractErrorMessage(e));
             model.addAttribute("account", fromAccount);
             return "dashboard";
         }
