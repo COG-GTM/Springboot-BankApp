@@ -36,7 +36,14 @@ public class BankRestController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return CompletableFuture.supplyAsync(() -> {
             Account account = accountService.findAccountByUsername(username);
-            accountService.deposit(account, amount);
+
+            try {
+                accountService.deposit(account, amount);
+            } catch (RuntimeException e) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", e.getMessage());
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
 
             Account updated = accountService.findAccountByUsername(username);
             Map<String, Object> response = new HashMap<>();

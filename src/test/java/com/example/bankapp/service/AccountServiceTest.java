@@ -57,6 +57,7 @@ class AccountServiceTest {
     @Test
     void deposit_shouldIncreaseBalance() {
         BigDecimal depositAmount = new BigDecimal("500.00");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
         when(transactionLoggingService.logDepositAsync(any(Account.class), any(BigDecimal.class)))
                 .thenReturn(CompletableFuture.completedFuture(new Transaction()));
@@ -71,6 +72,7 @@ class AccountServiceTest {
     @Test
     void deposit_withZeroAmount_shouldStillProcess() {
         BigDecimal depositAmount = BigDecimal.ZERO;
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
         when(transactionLoggingService.logDepositAsync(any(Account.class), any(BigDecimal.class)))
                 .thenReturn(CompletableFuture.completedFuture(new Transaction()));
@@ -84,6 +86,7 @@ class AccountServiceTest {
     @Test
     void withdraw_shouldDecreaseBalance() {
         BigDecimal withdrawAmount = new BigDecimal("300.00");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
         when(transactionLoggingService.logWithdrawalAsync(any(Account.class), any(BigDecimal.class)))
                 .thenReturn(CompletableFuture.completedFuture(new Transaction()));
@@ -98,6 +101,7 @@ class AccountServiceTest {
     @Test
     void withdraw_withInsufficientFunds_shouldThrowException() {
         BigDecimal withdrawAmount = new BigDecimal("1500.00");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
 
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> accountService.withdraw(testAccount, withdrawAmount));
@@ -116,6 +120,7 @@ class AccountServiceTest {
 
         BigDecimal transferAmount = new BigDecimal("200.00");
 
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
         when(accountRepository.findByUsername("recipient")).thenReturn(Optional.of(recipientAccount));
         when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
         when(transactionLoggingService.logTransferAsync(any(Account.class), any(BigDecimal.class), anyString()))
@@ -132,6 +137,7 @@ class AccountServiceTest {
     @Test
     void transferAmount_withInsufficientFunds_shouldThrowException() {
         BigDecimal transferAmount = new BigDecimal("2000.00");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
 
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> accountService.transferAmount(testAccount, "recipient", transferAmount));
@@ -143,7 +149,7 @@ class AccountServiceTest {
     @Test
     void transferAmount_toNonExistentUser_shouldThrowException() {
         BigDecimal transferAmount = new BigDecimal("100.00");
-
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
         when(accountRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
         RuntimeException exception = assertThrows(RuntimeException.class,
