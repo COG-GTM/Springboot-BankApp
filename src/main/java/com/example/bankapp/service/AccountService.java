@@ -1,5 +1,6 @@
 package com.example.bankapp.service;
 
+import com.example.bankapp.event.TransactionEvent;
 import com.example.bankapp.exception.AccountNotFoundException;
 import com.example.bankapp.exception.DuplicateUsernameException;
 import com.example.bankapp.exception.InsufficientFundsException;
@@ -9,6 +10,7 @@ import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -36,6 +38,9 @@ public class AccountService implements UserDetailsService {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username)
                 .orElseThrow(() -> new AccountNotFoundException("Account not found"));
@@ -62,13 +67,9 @@ public class AccountService implements UserDetailsService {
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
-        Transaction transaction = new Transaction(
-                amount,
-                "Deposit",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        eventPublisher.publishEvent(new TransactionEvent(
+                amount, "Deposit", account.getId(), LocalDateTime.now()
+        ));
     }
 
     @Transactional
@@ -82,13 +83,9 @@ public class AccountService implements UserDetailsService {
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
 
-        Transaction transaction = new Transaction(
-                amount,
-                "Withdrawal",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        eventPublisher.publishEvent(new TransactionEvent(
+                amount, "Withdrawal", account.getId(), LocalDateTime.now()
+        ));
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
@@ -130,20 +127,14 @@ public class AccountService implements UserDetailsService {
         toAccount.setBalance(toAccount.getBalance().add(amount));
         accountRepository.save(toAccount);
 
-        Transaction debitTransaction = new Transaction(
-                amount,
-                "Transfer Out to " + toAccount.getUsername(),
-                LocalDateTime.now(),
-                fromAccount
-        );
-        transactionRepository.save(debitTransaction);
+        eventPublisher.publishEvent(new TransactionEvent(
+                amount, "Transfer Out to " + toAccount.getUsername(),
+                fromAccount.getId(), LocalDateTime.now()
+        ));
 
-        Transaction creditTransaction = new Transaction(
-                amount,
-                "Transfer In from " + fromAccount.getUsername(),
-                LocalDateTime.now(),
-                toAccount
-        );
-        transactionRepository.save(creditTransaction);
+        eventPublisher.publishEvent(new TransactionEvent(
+                amount, "Transfer In from " + fromAccount.getUsername(),
+                toAccount.getId(), LocalDateTime.now()
+        ));
     }
 }

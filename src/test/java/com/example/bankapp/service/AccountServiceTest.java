@@ -1,11 +1,11 @@
 package com.example.bankapp.service;
 
+import com.example.bankapp.event.TransactionEvent;
 import com.example.bankapp.exception.AccountNotFoundException;
 import com.example.bankapp.exception.DuplicateUsernameException;
 import com.example.bankapp.exception.InsufficientFundsException;
 import com.example.bankapp.exception.InvalidAmountException;
 import com.example.bankapp.model.Account;
-import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
@@ -35,6 +36,9 @@ class AccountServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private AccountService accountService;
 
@@ -50,25 +54,25 @@ class AccountServiceTest {
     }
 
     @Test
-    void deposit_increasesBalanceAndSavesTransaction() {
+    void deposit_increasesBalanceAndPublishesEvent() {
         BigDecimal amount = new BigDecimal("500.00");
 
         accountService.deposit(account, amount);
 
         assertEquals(new BigDecimal("1500.00"), account.getBalance());
         verify(accountRepository).save(account);
-        verify(transactionRepository).save(any(Transaction.class));
+        verify(eventPublisher).publishEvent(any(TransactionEvent.class));
     }
 
     @Test
-    void withdraw_decreasesBalanceAndSavesTransaction() {
+    void withdraw_decreasesBalanceAndPublishesEvent() {
         BigDecimal amount = new BigDecimal("300.00");
 
         accountService.withdraw(account, amount);
 
         assertEquals(new BigDecimal("700.00"), account.getBalance());
         verify(accountRepository).save(account);
-        verify(transactionRepository).save(any(Transaction.class));
+        verify(eventPublisher).publishEvent(any(TransactionEvent.class));
     }
 
     @Test
@@ -88,7 +92,7 @@ class AccountServiceTest {
 
         assertEquals(BigDecimal.ZERO.setScale(2), account.getBalance().setScale(2));
         verify(accountRepository).save(account);
-        verify(transactionRepository).save(any(Transaction.class));
+        verify(eventPublisher).publishEvent(any(TransactionEvent.class));
     }
 
     @Test
@@ -105,7 +109,7 @@ class AccountServiceTest {
         assertEquals(new BigDecimal("800.00"), account.getBalance());
         assertEquals(new BigDecimal("700.00"), recipient.getBalance());
         verify(accountRepository, times(2)).save(any(Account.class));
-        verify(transactionRepository, times(2)).save(any(Transaction.class));
+        verify(eventPublisher, times(2)).publishEvent(any(TransactionEvent.class));
     }
 
     @Test

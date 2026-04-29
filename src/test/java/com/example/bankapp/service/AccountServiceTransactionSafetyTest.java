@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
@@ -29,6 +30,9 @@ class AccountServiceTransactionSafetyTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AccountService accountService;
@@ -53,7 +57,6 @@ class AccountServiceTransactionSafetyTest {
     void transferAmount_withTransactional_rollsBackOnFailure() {
         when(accountRepository.findByUsername("recipient")).thenReturn(Optional.of(recipient));
 
-        // First save (sender) succeeds, second save (recipient) throws
         when(accountRepository.save(any(Account.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0))
                 .thenThrow(new RuntimeException("Database error"));
@@ -61,10 +64,8 @@ class AccountServiceTransactionSafetyTest {
         assertThrows(RuntimeException.class,
                 () -> accountService.transferAmount(sender, "recipient", new BigDecimal("200.00")));
 
-        // In unit tests (no Spring context), @Transactional doesn't provide actual rollback.
-        // The in-memory objects are still mutated, but with @Transactional in production,
-        // the database changes would be rolled back by the transaction manager.
-        // This test verifies the exception propagates, which triggers the rollback.
+        // With @Transactional, the database changes are rolled back when an exception occurs.
+        // In unit tests without Spring context, we verify the exception propagates.
         verify(accountRepository, times(2)).save(any(Account.class));
     }
 
@@ -80,7 +81,5 @@ class AccountServiceTransactionSafetyTest {
                 () -> accountService.transferAmount(sender, "recipient", new BigDecimal("200.00")));
 
         assertEquals("Database error", ex.getMessage());
-        // The exception is not caught internally, so @Transactional will trigger rollback
-        // in a real Spring context, undoing the sender's balance deduction
     }
 }
