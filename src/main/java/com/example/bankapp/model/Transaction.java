@@ -1,10 +1,12 @@
 package com.example.bankapp.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "bank_transaction")
 public class Transaction {
 
     @Id
@@ -14,8 +16,12 @@ public class Transaction {
     private String type;
     private LocalDateTime timestamp;
 
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status = TransactionStatus.PENDING;
+
     @ManyToOne
     @JoinColumn(name = "account_id")
+    @JsonIgnore
     private Account account;
 
     public Transaction() {
@@ -27,6 +33,7 @@ public class Transaction {
         this.type = type;
         this.timestamp = timestamp;
         this.account = account;
+        this.status = TransactionStatus.PENDING;
     }
 
     public Long getId() {
@@ -67,5 +74,13 @@ public class Transaction {
 
     public void setAccount(Account account) {
         this.account = account;
+    }
+
+    public TransactionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TransactionStatus status) {
+        this.status = status;
     }
 }
