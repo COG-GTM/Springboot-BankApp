@@ -37,7 +37,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public Account registerAccount(String username, String password) {
-        if (username == null || username.trim().isEmpty() || username.length() < 3) {
+        if (username == null || username.trim().isEmpty() || username.trim().length() < 3) {
             throw new RuntimeException("Username must be at least 3 characters");
         }
         if (password == null || password.length() < 8) {
