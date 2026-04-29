@@ -1,5 +1,9 @@
 package com.example.bankapp.service;
 
+import com.example.bankapp.exception.AccountNotFoundException;
+import com.example.bankapp.exception.DuplicateUsernameException;
+import com.example.bankapp.exception.InsufficientFundsException;
+import com.example.bankapp.exception.InvalidAmountException;
 import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
@@ -71,7 +75,7 @@ class AccountServiceTest {
     void withdraw_insufficientFunds_throwsException() {
         BigDecimal amount = new BigDecimal("2000.00");
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        InsufficientFundsException ex = assertThrows(InsufficientFundsException.class,
                 () -> accountService.withdraw(account, amount));
         assertEquals("Insufficient funds", ex.getMessage());
     }
@@ -106,7 +110,7 @@ class AccountServiceTest {
 
     @Test
     void transferAmount_insufficientFunds_throwsException() {
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        InsufficientFundsException ex = assertThrows(InsufficientFundsException.class,
                 () -> accountService.transferAmount(account, "recipient", new BigDecimal("5000.00")));
         assertEquals("Insufficient funds", ex.getMessage());
     }
@@ -115,7 +119,7 @@ class AccountServiceTest {
     void transferAmount_recipientNotFound_throwsException() {
         when(accountRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        AccountNotFoundException ex = assertThrows(AccountNotFoundException.class,
                 () -> accountService.transferAmount(account, "nonexistent", new BigDecimal("100.00")));
         assertEquals("Recipient account not found", ex.getMessage());
     }
@@ -124,7 +128,7 @@ class AccountServiceTest {
     void findAccountByUsername_notFound_throwsException() {
         when(accountRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        AccountNotFoundException ex = assertThrows(AccountNotFoundException.class,
                 () -> accountService.findAccountByUsername("unknown"));
         assertEquals("Account not found", ex.getMessage());
     }
@@ -133,26 +137,32 @@ class AccountServiceTest {
     void registerAccount_duplicateUsername_throwsException() {
         when(accountRepository.findByUsername("testuser")).thenReturn(Optional.of(account));
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        DuplicateUsernameException ex = assertThrows(DuplicateUsernameException.class,
                 () -> accountService.registerAccount("testuser", "password"));
         assertEquals("Username already exists", ex.getMessage());
     }
 
     @Test
-    void deposit_zeroAmount_noValidation() {
-        accountService.deposit(account, BigDecimal.ZERO);
-
-        assertEquals(new BigDecimal("1000.00"), account.getBalance());
-        verify(accountRepository).save(account);
-        verify(transactionRepository).save(any(Transaction.class));
+    void deposit_zeroAmount_throwsInvalidAmountException() {
+        assertThrows(InvalidAmountException.class,
+                () -> accountService.deposit(account, BigDecimal.ZERO));
     }
 
     @Test
-    void deposit_negativeAmount_noValidation() {
-        accountService.deposit(account, new BigDecimal("-100.00"));
+    void deposit_negativeAmount_throwsInvalidAmountException() {
+        assertThrows(InvalidAmountException.class,
+                () -> accountService.deposit(account, new BigDecimal("-100.00")));
+    }
 
-        assertEquals(new BigDecimal("900.00"), account.getBalance());
-        verify(accountRepository).save(account);
-        verify(transactionRepository).save(any(Transaction.class));
+    @Test
+    void withdraw_negativeAmount_throwsInvalidAmountException() {
+        assertThrows(InvalidAmountException.class,
+                () -> accountService.withdraw(account, new BigDecimal("-50.00")));
+    }
+
+    @Test
+    void transfer_negativeAmount_throwsInvalidAmountException() {
+        assertThrows(InvalidAmountException.class,
+                () -> accountService.transferAmount(account, "someone", new BigDecimal("-200.00")));
     }
 }

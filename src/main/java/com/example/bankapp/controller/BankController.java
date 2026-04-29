@@ -1,5 +1,6 @@
 package com.example.bankapp.controller;
 
+import com.example.bankapp.exception.BankAppException;
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,7 @@ public class BankController {
         try {
             accountService.registerAccount(username, password);
             return "redirect:/login";
-        } catch (RuntimeException e) {
+        } catch (BankAppException e) {
             model.addAttribute("error", e.getMessage());
             return "register";
         }
@@ -48,10 +49,16 @@ public class BankController {
     }
 
     @PostMapping("/deposit")
-    public String deposit(@RequestParam BigDecimal amount) {
+    public String deposit(@RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
-        accountService.deposit(account, amount);
+        try {
+            accountService.deposit(account, amount);
+        } catch (BankAppException e) {
+            model.addAttribute("error", e.getMessage());
+            model.addAttribute("account", account);
+            return "dashboard";
+        }
         return "redirect:/dashboard";
     }
 
@@ -62,7 +69,7 @@ public class BankController {
 
         try {
             accountService.withdraw(account, amount);
-        } catch (RuntimeException e) {
+        } catch (BankAppException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", account);
             return "dashboard";
@@ -86,7 +93,7 @@ public class BankController {
 
         try {
             accountService.transferAmount(fromAccount, toUsername, amount);
-        } catch (RuntimeException e) {
+        } catch (BankAppException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", fromAccount);
             return "dashboard";

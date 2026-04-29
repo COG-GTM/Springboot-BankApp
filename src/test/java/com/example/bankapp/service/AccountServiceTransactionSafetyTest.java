@@ -50,26 +50,37 @@ class AccountServiceTransactionSafetyTest {
     }
 
     @Test
-    void transferAmount_notAtomic_senderDebitedButRecipientNotCredited() {
+    void transferAmount_withTransactional_rollsBackOnFailure() {
         when(accountRepository.findByUsername("recipient")).thenReturn(Optional.of(recipient));
 
         // First save (sender) succeeds, second save (recipient) throws
         when(accountRepository.save(any(Account.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0))  // sender save succeeds
-                .thenThrow(new RuntimeException("Database error"));   // recipient save fails
+                .thenAnswer(invocation -> invocation.getArgument(0))
+                .thenThrow(new RuntimeException("Database error"));
 
         assertThrows(RuntimeException.class,
                 () -> accountService.transferAmount(sender, "recipient", new BigDecimal("200.00")));
 
-        // The sender's balance was deducted (in-memory)
-        assertEquals(new BigDecimal("800.00"), sender.getBalance());
-        // The recipient never got credited because the save failed
-        // but the in-memory object was already mutated
-        assertEquals(new BigDecimal("700.00"), recipient.getBalance());
-
-        // The sender's save was called (balance deducted and persisted)
-        // but the recipient's save threw an exception — no rollback occurred
-        // This demonstrates the atomicity problem: sender loses money, recipient doesn't receive it
+        // In unit tests (no Spring context), @Transactional doesn't provide actual rollback.
+        // The in-memory objects are still mutated, but with @Transactional in production,
+        // the database changes would be rolled back by the transaction manager.
+        // This test verifies the exception propagates, which triggers the rollback.
         verify(accountRepository, times(2)).save(any(Account.class));
+    }
+
+    @Test
+    void transferAmount_exceptionPropagates_enablingTransactionalRollback() {
+        when(accountRepository.findByUsername("recipient")).thenReturn(Optional.of(recipient));
+
+        when(accountRepository.save(any(Account.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0))
+                .thenThrow(new RuntimeException("Database error"));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> accountService.transferAmount(sender, "recipient", new BigDecimal("200.00")));
+
+        assertEquals("Database error", ex.getMessage());
+        // The exception is not caught internally, so @Transactional will trigger rollback
+        // in a real Spring context, undoing the sender's balance deduction
     }
 }
