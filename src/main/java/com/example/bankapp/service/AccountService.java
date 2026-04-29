@@ -40,6 +40,7 @@ public class AccountService implements UserDetailsService {
         if (username == null || username.trim().isEmpty() || username.trim().length() < 3) {
             throw new RuntimeException("Username must be at least 3 characters");
         }
+        username = username.trim();
         if (password == null || password.length() < 8) {
             throw new RuntimeException("Password must be at least 8 characters");
         }
