@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Reconciliation Report Details - Wells Fargo</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Times New Roman', Georgia, serif;
+            background-color: #F7F3E9;
+            color: #2E2A2B;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .navbar-custom {
+            background-color: #7A1216;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            border-bottom: 2px solid #B08D57;
+        }
+
+        .navbar-custom a {
+            color: #ffffff !important;
+        }
+
+        .navbar-custom .navbar-brand {
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin-top: 100px;
+            margin-bottom: 60px;
+        }
+
+        h2, h3 {
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background-color: #FFFFFF;
+            padding: 20px;
+            border: 1px solid #B08D57;
+            border-radius: 0;
+            margin-bottom: 25px;
+        }
+
+        .summary-card p {
+            margin-bottom: 6px;
+        }
+
+        .table-custom {
+            background-color: #FFFFFF;
+            padding: 20px;
+            border-radius: 0;
+            border: 1px solid #B08D57;
+            box-shadow: none;
+            overflow-x: auto;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(218, 165, 50, 0.1);
+        }
+
+        .table-striped td, .table-striped th {
+            color: #2E2A2B;
+            font-weight: bold;
+            padding: 12px;
+            border-bottom: 1px solid #B08D57;
+            vertical-align: middle;
+        }
+
+        .table-striped th {
+            background-color: rgba(218, 165, 50, 0.15);
+        }
+
+        .row-discrepancy {
+            background-color: rgba(220, 53, 69, 0.18) !important;
+        }
+
+        .row-negative {
+            background-color: rgba(240, 173, 78, 0.25) !important;
+        }
+
+        .badge-success-custom {
+            background-color: #28a745;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 0;
+        }
+
+        .badge-danger-custom {
+            background-color: #dc3545;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 0;
+        }
+
+        .custom-link {
+            color: #7A1216;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .custom-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-custom">
+    <a class="navbar-brand d-flex align-items-center" href="#">
+        <img src="/images/wells-fargo-logo.png" alt="Wells Fargo" style="height:28px;margin-right:10px;">
+        Wells Fargo
+    </a>
+    <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
+        <li class="nav-item"><a class="nav-link" href="/reconciliation/reports">Reconciliation</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+    <h2 class="text-center">Reconciliation Report</h2>
+
+    <div class="summary-card">
+        <h3>Summary</h3>
+        <p><strong>Report ID:</strong> <span th:text="${report.id}"></span></p>
+        <p><strong>Report Date:</strong> <span th:text="${report.reportDate}"></span></p>
+        <p><strong>Status:</strong>
+            <span th:if="${report.status == 'COMPLETED'}" class="badge-success-custom" th:text="${report.status}"></span>
+            <span th:if="${report.status != 'COMPLETED'}" class="badge-danger-custom" th:text="${report.status}"></span>
+        </p>
+        <p><strong>Total Accounts:</strong> <span th:text="${report.totalAccounts}"></span></p>
+        <p><strong>Flagged (Negative Balance):</strong> <span th:text="${report.flaggedAccounts}"></span></p>
+        <p><strong>Discrepancies:</strong> <span th:text="${report.discrepancyAccounts}"></span></p>
+        <p><strong>Total Balance:</strong> <span th:text="${report.totalBalance}"></span></p>
+    </div>
+
+    <h3>Per-Account Details</h3>
+    <div class="table-responsive table-custom">
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Account ID</th>
+                <th>Username</th>
+                <th>Stored Balance</th>
+                <th>Computed Balance</th>
+                <th>Discrepancy</th>
+                <th>Negative Balance</th>
+            </tr>
+            </thead>
+            <tbody id="details-body">
+            </tbody>
+        </table>
+    </div>
+
+    <p style="margin-top: 20px;"><a href="/reconciliation/reports" class="custom-link">&larr; Back to Reports</a></p>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    var detailsJson = /*[[${report.details}]]*/ '[]';
+    /*]]>*/
+    try {
+        var rows = JSON.parse(detailsJson);
+        var tbody = document.getElementById('details-body');
+        if (!rows || rows.length === 0) {
+            var emptyRow = document.createElement('tr');
+            var td = document.createElement('td');
+            td.colSpan = 6;
+            td.style.textAlign = 'center';
+            td.textContent = 'No account details recorded for this report.';
+            emptyRow.appendChild(td);
+            tbody.appendChild(emptyRow);
+        } else {
+            rows.forEach(function (row) {
+                var tr = document.createElement('tr');
+                if (row.discrepancy) {
+                    tr.className = 'row-discrepancy';
+                } else if (row.negative) {
+                    tr.className = 'row-negative';
+                }
+                var cells = [
+                    row.accountId,
+                    row.username,
+                    row.storedBalance,
+                    row.computedBalance,
+                    row.discrepancy ? 'Yes' : 'No',
+                    row.negative ? 'Yes' : 'No'
+                ];
+                cells.forEach(function (value) {
+                    var td = document.createElement('td');
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (e) {
+        var tbody = document.getElementById('details-body');
+        var errRow = document.createElement('tr');
+        var td = document.createElement('td');
+        td.colSpan = 6;
+        td.style.textAlign = 'center';
+        td.style.color = '#dc3545';
+        td.textContent = 'Failed to parse report details: ' + e.message;
+        errRow.appendChild(td);
+        tbody.appendChild(errRow);
+    }
+</script>
+
+</body>
+</html>
