@@ -49,7 +49,7 @@ public class ReconciliationService {
             BigDecimal computedBalance = BigDecimal.ZERO;
             for (Transaction tx : transactions) {
                 String type = tx.getType();
-                if ("Deposit".equals(type) || (type != null && type.contains("Transfer In"))) {
+                if ("Deposit".equals(type) || (type != null && type.startsWith("Transfer In"))) {
                     computedBalance = computedBalance.add(tx.getAmount());
                 } else {
                     computedBalance = computedBalance.subtract(tx.getAmount());
