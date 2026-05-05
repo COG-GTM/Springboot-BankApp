@@ -1,0 +1,19 @@
+# Snyk (https://snyk.io) policy file. See https://docs.snyk.io/manage-issues/policies/the-.snyk-file
+version: v1.0.0
+ignore:
+  'snyk:lic:maven:com.mysql:mysql-connector-j:GPL-2.0':
+    - '*':
+        reason: |
+          MySQL Connector/J is dual-licensed by Oracle under GPL-2.0 with the
+          "Universal FOSS Exception" and a commercial license. The FOSS
+          Exception explicitly allows linking the connector with applications
+          released under common OSS licenses (Apache 2.0, BSD, MIT, EPL, etc.)
+          without triggering GPL copyleft on the linking application. See
+          https://www.mysql.com/about/legal/licensing/foss-exception/.
+          The same finding existed on the previous `mysql:mysql-connector-java@8.0.33`
+          artifact; this entry covers the renamed-but-functionally-identical
+          `com.mysql:mysql-connector-j` artifact introduced when migrating to
+          Spring Boot 3.x's managed MySQL connector coordinate.
+        expires: 2027-05-05T00:00:00.000Z
+        created: 2026-05-05T00:00:00.000Z
+patch: {}
