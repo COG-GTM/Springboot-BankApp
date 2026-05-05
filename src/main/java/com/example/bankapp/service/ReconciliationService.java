@@ -48,7 +48,8 @@ public class ReconciliationService {
 
             BigDecimal computedBalance = BigDecimal.ZERO;
             for (Transaction tx : transactions) {
-                if ("Deposit".equals(tx.getType()) || tx.getType().contains("Transfer In")) {
+                String type = tx.getType();
+                if ("Deposit".equals(type) || (type != null && type.contains("Transfer In"))) {
                     computedBalance = computedBalance.add(tx.getAmount());
                 } else {
                     computedBalance = computedBalance.subtract(tx.getAmount());
@@ -108,6 +109,39 @@ public class ReconciliationService {
         if (value == null) {
             return "";
         }
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        StringBuilder out = new StringBuilder(value.length() + 8);
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '\\':
+                    out.append("\\\\");
+                    break;
+                case '"':
+                    out.append("\\\"");
+                    break;
+                case '\n':
+                    out.append("\\n");
+                    break;
+                case '\r':
+                    out.append("\\r");
+                    break;
+                case '\t':
+                    out.append("\\t");
+                    break;
+                case '\b':
+                    out.append("\\b");
+                    break;
+                case '\f':
+                    out.append("\\f");
+                    break;
+                default:
+                    if (c < 0x20) {
+                        out.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        out.append(c);
+                    }
+            }
+        }
+        return out.toString();
     }
 }
