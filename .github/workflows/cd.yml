@@ -1,0 +1,67 @@
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: "Docker image tag produced by CI"
+        required: true
+        type: string
+  repository_dispatch:
+    types: [bankapp-cd]
+
+permissions:
+  contents: write
+
+jobs:
+  update-manifest:
+    name: Update Kubernetes manifest
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_TAG: ${{ github.event.inputs.docker_tag || github.event.client_payload.docker_tag }}
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: DevOps
+          token: ${{ secrets.GITOPS_TOKEN || secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Verify Docker tag was provided
+        run: |
+          if [ -z "${DOCKER_TAG}" ]; then
+            echo "::error::No docker_tag provided to CD workflow"
+            exit 1
+          fi
+          echo "DOCKER TAG RECEIVED: ${DOCKER_TAG}"
+
+      - name: Update bankapp-deployment image tag
+        run: |
+          set -euo pipefail
+          target_file=""
+          for candidate in kubernetes/bankapp-deployment.yaml kubernetes/bankapp-deployment.yml; do
+            if [ -f "$candidate" ]; then
+              target_file="$candidate"
+              break
+            fi
+          done
+          if [ -z "$target_file" ]; then
+            echo "::error::Could not find kubernetes/bankapp-deployment.y(a)ml"
+            exit 1
+          fi
+          echo "Updating $target_file with tag ${DOCKER_TAG}"
+          sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${DOCKER_TAG}|g" "$target_file"
+          git --no-pager diff -- "$target_file" || true
+
+      - name: Commit and push changes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git add kubernetes/
+          git commit -m "Updated K8s Deployment Docker Image Version to ${DOCKER_TAG} [skip ci]"
+          git push origin HEAD:DevOps
