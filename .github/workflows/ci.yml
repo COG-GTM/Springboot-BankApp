@@ -63,13 +63,6 @@ jobs:
             echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-          cache: maven
-
       # --- Stage: Trivy filesystem scan ---
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.35.0
