@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [DevOps]
+  pull_request:
+    branches: [DevOps]
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: "Docker image tag to build/push (defaults to short SHA)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  build:
+    name: Build, Scan, and Publish
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: bankapp
+      DEFAULT_DOCKERHUB_USER: madhupdevops
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    outputs:
+      docker_tag: ${{ steps.compute_tag.outputs.docker_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Compute Docker tag
+        id: compute_tag
+        run: |
+          if [ -n "${{ github.event.inputs.docker_tag }}" ]; then
+            tag="${{ github.event.inputs.docker_tag }}"
+          else
+            tag="${GITHUB_SHA::7}"
+          fi
+          echo "docker_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "Using Docker tag: ${tag}"
+
+      - name: Resolve Docker Hub user
+        id: dockerhub_user
+        run: |
+          user="${DOCKERHUB_USERNAME:-${DEFAULT_DOCKERHUB_USER}}"
+          echo "user=${user}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          exit-code: '0'
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          format: table
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: bankapp
+          path: '.'
+          format: 'ALL'
+          out: 'reports'
+          args: >-
+            --failOnCVSS 11
+            --enableRetired
+
+      - name: Upload OWASP Dependency Check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-reports
+          path: reports/
+          if-no-files-found: ignore
+
+      - name: SonarQube Scan
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        uses: sonarsource/sonarqube-scan-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=bankapp
+            -Dsonar.projectName=bankapp
+
+      - name: SonarQube Quality Gate
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        uses: sonarsource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 1
+        continue-on-error: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: ${{ env.DOCKERHUB_TOKEN != '' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ steps.dockerhub_user.outputs.user }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Build (and conditionally push) Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: ${{ env.DOCKERHUB_TOKEN != '' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+          tags: |
+            ${{ steps.dockerhub_user.outputs.user }}/${{ env.IMAGE_NAME }}:${{ steps.compute_tag.outputs.docker_tag }}
+            ${{ steps.dockerhub_user.outputs.user }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Archive XML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml-reports
+          path: |
+            **/*.xml
+            !**/target/**/*.xml
+            !**/.mvn/**/*.xml
+          if-no-files-found: ignore
+
+  trigger-cd:
+    name: Trigger CD pipeline
+    needs: build
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch CD workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'cd.yml',
+              ref: context.ref.replace('refs/heads/', ''),
+              inputs: {
+                docker_tag: '${{ needs.build.outputs.docker_tag }}'
+              }
+            });
