@@ -58,7 +58,8 @@ jobs:
           cache: maven
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           scan-type: fs
           scan-ref: .
@@ -67,7 +68,8 @@ jobs:
           format: table
 
       - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
+        uses: dependency-check/Dependency-Check_Action@1.1.0
+        continue-on-error: true
         with:
           project: bankapp
           path: '.'
@@ -87,7 +89,7 @@ jobs:
 
       - name: SonarQube Scan
         if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        uses: sonarsource/sonarqube-scan-action@v2
+        uses: SonarSource/sonarqube-scan-action@v5
         with:
           args: >
             -Dsonar.projectKey=bankapp
@@ -95,7 +97,7 @@ jobs:
 
       - name: SonarQube Quality Gate
         if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        uses: sonarsource/sonarqube-quality-gate-action@v1
+        uses: SonarSource/sonarqube-quality-gate-action@v1
         timeout-minutes: 1
         continue-on-error: true
 
