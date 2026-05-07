@@ -7,7 +7,7 @@
 ## Tech stack used in this project:
 - GitHub (Code)
 - Docker (Containerization)
-- Jenkins (CI)
+- GitHub Actions (CI/CD)
 - OWASP (Dependency check)
 - SonarQube (Quality)
 - Trivy (Filesystem Scan)
