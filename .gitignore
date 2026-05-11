@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Devin local config with secrets
+.devin/config.local.json
