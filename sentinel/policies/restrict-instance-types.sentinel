@@ -1,0 +1,78 @@
+# restrict-instance-types.sentinel
+# Restricts EC2 and RDS instances to approved instance families only.
+# Enforcement: soft-mandatory (cost governance)
+
+import "tfplan/v2" as tfplan
+
+# Approved instance families for financial services workloads
+approved_ec2_prefixes = ["m6i.", "r6g.", "c6i."]
+approved_rds_prefixes = ["db.m6i.", "db.r6g.", "db.c6i."]
+
+# Check if an instance type starts with any approved prefix
+is_approved_type = func(instance_type, approved_prefixes) {
+	for approved_prefixes as prefix {
+		if instance_type matches prefix + ".*" {
+			return true
+		}
+	}
+	return false
+}
+
+# Validate EC2 instance types
+ec2_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_instance" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+ec2_validated = true
+for ec2_instances as _, rc {
+	instance_type = rc.change.after.instance_type else null
+	if instance_type is not null {
+		if not is_approved_type(instance_type, approved_ec2_prefixes) {
+			print("EC2 instance", rc.address, "uses unapproved type:", instance_type,
+				". Allowed families: m6i, r6g, c6i")
+			ec2_validated = false
+		}
+	}
+}
+
+# Validate RDS instance types
+rds_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_db_instance" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+rds_validated = true
+for rds_instances as _, rc {
+	instance_class = rc.change.after.instance_class else null
+	if instance_class is not null {
+		if not is_approved_type(instance_class, approved_rds_prefixes) {
+			print("RDS instance", rc.address, "uses unapproved class:", instance_class,
+				". Allowed families: db.m6i, db.r6g, db.c6i")
+			rds_validated = false
+		}
+	}
+}
+
+# Validate EKS node group instance types
+eks_node_groups = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_eks_node_group" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+eks_validated = true
+for eks_node_groups as _, rc {
+	instance_types = rc.change.after.instance_types else []
+	for instance_types as itype {
+		if not is_approved_type(itype, approved_ec2_prefixes) {
+			print("EKS node group", rc.address, "uses unapproved type:", itype,
+				". Allowed families: m6i, r6g, c6i")
+			eks_validated = false
+		}
+	}
+}
+
+main = rule { ec2_validated and rds_validated and eks_validated }

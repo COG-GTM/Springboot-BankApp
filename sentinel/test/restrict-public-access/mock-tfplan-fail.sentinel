@@ -1,0 +1,52 @@
+resource_changes = {
+  "aws_eks_cluster.main": {
+    "address":       "aws_eks_cluster.main",
+    "mode":          "managed",
+    "type":          "aws_eks_cluster",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "name": "bankapp-cluster",
+        "vpc_config": [
+          {
+            "endpoint_public_access":  true,
+            "endpoint_private_access": true,
+            "subnet_ids":              ["subnet-abc123"],
+          },
+        ],
+        "tags": {},
+      },
+    },
+  },
+  "aws_s3_bucket_public_access_block.assets": {
+    "address":       "aws_s3_bucket_public_access_block.assets",
+    "mode":          "managed",
+    "type":          "aws_s3_bucket_public_access_block",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "bucket":                  "bankapp-assets-bucket",
+        "block_public_acls":       false,
+        "block_public_policy":     false,
+        "ignore_public_acls":      false,
+        "restrict_public_buckets": false,
+      },
+    },
+  },
+  "aws_db_instance.primary": {
+    "address":       "aws_db_instance.primary",
+    "mode":          "managed",
+    "type":          "aws_db_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_class":      "db.r6g.large",
+        "publicly_accessible": true,
+        "tags":                {},
+      },
+    },
+  },
+}

@@ -1,0 +1,46 @@
+resource_changes = {
+  "aws_instance.app_server": {
+    "address":       "aws_instance.app_server",
+    "mode":          "managed",
+    "type":          "aws_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_type": "m6i.xlarge",
+        "tags": {
+          "Environment": "production",
+          "Project":     "bankapp",
+          "Team":        "platform",
+          "ManagedBy":   "terraform",
+        },
+      },
+    },
+  },
+  "aws_db_instance.primary": {
+    "address":       "aws_db_instance.primary",
+    "mode":          "managed",
+    "type":          "aws_db_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_class": "db.r6g.large",
+        "tags": {},
+      },
+    },
+  },
+  "aws_eks_node_group.workers": {
+    "address":       "aws_eks_node_group.workers",
+    "mode":          "managed",
+    "type":          "aws_eks_node_group",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_types": ["c6i.2xlarge", "m6i.2xlarge"],
+        "tags": {},
+      },
+    },
+  },
+}

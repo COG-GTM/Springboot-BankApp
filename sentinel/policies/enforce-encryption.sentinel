@@ -1,0 +1,105 @@
+# enforce-encryption.sentinel
+# Enforces encryption at rest for RDS, EBS, S3, and EKS secrets.
+# Enforcement: hard-mandatory (security)
+
+import "tfplan/v2" as tfplan
+
+# --- RDS Encryption ---
+rds_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_db_instance" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+rds_encrypted = true
+for rds_instances as _, rc {
+	storage_encrypted = rc.change.after.storage_encrypted else false
+	if storage_encrypted is not true {
+		print("RDS instance", rc.address, "must have storage_encrypted = true")
+		rds_encrypted = false
+	}
+}
+
+# --- EBS Volume Encryption ---
+ebs_volumes = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_ebs_volume" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+ebs_encrypted = true
+for ebs_volumes as _, rc {
+	encrypted = rc.change.after.encrypted else false
+	if encrypted is not true {
+		print("EBS volume", rc.address, "must have encrypted = true")
+		ebs_encrypted = false
+	}
+}
+
+# --- S3 Bucket Encryption ---
+# Check for aws_s3_bucket_server_side_encryption_configuration
+s3_encryption_configs = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket_server_side_encryption_configuration" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+# Collect bucket IDs that have encryption configured
+s3_buckets = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+s3_encrypted = true
+for s3_buckets as _, rc {
+	# Check if there is a matching encryption configuration resource
+	has_encryption_config = false
+	for s3_encryption_configs as _, enc_rc {
+		if enc_rc.change.after.bucket else "" is rc.change.after.id else "" {
+			has_encryption_config = true
+		}
+	}
+	# Also check for inline server_side_encryption_configuration (older style)
+	sse_config = rc.change.after.server_side_encryption_configuration else null
+	if not has_encryption_config and sse_config is null {
+		print("S3 bucket", rc.address,
+			"must have server-side encryption configured via",
+			"aws_s3_bucket_server_side_encryption_configuration or inline config")
+		s3_encrypted = false
+	}
+}
+
+# --- EKS Secrets Encryption ---
+eks_clusters = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_eks_cluster" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+eks_encrypted = true
+for eks_clusters as _, rc {
+	encryption_config = rc.change.after.encryption_config else []
+	if length(encryption_config) is 0 {
+		print("EKS cluster", rc.address,
+			"must have encryption_config for secrets envelope encryption")
+		eks_encrypted = false
+	} else {
+		has_secrets = false
+		for encryption_config as ec {
+			resources = ec.resources else []
+			for resources as r {
+				if r is "secrets" {
+					has_secrets = true
+				}
+			}
+		}
+		if not has_secrets {
+			print("EKS cluster", rc.address,
+				"encryption_config must include 'secrets' in resources")
+			eks_encrypted = false
+		}
+	}
+}
+
+main = rule { rds_encrypted and ebs_encrypted and s3_encrypted and eks_encrypted }

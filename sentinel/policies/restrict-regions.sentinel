@@ -1,0 +1,74 @@
+# restrict-regions.sentinel
+# Restricts resource provisioning to approved AWS regions only.
+# Enforcement: hard-mandatory (compliance/data residency)
+
+import "tfplan/v2" as tfplan
+import "strings"
+
+# Approved regions for financial services workloads
+approved_regions = ["us-east-1", "us-west-2"]
+
+# Extract region from an availability zone string (e.g., "us-east-1a" -> "us-east-1")
+extract_region_from_az = func(az) {
+	# AZ is region + single letter suffix; split by "-" and rejoin without last char
+	parts = strings.split(az, "-")
+	if length(parts) < 3 {
+		return az
+	}
+	# Last part is like "1a", "2b", etc. — remove trailing letter
+	last_part = parts[length(parts) - 1]
+	if length(last_part) > 1 {
+		# Reconstruct: everything except the last character of the last segment
+		region_parts = []
+		for parts as i, p {
+			if i < length(parts) - 1 {
+				append(region_parts, p)
+			} else {
+				# Trim the trailing AZ letter (a-f)
+				trimmed = strings.trim_suffix(p, "a")
+				trimmed = strings.trim_suffix(trimmed, "b")
+				trimmed = strings.trim_suffix(trimmed, "c")
+				trimmed = strings.trim_suffix(trimmed, "d")
+				trimmed = strings.trim_suffix(trimmed, "e")
+				trimmed = strings.trim_suffix(trimmed, "f")
+				append(region_parts, trimmed)
+			}
+		}
+		return strings.join(region_parts, "-")
+	}
+	return az
+}
+
+# Get all AWS resource changes that are not deletions
+all_resources = filter tfplan.resource_changes as _, rc {
+	rc.mode is "managed" and
+		rc.change.actions is not ["delete"] and
+		rc.provider_name is "registry.terraform.io/hashicorp/aws"
+}
+
+regions_validated = true
+for all_resources as _, rc {
+	after = rc.change.after else {}
+	if after is null {
+		continue
+	}
+
+	az = after["availability_zone"] else null
+	if az is not null and az is not "" {
+		region_from_az = extract_region_from_az(az)
+		is_approved = false
+		for approved_regions as region {
+			if region_from_az is region {
+				is_approved = true
+			}
+		}
+		if not is_approved {
+			print("Resource", rc.address,
+				"is in unapproved availability zone:", az,
+				". Approved regions:", approved_regions)
+			regions_validated = false
+		}
+	}
+}
+
+main = rule { regions_validated }
