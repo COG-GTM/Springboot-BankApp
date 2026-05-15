@@ -1,17 +1,17 @@
 version: "3.8"
 services:
-  mysql:
-    image: mysql:latest
-    container_name: mysql
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
     environment:
-      - MYSQL_ROOT_PASSWORD=Test@123
-      - MYSQL_DATABASE=BankDB
+      - MARIADB_ROOT_PASSWORD=Test@123
+      - MARIADB_DATABASE=BankDB
     volumes:
       - bankapp-volume:/var/lib/mysql
     networks:
       - bankapp
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -22,12 +22,12 @@ services:
     container_name: Bankapp
     environment:
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/BankDB?useSSL=false&serverTimezone=UTC
       - SPRING_DATASOURCE_PASSWORD=Test@123
     ports:
       - "8080:8080"
     depends_on:
-      mysql:
+      mariadb:
         condition: service_healthy
     networks:
       - bankapp
