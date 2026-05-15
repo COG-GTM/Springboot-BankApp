@@ -1,36 +1,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql
+  name: mariadb
   namespace: bankapp-namespace
   labels:
-    app: mysql
+    app: mariadb
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mysql
+      app: mariadb
   template:
     metadata:
       labels:
-        app: mysql
+        app: mariadb
     spec:
       containers:
-      - name: mysql
-        image: mysql:8.0  # Use a specific, stable version for production
+      - name: mariadb
+        image: mariadb:11  # Use a specific, stable version for production
         ports:
         - containerPort: 3306
         env:
-        - name: MYSQL_ROOT_PASSWORD
+        - name: MARIADB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_ROOT_PASSWORD
-        - name: MYSQL_DATABASE
+              name: mariadb-secret
+              key: MARIADB_ROOT_PASSWORD
+        - name: MARIADB_DATABASE
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
-              key: MYSQL_DATABASE
+              key: MARIADB_DATABASE
         volumeMounts:
         - name: mysql-pv-storage
           mountPath: /var/lib/mysql

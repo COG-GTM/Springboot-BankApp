@@ -5,12 +5,12 @@ namespace: bankapp-namespace
 configmap:  
   name: bankapp-config
   data:
-      MYSQL_DATABASE: BankDB
+      MARIADB_DATABASE: BankDB
       SPRING_DATASOURCE_USERNAME: root
 
 ## name, label and storage size for database 
 db_statefulset:
-  name: mysql
+  name: mariadb
   storage: 5Gi
 
 ## name and label of app deployment
@@ -24,7 +24,7 @@ app_deployment:
 ## image repository and tag of app and db.
 image:
   app: trainwithshubham/springboot-bankapp:latest
-  db: mysql:latest
+  db: mariadb:latest
 
 # NodePort svc for bankapp
 bankapp_svc:
@@ -47,8 +47,8 @@ hpa:
 # Secret for Database connectivity
 
 secret:
-  name: mysql-secret
+  name: mariadb-secret
   data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
+    MARIADB_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
     SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
  

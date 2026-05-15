@@ -22,35 +22,33 @@ spec:
         ports:
         - containerPort: 3306
         env:
-        - name: MYSQL_ROOT_PASSWORD
+        - name: MARIADB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:                      ### CRITICAL
-              name: mysql-secret                  ### CRITICAL
-              key: MYSQL_ROOT_PASSWORD    ### CRITICAL
-        - name: MYSQL_DATABASE
+              name: {{ .Values.secret.name }}      ### CRITICAL
+              key: MARIADB_ROOT_PASSWORD   ### CRITICAL
+        - name: MARIADB_DATABASE
           valueFrom:
             configMapKeyRef:
               name: {{ .Values.configmap.name }} 
-              key: MYSQL_DATABASE 
+              key: MARIADB_DATABASE 
         volumeMounts:
         - name: "{{ .Values.db_statefulset.name }}-data"
           mountPath: /var/lib/mysql
         livenessProbe:
           exec:
             command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            - healthcheck.sh
+            - --connect
+            - --innodb_initialized
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           exec:
             command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            - healthcheck.sh
+            - --connect
+            - --innodb_initialized
           initialDelaySeconds: 10
           periodSeconds: 5
   volumeClaimTemplates:
