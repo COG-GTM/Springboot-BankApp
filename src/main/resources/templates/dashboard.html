@@ -117,7 +117,7 @@
     <ul class="navbar-nav ml-auto">
         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
-        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+        <li class="nav-item"><form method="post" th:action="@{/logout}" style="display:inline"><button type="submit" class="nav-link btn btn-link">Logout</button></form></li>
     </ul>
 </nav>
 
@@ -141,7 +141,7 @@
                 Deposit
             </button>
             <div class="collapse mt-3" id="depositForm">
-                <form method="post" action="/deposit" class="form-container">
+                <form method="post" th:action="@{/deposit}" class="form-container">
                     <div class="form-group">
                         <label>Amount:</label>
                         <input type="number" class="form-control" name="amount" required />
@@ -157,7 +157,7 @@
                 Withdraw
             </button>
             <div class="collapse mt-3" id="withdrawForm">
-                <form method="post" action="/withdraw" class="form-container">
+                <form method="post" th:action="@{/withdraw}" class="form-container">
                     <div class="form-group">
                         <label>Amount:</label>
                         <input type="number" class="form-control" name="amount" required />
@@ -173,7 +173,7 @@
                 Transfer Money
             </button>
             <div class="collapse mt-3" id="transferForm">
-                <form method="post" action="/transfer" class="form-container">
+                <form method="post" th:action="@{/transfer}" class="form-container">
                     <div class="form-group">
                         <label>Recipient Username:</label>
                         <input type="text" class="form-control" name="toUsername" required />
