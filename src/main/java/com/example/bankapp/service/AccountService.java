@@ -48,17 +48,14 @@ public class AccountService implements UserDetailsService {
     }
 
 
+    private void recordTransaction(Account account, BigDecimal amount, String description) {
+        transactionRepository.save(new Transaction(amount, description, LocalDateTime.now(), account));
+    }
+
     public void deposit(Account account, BigDecimal amount) {
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
-
-        Transaction transaction = new Transaction(
-                amount,
-                "Deposit",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        recordTransaction(account, amount, "Deposit");
     }
 
     public void withdraw(Account account, BigDecimal amount) {
@@ -67,14 +64,7 @@ public class AccountService implements UserDetailsService {
         }
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
-
-        Transaction transaction = new Transaction(
-                amount,
-                "Withdrawal",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        recordTransaction(account, amount, "Withdrawal");
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
@@ -117,21 +107,8 @@ public class AccountService implements UserDetailsService {
         accountRepository.save(toAccount);
 
         // Create transaction records for both accounts
-        Transaction debitTransaction = new Transaction(
-                amount,
-                "Transfer Out to " + toAccount.getUsername(),
-                LocalDateTime.now(),
-                fromAccount
-        );
-        transactionRepository.save(debitTransaction);
-
-        Transaction creditTransaction = new Transaction(
-                amount,
-                "Transfer In from " + fromAccount.getUsername(),
-                LocalDateTime.now(),
-                toAccount
-        );
-        transactionRepository.save(creditTransaction);
+        recordTransaction(fromAccount, amount, "Transfer Out to " + toAccount.getUsername());
+        recordTransaction(toAccount, amount, "Transfer In from " + fromAccount.getUsername());
     }
 
 }
