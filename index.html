@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Modernization at the Speed of Autonomy — Infosys × Cognition</title>
+<meta name="description" content="A joint point of view from Infosys and Cognition on clearing insurance tech debt and modernizing the P&C core with domain-deep delivery and autonomous software engineering." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,30..100&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&family=Manrope:wght@300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0A0E12;
+    --ink-2: #131820;
+    --ink-3: #1A2230;
+    --paper: #F4F1EA;
+    --paper-2: #ECE7DC;
+    --paper-warm: #FAF7F0;
+    --card: #FFFFFF;
+    --rule: #1A1F27;
+    --rule-paper: #C9C0AE;
+    --rule-soft: #E0D9C7;
+    --text: #131820;
+    --muted: #5A6470;
+    --muted-2: #79828E;
+    --accent: #E8552B;
+    --accent-deep: #B83D18;
+    --accent-soft: #F4C9B5;
+    --good: #1F6F4A;
+    --cool: #1B3A52;
+    --cool-soft: #DCE6EC;
+    --dim: #B9BFC7;
+    --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --display: 'Fraunces', Georgia, serif;
+    --sans: 'Manrope', system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --maxw: 1080px;
+    --readw: 760px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    font-family: var(--sans);
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  a { color: var(--accent-deep); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---------- top progress + brand bar ---------- */
+  .topband {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(244,241,234,.86);
+    backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .topband .inner {
+    max-width: var(--maxw); margin: 0 auto;
+    padding: 13px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brandlock { display: flex; align-items: center; gap: 13px; font-family: var(--sans); }
+  .wm { font-weight: 800; letter-spacing: -.01em; font-size: 16px; color: var(--ink); }
+  .wm.cog { letter-spacing: .02em; }
+  .wm .dotac { color: var(--accent); }
+  .x { color: var(--muted-2); font-weight: 500; font-size: 13px; }
+  .topband .doc { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  @media (max-width: 640px){ .topband .doc { display:none; } }
+
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 60; box-shadow: 0 0 10px rgba(232,85,43,.6); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative; overflow: hidden;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 92px 28px 84px;
+  }
+  .hero .grain { position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:screen;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"); }
+  .hero .glow { position:absolute; right:-220px; top:-160px; width:560px; height:560px; border-radius:50%;
+    background: radial-gradient(circle, rgba(232,85,43,.26), rgba(232,85,43,0) 62%); pointer-events:none; }
+  .hero .inner { position: relative; max-width: var(--maxw); margin: 0 auto; }
+  .hero .eyebrow { color: #F0A88C; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: .2em; text-transform: uppercase; color: var(--accent-deep);
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before { content:''; display:inline-block; width: 22px; height: 1px; background: currentColor; opacity:.8; }
+  .hero h1 {
+    font-family: var(--display); font-weight: 480;
+    font-variation-settings: 'opsz' 110, 'SOFT' 40;
+    font-size: clamp(38px, 6.4vw, 72px); line-height: 1.02;
+    letter-spacing: -.02em; margin: 22px 0 0; max-width: 16ch;
+  }
+  .hero h1 em { font-style: italic; color: #F0A88C; font-variation-settings:'opsz' 110,'SOFT' 80; }
+  .hero .dek {
+    font-family: var(--serif); font-size: clamp(18px, 2.3vw, 23px);
+    line-height: 1.5; color: #D6D2C8; margin: 26px 0 0; max-width: 60ch; font-weight: 400;
+  }
+  .hero .metarow {
+    margin-top: 40px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.14);
+    display: flex; flex-wrap: wrap; gap: 36px 56px;
+  }
+  .hero .metarow .m .l { font-family: var(--mono); font-size: 10px; letter-spacing:.14em; text-transform:uppercase; color: var(--dim); }
+  .hero .metarow .m .v { font-size: 15px; color: var(--paper); margin-top: 5px; font-weight: 600; }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+  section.band { padding: 72px 0; border-bottom: 1px solid var(--rule-soft); }
+  section.band.tight { padding: 56px 0; }
+  .read { max-width: var(--readw); }
+
+  .secnum {
+    font-family: var(--mono); font-size: 11px; letter-spacing:.18em; text-transform:uppercase;
+    color: var(--accent-deep); display:flex; align-items:center; gap:12px; margin-bottom: 18px;
+  }
+  .secnum .n { display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:26px;
+    border:1px solid var(--accent); border-radius:50%; color:var(--accent-deep); font-size:11px; }
+
+  h2.sec {
+    font-family: var(--display); font-weight: 480; font-variation-settings:'opsz' 72,'SOFT' 40;
+    font-size: clamp(28px, 4.1vw, 42px); line-height: 1.08; letter-spacing: -.018em;
+    margin: 0 0 18px; max-width: 20ch;
+  }
+  h3.sub {
+    font-family: var(--display); font-weight: 500; font-size: 22px; line-height:1.2;
+    letter-spacing:-.01em; margin: 0 0 8px;
+  }
+  p { margin: 0 0 18px; }
+  p .lead { font-weight: 600; }
+  .big { font-family: var(--serif); font-size: 21px; line-height: 1.55; color: var(--text); }
+  .muted { color: var(--muted); }
+  strong { font-weight: 700; }
+  em.term { font-style: italic; color: var(--cool); }
+
+  .pull {
+    font-family: var(--display); font-weight: 460; font-variation-settings:'opsz' 60,'SOFT' 60;
+    font-size: clamp(22px, 3.2vw, 30px); line-height: 1.24; letter-spacing:-.01em;
+    color: var(--ink); border-left: 3px solid var(--accent);
+    padding: 6px 0 6px 26px; margin: 34px 0; max-width: 24ch;
+  }
+  .pull .by { display:block; font-family: var(--mono); font-size: 11px; letter-spacing:.12em;
+    text-transform:uppercase; color: var(--muted); margin-top: 14px; font-weight: 500; }
+
+  /* ---------- stat strip ---------- */
+  .stats { display:grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--rule-soft);
+    border: 1px solid var(--rule-soft); margin: 8px 0 0; }
+  .stats .s { background: var(--paper-warm); padding: 24px 22px; }
+  .stats .s .v { font-family: var(--display); font-weight: 500; font-size: 34px; letter-spacing:-.02em; color: var(--ink); line-height:1; }
+  .stats .s .v .u { font-size: 17px; color: var(--accent-deep); font-family: var(--sans); font-weight:700; }
+  .stats .s .k { font-size: 13px; color: var(--muted); margin-top: 10px; line-height:1.4; }
+  @media (max-width: 820px){ .stats { grid-template-columns: repeat(2,1fr); } }
+
+  /* ---------- partnership split ---------- */
+  .duo { display:grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 10px; }
+  .duo .col { border:1px solid var(--rule-soft); background: var(--card); padding: 28px 26px; position:relative; }
+  .duo .col::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; }
+  .duo .col.inf::before { background: var(--cool); }
+  .duo .col.cog::before { background: var(--accent); }
+  .duo .role { font-family: var(--mono); font-size: 10px; letter-spacing:.16em; text-transform:uppercase; color: var(--muted); }
+  .duo .who { font-family: var(--display); font-weight:560; font-size: 21px; margin: 8px 0 4px; letter-spacing:-.01em; }
+  .duo .col .one { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--cool); margin-bottom: 14px; }
+  .duo ul { margin: 0; padding: 0; list-style: none; }
+  .duo li { font-size: 14.5px; line-height:1.5; padding: 9px 0 9px 20px; position: relative; border-top: 1px solid var(--rule-soft); color: var(--text); }
+  .duo li:first-child { border-top: none; }
+  .duo li::before { content:''; position:absolute; left:0; top:16px; width:7px; height:7px; background: var(--accent); transform: rotate(45deg); }
+  .duo .col.inf li::before { background: var(--cool); }
+  .plus { display:flex; align-items:center; justify-content:center; }
+  @media (max-width: 820px){ .duo { grid-template-columns: 1fr; } }
+
+  /* ---------- use cases ---------- */
+  .uc { border:1px solid var(--rule-soft); background: var(--card); margin-top: 26px; }
+  .uc .uchead { display:flex; gap: 20px; align-items:flex-start; padding: 26px 28px 18px; border-bottom: 1px solid var(--rule-soft); background: var(--paper-warm); }
+  .uc .ucnum { font-family: var(--display); font-weight: 500; font-size: 40px; line-height:.9; color: var(--accent); font-variation-settings:'opsz' 96; min-width: 64px; }
+  .uc .uctitle { flex: 1; }
+  .uc .uckick { font-family: var(--mono); font-size: 10.5px; letter-spacing:.15em; text-transform:uppercase; color: var(--muted); }
+  .uc .uctitle h3 { font-family: var(--display); font-weight: 520; font-size: clamp(21px, 3vw, 27px); line-height:1.12; letter-spacing:-.015em; margin: 7px 0 0; }
+  .uc .ucbody { padding: 22px 28px 26px; }
+  .uc .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--rule-soft); border:1px solid var(--rule-soft); margin-top: 6px; }
+  .uc .grid3 .cell { background: var(--card); padding: 18px 18px; }
+  .uc .grid3 .cell .h { font-family: var(--mono); font-size: 10px; letter-spacing:.14em; text-transform:uppercase; margin-bottom: 9px; }
+  .uc .grid3 .cell.prob .h { color: var(--accent-deep); }
+  .uc .grid3 .cell.appr .h { color: var(--cool); }
+  .uc .grid3 .cell.out .h { color: var(--good); }
+  .uc .grid3 .cell p { font-size: 14px; line-height:1.5; margin: 0; color: var(--text); }
+  .uc .proof { margin-top: 18px; padding: 14px 18px; background: var(--ink); color: var(--paper);
+    font-family: var(--serif); font-style: italic; font-size: 15.5px; line-height:1.45; border-left: 4px solid var(--accent); }
+  .uc .proof .tag { font-family: var(--mono); font-style: normal; font-size: 9.5px; letter-spacing:.14em; text-transform:uppercase; color: var(--dim); display:block; margin-bottom: 6px; }
+  @media (max-width: 820px){ .uc .grid3 { grid-template-columns: 1fr; } }
+
+  /* ---------- delivery model flow ---------- */
+  .flow { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .flow .step { border:1px solid var(--rule-soft); background: var(--card); padding: 22px 20px; position:relative; }
+  .flow .step .si { font-family: var(--mono); font-size: 10px; letter-spacing:.14em; color: var(--accent-deep); text-transform:uppercase; }
+  .flow .step h4 { font-family: var(--display); font-weight: 540; font-size: 18px; margin: 8px 0 8px; letter-spacing:-.01em; }
+  .flow .step p { font-size: 13.5px; line-height:1.5; margin: 0; color: var(--muted); }
+  @media (max-width: 820px){ .flow { grid-template-columns: 1fr; } }
+
+  .loop { margin-top: 20px; background: var(--ink-2); color: var(--paper); padding: 26px 28px; position:relative; overflow:hidden; }
+  .loop .chips { display:flex; flex-wrap:wrap; gap: 10px; margin-top: 14px; }
+  .loop .chip { font-family: var(--mono); font-size: 12px; letter-spacing:.04em; padding: 7px 13px; border:1px solid rgba(255,255,255,.2); border-radius: 30px; color: var(--paper); }
+  .loop .chip.ac { border-color: var(--accent); color: #F0A88C; }
+  .loop .arrowtxt { font-family: var(--mono); font-size: 11px; color: var(--dim); letter-spacing:.06em; }
+
+  /* ---------- outcomes table ---------- */
+  .otable { width:100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; background: var(--card); border:1px solid var(--rule-soft); }
+  .otable th, .otable td { text-align:left; padding: 14px 18px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  .otable thead th { font-family: var(--mono); font-size: 10px; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); background: var(--paper-warm); }
+  .otable td.metric { font-weight: 700; width: 30%; }
+  .otable .before { color: var(--muted); }
+  .otable .after { color: var(--ink); font-weight: 600; }
+  .otable tr:last-child td { border-bottom: none; }
+  @media (max-width: 640px){ .otable, .otable thead, .otable tbody, .otable th, .otable td, .otable tr { display:block; } .otable thead { display:none; } .otable td { border:none; padding: 4px 16px; } .otable tr { border-bottom:1px solid var(--rule-soft); padding: 10px 0; } .otable td.metric { padding-top: 12px; } }
+
+  /* ---------- CTA ---------- */
+  .cta { background: var(--ink); color: var(--paper); padding: 72px 28px; position:relative; overflow:hidden; }
+  .cta .glow { position:absolute; left:-160px; bottom:-200px; width:520px; height:520px; border-radius:50%;
+    background: radial-gradient(circle, rgba(232,85,43,.22), rgba(232,85,43,0) 62%); pointer-events:none; }
+  .cta .inner { position:relative; max-width: var(--maxw); margin: 0 auto; }
+  .cta h2 { font-family: var(--display); font-weight: 480; font-size: clamp(28px,4.4vw,44px); line-height:1.06; letter-spacing:-.02em; margin: 16px 0 0; max-width: 18ch; }
+  .cta h2 em { font-style:italic; color:#F0A88C; }
+  .cta p { font-family: var(--serif); font-size: 19px; color: #D6D2C8; margin: 22px 0 0; max-width: 56ch; }
+  .cta .steps { margin-top: 34px; display:grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .cta .steps .st { border:1px solid rgba(255,255,255,.16); padding: 20px; }
+  .cta .steps .st .num { font-family: var(--mono); color: #F0A88C; font-size: 11px; letter-spacing:.14em; }
+  .cta .steps .st .t { font-weight: 600; margin-top: 8px; font-size: 15px; }
+  .cta .steps .st .d { color: var(--dim); font-size: 13px; margin-top: 6px; line-height:1.45; }
+  @media (max-width: 820px){ .cta .steps { grid-template-columns: 1fr; } }
+
+  /* ---------- footer / sources ---------- */
+  footer.foot { background: var(--paper-2); padding: 48px 28px 64px; }
+  footer .inner { max-width: var(--maxw); margin: 0 auto; }
+  footer h4 { font-family: var(--mono); font-size: 11px; letter-spacing:.16em; text-transform:uppercase; color: var(--muted); margin: 0 0 14px; }
+  footer .srcs { font-size: 12.5px; color: var(--muted); line-height:1.7; columns: 2; column-gap: 40px; }
+  @media (max-width: 640px){ footer .srcs { columns: 1; } }
+  footer .disc { margin-top: 28px; padding-top: 18px; border-top:1px solid var(--rule-soft); font-size: 11.5px; color: var(--muted-2); line-height:1.6; }
+  footer .lock { display:flex; align-items:center; gap:12px; margin-bottom: 26px; }
+
+  .kj { color: var(--accent-deep); font-weight: 700; }
+  .inlinecite { font-family: var(--mono); font-size: 10px; color: var(--muted-2); vertical-align: super; }
+  hr.soft { border:none; border-top:1px solid var(--rule-soft); margin: 34px 0; }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<div class="topband">
+  <div class="inner">
+    <div class="brandlock">
+      <span class="wm">Infosys</span>
+      <span class="x">×</span>
+      <span class="wm cog">COGNITION<span class="dotac">.</span></span>
+    </div>
+    <div class="doc">Joint Point of View · Insurance Modernization</div>
+  </div>
+</div>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="grain"></div>
+  <div class="glow"></div>
+  <div class="inner">
+    <span class="eyebrow">Joint Point of View · Infosys × Cognition</span>
+    <h1>Modernization at the speed of <em>autonomy</em></h1>
+    <p class="dek">P&amp;C insurers are carrying two decades of tech debt into an era of stacked regulation and AI-native competition. This is how Infosys and Cognition clear it — pairing Guidewire-deep modernization expertise with autonomous software engineering, so the core gets rebuilt in months, not years, and arrives audit-ready by default.</p>
+    <div class="metarow">
+      <div class="m"><div class="l">Audience</div><div class="v">CIO · CTO · Head of Core Systems</div></div>
+      <div class="m"><div class="l">Focus</div><div class="v">Core modernization &amp; tech-debt remediation</div></div>
+      <div class="m"><div class="l">Sector</div><div class="v">Property &amp; Casualty insurance</div></div>
+      <div class="m"><div class="l">Published</div><div class="v">May 2026</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ EXECUTIVE SUMMARY ============ -->
+<section class="band">
+  <div class="wrap">
+    <div class="read">
+      <div class="secnum"><span class="n">00</span> Executive summary</div>
+      <h2 class="sec">The carrier's binding constraint is no longer capital. It is engineering velocity.</h2>
+      <p class="big">Every strategic ambition a property &amp; casualty insurer holds — entering a new line, repricing risk faster than the market, meeting a regulator's deadline, defending against a breach it also underwrites — now runs through the same chokepoint: the speed and safety with which its engineering organization can change software. And most of that organization is not building the future. It is maintaining the past.</p>
+      <p>Industry studies put as much as <strong>84% of developer time into maintenance and toil</strong> rather than new capability,<span class="inlinecite">1</span> and the majority of carriers still run their policy, billing, and claims on platforms architected decades ago.<span class="inlinecite">2</span> Layer on three regulatory regimes arriving at once — IFRS&nbsp;17, DORA, and the EU AI Act — and a post-<em class="term">Mythos</em> threat landscape where the window from disclosure to exploit is measured in hours, and the modernization backlog stops being an IT line item. It becomes the limit on the business.</p>
+      <p>Neither domain expertise alone nor a coding copilot alone closes that gap. Modernization stalls because there are not enough skilled hands to do the repetitive, high-volume engineering work — and copilots make those hands type faster without removing the work itself. <strong>The unlock is to combine deep insurance delivery capability with engineering throughput that scales independently of headcount.</strong></p>
+      <p>That is the premise of this paper. <strong>Infosys</strong> brings the domain depth, Guidewire muscle, and regulated-delivery governance — now deepened by its acquisition of <strong>Stratus</strong>, a specialist P&amp;C transformation firm with 450+ professionals and Guidewire at the core of its practice.<span class="inlinecite">3</span> <strong>Cognition</strong> brings <strong>Devin</strong>, an autonomous software engineer that plans, writes, tests, ships, and documents whole units of work in parallel — and bills on consumption, not seats. Together they convert the modernization backlog from a capacity problem into a throughput advantage.</p>
+    </div>
+
+    <div class="stats">
+      <div class="s"><div class="v">84<span class="u">%</span></div><div class="k">of developer time spent on maintenance &amp; toil, not new capability<span class="inlinecite">1</span></div></div>
+      <div class="s"><div class="v">60–70<span class="u">%</span></div><div class="k">of carriers still run core on 1980s–90s-era platforms<span class="inlinecite">2</span></div></div>
+      <div class="s"><div class="v">$220<span class="u">B</span></div><div class="k">global insurance IT spend — most of it run-the-business<span class="inlinecite">4</span></div></div>
+      <div class="s"><div class="v">3</div><div class="k">regulatory regimes — IFRS&nbsp;17, DORA, EU AI Act — landing at once<span class="inlinecite">5</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 1 — THE CHALLENGE ============ -->
+<section class="band">
+  <div class="wrap">
+    <div class="read">
+      <div class="secnum"><span class="n">01</span> The challenge</div>
+      <h2 class="sec">Tech debt has become a strategic liability, not a maintenance backlog</h2>
+      <p>For most carriers, the core was built for a slower world. Policy administration, rating, billing, and claims systems were customized heavily over twenty or thirty years, then left to accumulate undocumented logic, brittle integrations, and framework versions several generations behind. The people who understood the original design have retired. What remains is an estate that is expensive to change, risky to touch, and increasingly impossible to staff.</p>
+      <p>This matters now for four reasons that compound on each other:</p>
+
+      <h3 class="sub">The skills cliff is real and widening.</h3>
+      <p>The senior engineers who can safely modernize a legacy policy admin system or a deeply customized Guidewire implementation are scarce and expensive — and the talent market is moving toward AI-native delivery, not COBOL or legacy Java maintenance. Carriers cannot hire their way out of the backlog at any reasonable cost, and traditional staff augmentation simply rents the bottleneck rather than removing it.</p>
+
+      <h3 class="sub">Three regulations are arriving in the same window.</h3>
+      <p><strong>IFRS&nbsp;17</strong> reshaped insurance financial reporting and left carriers with sprawling remediation around actuarial and finance systems. <strong>DORA</strong> is in force, demanding demonstrable operational resilience and an auditable record of every material change to critical systems. And the <strong>EU AI Act</strong> classifies pricing and underwriting models as high-risk, with obligations — documentation, traceability, model cards, human oversight — phasing in through 2026.<span class="inlinecite">5</span> Each one lands on the same overloaded engineering org, and each one demands evidence that today is produced by hand, after the fact.</p>
+
+      <h3 class="sub">Security moves at machine speed — and carriers underwrite the risk.</h3>
+      <p>In the post-<em class="term">Mythos</em> era, the interval between a vulnerability being disclosed and being exploited at scale has collapsed to hours. A legacy estate with hundreds of services running outdated frameworks and unpatched dependencies is exposed precisely where it is slowest to change. For an insurer the exposure is doubled: a carrier that writes cyber cover has to defend its own posture to the same standard it prices for its customers.</p>
+
+      <h3 class="sub">Modernization programs run on a timeline the business can no longer accept.</h3>
+      <p>A core migration or a major Guidewire upgrade is typically scoped in years. The delay is rarely about architecture or design — those decisions are made early. It is about the sheer volume of repetitive engineering in between: converting configuration, rewriting integrations, mapping data, regenerating tests, and regression-checking every release. That volume is exactly the work that does not need a scarce senior architect — and exactly the work that has, until now, consumed them.</p>
+
+      <p class="pull">When the backlog of repetitive engineering work sets the pace of the business, the answer is not more hands on the same work. It is to take the work off the critical path entirely.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 2 — WHY A DIFFERENT MODEL ============ -->
+<section class="band">
+  <div class="wrap">
+    <div class="read">
+      <div class="secnum"><span class="n">02</span> Why a different delivery model</div>
+      <h2 class="sec">Domain depth and autonomous engineering, working as one engine</h2>
+      <p>The market has offered carriers two partial answers, and neither closes the gap on its own.</p>
+      <p><strong>System integrators</strong> bring the domain knowledge, the platform certifications, and the program governance regulated delivery demands — but their economics are tied to people, so a backlog measured in millions of engineering hours stays a function of how many people can be hired and retained. <strong>Coding assistants</strong> help individual developers write lines faster, but they do not own a unit of work end to end: they do not run the tests, open the pull requests, remediate across a fleet of repositories, or leave an audit trail. They accelerate typing; they do not remove the workload.</p>
+      <p>Modernization needs both halves joined: <strong>the judgment, accountability, and insurance context that only a domain-deep partner provides, combined with engineering throughput that scales with the size of the problem rather than the size of the team.</strong> That is the model this partnership puts in market.</p>
+
+      <div class="duo">
+        <div class="col inf">
+          <div class="role">The domain &amp; delivery engine</div>
+          <div class="who">Infosys</div>
+          <div class="one">Knows the insurer, the platform, and the regulator.</div>
+          <ul>
+            <li>Deep Guidewire delivery across PolicyCenter, BillingCenter &amp; ClaimCenter — implementation, upgrades, and cloud migration</li>
+            <li>Stratus acquisition adds 450+ specialist P&amp;C professionals with Guidewire at the core of their practice<span class="inlinecite">3</span></li>
+            <li>Enterprise data modernization &amp; applied AI across underwriting, claims, finance and operations</li>
+            <li>Regulated-delivery governance for IFRS&nbsp;17, DORA &amp; the EU AI Act</li>
+            <li>Existing master agreements and CXO relationships that compress procurement</li>
+          </ul>
+        </div>
+        <div class="col cog">
+          <div class="role">The autonomous engineering engine</div>
+          <div class="who">Cognition — Devin</div>
+          <div class="one">Owns whole tickets: plan, code, test, ship, document.</div>
+          <ul>
+            <li>An autonomous software engineer that takes a scoped task end to end, not a line-completion assistant</li>
+            <li>Runs in parallel across hundreds of repositories — throughput scales without scaling headcount</li>
+            <li>Every change produces a replayable, reviewable trace — evidence as a byproduct of delivery</li>
+            <li>Consumption-based pricing (ACUs — Agent Compute Units): pay for output, not seats</li>
+            <li>Production-grade today, with disclosed deployments at Goldman Sachs, Santander &amp; Nubank<span class="inlinecite">6</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p style="margin-top:26px" class="big">Infosys directs the program and owns the outcome. Devin does the volume. The carrier gets the depth of a specialist partner and the velocity of a software engineering organization that no longer scales linearly with hiring.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 3 — USE CASES ============ -->
+<section class="band">
+  <div class="wrap">
+    <div class="read">
+      <div class="secnum"><span class="n">03</span> Where it lands first</div>
+      <h2 class="sec">Four use cases where the joint model changes the economics</h2>
+      <p>These are the workloads where toil dominates the cost curve and the outcome is measurable — the natural entry points for a joint Infosys × Cognition engagement. Each pairs Infosys-led domain judgment with Devin-driven execution.</p>
+    </div>
+
+    <!-- UC1 -->
+    <div class="uc">
+      <div class="uchead">
+        <div class="ucnum">01</div>
+        <div class="uctitle">
+          <div class="uckick">Core modernization · Guidewire</div>
+          <h3>Guidewire upgrades and cloud migration, compressed from years to quarters</h3>
+        </div>
+      </div>
+      <div class="ucbody">
+        <div class="grid3">
+          <div class="cell prob"><div class="h">The problem</div><p>Carriers run heavily customized Guidewire PolicyCenter, BillingCenter, and ClaimCenter on-prem, often several versions behind. The path to Guidewire Cloud is gated not by design decisions but by the volume of configuration conversion, integration rework, data mapping, and regression testing in between.</p></div>
+          <div class="cell appr"><div class="h">The joint approach</div><p>Infosys and Stratus lead the program — target architecture, configuration design, and governance, grounded in deep Guidewire delivery experience. Devin absorbs the repetitive build: rewriting integration adapters, converting configuration, generating and maintaining test suites, and running regression in parallel across modules.</p></div>
+          <div class="cell out"><div class="h">The outcome</div><p>The engineering-heavy phases of a migration collapse from quarters to weeks. Scarce Guidewire architects are freed for design and exception-handling rather than grunt work, and every change carries its own audit trail into the cloud target.</p></div>
+        </div>
+        <div class="proof"><span class="tag">Illustrative outcome shape</span>"Integration and regression workstreams that scoped at six months delivered in six weeks — the architects spent their time on design decisions, not test scaffolding."</div>
+      </div>
+    </div>
+
+    <!-- UC2 -->
+    <div class="uc">
+      <div class="uchead">
+        <div class="ucnum">02</div>
+        <div class="uctitle">
+          <div class="uckick">Tech-debt &amp; security · fleet scale</div>
+          <h3>Fleet-wide framework, dependency, and CVE remediation at machine speed</h3>
+        </div>
+      </div>
+      <div class="ucbody">
+        <div class="grid3">
+          <div class="cell prob"><div class="h">The problem</div><p>Beyond the core, carriers run a sprawl of policy admin, rating, document, and integration services on Java and .NET stacks that are years behind on framework versions, carry open CVEs, and lack reliable tests. Post-Mythos, every unpatched service is an exposure the carrier also has to defend as an underwriter of cyber risk.</p></div>
+          <div class="cell appr"><div class="h">The joint approach</div><p>Infosys owns estate triage, prioritization, and change governance. Devin runs as a fleet — parallel agents across hundreds of repositories — upgrading frameworks, patching dependencies, remediating CVEs, and regenerating the tests that prove nothing broke, all under human review.</p></div>
+          <div class="cell out"><div class="h">The outcome</div><p>Hundreds of services brought current in days and weeks rather than quarters. Remediation becomes a continuous capability the carrier can sustain, so the estate stays current and the security posture is demonstrable to regulators and reinsurers alike.</p></div>
+        </div>
+        <div class="proof"><span class="tag">Illustrative outcome shape</span>"Two hundred services patched to a supported framework baseline in days, with regression tests generated alongside — matching the speed of the threat for the first time."</div>
+      </div>
+    </div>
+
+    <!-- UC3 -->
+    <div class="uc">
+      <div class="uchead">
+        <div class="ucnum">03</div>
+        <div class="uctitle">
+          <div class="uckick">Data modernization · AI readiness</div>
+          <h3>Building the AI-ready data foundation across the insurance value chain</h3>
+        </div>
+      </div>
+      <div class="ucbody">
+        <div class="grid3">
+          <div class="cell prob"><div class="h">The problem</div><p>Underwriting, claims, and finance data sit fragmented across legacy stores with inconsistent lineage and quality. AI ambitions — smarter underwriting, faster claims triage, better pricing — stall on the unglamorous data engineering required to make that data trustworthy and accessible.</p></div>
+          <div class="cell appr"><div class="h">The joint approach</div><p>Infosys and Stratus define the cloud data architecture and governance — drawing on established data-modernization practice across underwriting, claims, and finance. Devin builds the volume: pipelines, transformations, data-quality checks, and the migration of legacy ETL and reporting into the modern target.</p></div>
+          <div class="cell out"><div class="h">The outcome</div><p>A governed, AI-ready data foundation delivered in a fraction of the usual time — turning fragmented legacy data into a platform for analytics and decisioning across the value chain, with the engineering done once and done with lineage intact.</p></div>
+        </div>
+        <div class="proof"><span class="tag">Illustrative outcome shape</span>"The data foundation that was the year-one blocker for the carrier's AI roadmap became a one-quarter workstream — the models had clean, governed data to build on."</div>
+      </div>
+    </div>
+
+    <!-- UC4 -->
+    <div class="uc">
+      <div class="uchead">
+        <div class="ucnum">04</div>
+        <div class="uctitle">
+          <div class="uckick">Compliance · evidence by default</div>
+          <h3>IFRS 17, DORA, and EU AI Act evidence as a byproduct of delivery</h3>
+        </div>
+      </div>
+      <div class="ucbody">
+        <div class="grid3">
+          <div class="cell prob"><div class="h">The problem</div><p>Three regimes — IFRS&nbsp;17 financial reporting, DORA operational resilience, and the EU AI Act's high-risk obligations for pricing and underwriting — each demand documentation, traceability, change records, and model cards. Today that evidence is assembled by hand, after the code ships, as a separate and costly exercise.</p></div>
+          <div class="cell appr"><div class="h">The joint approach</div><p>Infosys brings the regulatory and control framework — what evidence each regime requires and how it must be governed. Devin makes that evidence a byproduct of the same workflow that ships the code: every change produces a replayable trace, change records and model cards emerge automatically rather than being reconstructed.</p></div>
+          <div class="cell out"><div class="h">The outcome</div><p>Delivery is audit-ready by default. The cost of compliance folds into the cost of delivery instead of stacking on top of it, and the carrier can answer a regulator or an examiner from the system of record rather than a manual paper trail.</p></div>
+        </div>
+        <div class="proof"><span class="tag">Illustrative outcome shape</span>"The DORA evidence pack and the AI Act model cards were generated from the delivery workflow itself — compliance stopped being a project of its own."</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 4 — DELIVERY MODEL ============ -->
+<section class="band">
+  <div class="wrap">
+    <div class="read">
+      <div class="secnum"><span class="n">04</span> The joint delivery model</div>
+      <h2 class="sec">One team, two engines — humans set intent, agents do the volume</h2>
+      <p>The partnership does not bolt a tool onto a staffing model. It changes how the work is organized. Domain-led pods from Infosys and Stratus own the outcome, the architecture, and the regulator-facing accountability. They direct fleets of Devin agents that carry out the high-volume engineering, with humans reviewing and approving at the decision points that matter.</p>
+    </div>
+
+    <div class="flow">
+      <div class="step">
+        <div class="si">Direct</div>
+        <h4>Infosys-led pods own the program</h4>
+        <p>Insurance and Guidewire experts set the target architecture, scope the work into agent-ready units, define the controls, and stay accountable for the outcome and the regulator relationship.</p>
+      </div>
+      <div class="step">
+        <div class="si">Execute</div>
+        <h4>Devin runs the work in parallel</h4>
+        <p>Agents take whole units of work — a migration module, a fleet of repos, a data pipeline — and plan, code, test, and document them concurrently, scaling with the size of the backlog.</p>
+      </div>
+      <div class="step">
+        <div class="si">Govern</div>
+        <h4>Review, evidence, and audit baked in</h4>
+        <p>Humans review at the decision points; every change leaves a replayable trace. Compliance evidence and security posture are produced by the workflow, not reconstructed after it.</p>
+      </div>
+    </div>
+
+    <div class="loop">
+      <div class="arrowtxt">THE UNIT OF WORK MOVES FROM SUGGESTION TO DELIVERY — ONE AGENTIC LOOP, OWNED END TO END</div>
+      <div class="chips">
+        <span class="chip">Plan</span>
+        <span class="chip">Code</span>
+        <span class="chip">Test</span>
+        <span class="chip">Ship</span>
+        <span class="chip">Document &amp; audit</span>
+        <span class="chip ac">Priced in ACUs — output, not seats</span>
+      </div>
+    </div>
+
+    <div class="read" style="margin-top:30px">
+      <p>The commercial model follows the work. Because Devin is metered in <strong>Agent Compute Units (ACUs)</strong> rather than licensed per seat, capacity scales up for a migration sprint and back down to steady-state maintenance without renegotiating headcount. And because Infosys can deliver under <strong>existing master service agreements</strong>, a scoped pilot can be in market in weeks rather than waiting on a full procurement cycle.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 5 — OUTCOMES ============ -->
+<section class="band">
+  <div class="wrap">
+    <div class="read">
+      <div class="secnum"><span class="n">05</span> What changes for the carrier</div>
+      <h2 class="sec">The economics of the same program, re-engineered</h2>
+      <p>The headline is cost, but the structural prize is time and capacity. A program that once locked a full team for a year delivers with a smaller team, augmented by Devin, in two-thirds of the time — and frees the rest of the organization for the next program rather than the current one.</p>
+    </div>
+
+    <table class="otable">
+      <thead>
+        <tr><th>Dimension</th><th>Traditional delivery</th><th>Infosys × Cognition</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="metric">Team shape</td><td class="before">A full team sized to the backlog</td><td class="after">A leaner senior team directing a fleet of agents</td></tr>
+        <tr><td class="metric">Timeline</td><td class="before">Scoped in years; engineering volume sets the pace</td><td class="after">Engineering-heavy phases compress to weeks; programs deliver in two-thirds the time</td></tr>
+        <tr><td class="metric">Capacity</td><td class="before">Locked on one program for its full duration</td><td class="after">Freed for the next program months earlier — value compounds</td></tr>
+        <tr><td class="metric">Compliance &amp; audit</td><td class="before">A separate, manual exercise after the code ships</td><td class="after">Evidence produced by the delivery workflow — audit-ready by default</td></tr>
+        <tr><td class="metric">Security posture</td><td class="before">Remediation lags the threat by quarters</td><td class="after">Continuous, fleet-wide remediation that matches machine-speed threats</td></tr>
+        <tr><td class="metric">Commercials</td><td class="before">Priced per seat; scales with hiring</td><td class="after">Priced in ACUs — output, not seats; scales with the program</td></tr>
+      </tbody>
+    </table>
+
+    <div class="read">
+      <p class="pull">The question for a carrier is no longer how many people the modernization will take. It is how fast the business needs it — and whether it should arrive audit-ready.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="cta">
+  <div class="glow"></div>
+  <div class="inner">
+    <span class="eyebrow" style="color:#F0A88C">Where to start</span>
+    <h2>A scoped pilot, in market in <em>weeks</em> — not a year-long program.</h2>
+    <p>The fastest way to prove the model is a single, measurable workload — one Guidewire migration module, one fleet-remediation sweep, one data-foundation slice — delivered jointly against a named outcome.</p>
+    <div class="steps">
+      <div class="st"><div class="num">01</div><div class="t">Diagnose</div><div class="d">A joint Infosys × Cognition assessment of the carrier's estate, backlog, and regulatory exposure to find the highest-leverage entry point.</div></div>
+      <div class="st"><div class="num">02</div><div class="t">Pilot in 4–8 weeks</div><div class="d">A fixed-scope workload with success metrics agreed up front, delivered under an existing Infosys MSA to skip the procurement cycle.</div></div>
+      <div class="st"><div class="num">03</div><div class="t">Scale</div><div class="d">Convert the proof into a sustained modernization program — agent capacity flexing up for sprints and back to steady-state on consumption pricing.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot">
+  <div class="inner">
+    <div class="lock">
+      <span class="wm">Infosys</span>
+      <span class="x">×</span>
+      <span class="wm cog">COGNITION<span class="dotac">.</span></span>
+    </div>
+    <h4>Sources &amp; references</h4>
+    <div class="srcs">
+      <div>1 — Engineering toil / maintenance share of developer time: industry analyses incl. Codeligence and developer-productivity research.</div>
+      <div>2 — Share of carriers on legacy core platforms: Celent and McKinsey insurance-technology research.</div>
+      <div>3 — Infosys acquisition of Stratus: agreement announced 25 March 2026, completed 23 April 2026; Stratus profile (450+ professionals; Guidewire across policy, billing &amp; claims; cloud migration; data modernization &amp; applied AI) per Infosys newsroom and stratustech.com.</div>
+      <div>4 — Global insurance IT spend (~$220B): Celent IT spending research.</div>
+      <div>5 — Regulatory timelines: IFRS 17 (effective Jan 2023); DORA (in force Jan 2025); EU AI Act high-risk obligations for insurance pricing/underwriting phasing in through 2026 — EIOPA, ESMA &amp; EU Official Journal.</div>
+      <div>6 — Cognition / Devin disclosed enterprise deployments: Goldman Sachs, Santander, Nubank, per Cognition public disclosures.</div>
+    </div>
+    <div class="disc">
+      This document is a joint point of view prepared for discussion with insurance leaders. Figures cited are drawn from third-party industry research and public disclosures referenced above and are indicative, not guarantees of outcome; illustrative outcome shapes are scenario examples, not specific client results. Outcomes depend on estate, scope, and engagement specifics. Product names and trademarks — including Guidewire, Devin, and Stratus — are the property of their respective owners. "ACU" denotes Agent Compute Unit. Acquisition details are accurate as of the dates referenced (April 2026).
+    </div>
+  </div>
+</footer>
+
+<script>
+  // scroll progress bar
+  var bar = document.getElementById('progress');
+  function onScroll(){
+    var h = document.documentElement;
+    var st = h.scrollTop || document.body.scrollTop;
+    var sh = (h.scrollHeight - h.clientHeight) || 1;
+    bar.style.width = (st / sh * 100) + '%';
+  }
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+</script>
+</body>
+</html>
