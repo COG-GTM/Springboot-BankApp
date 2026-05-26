@@ -117,6 +117,7 @@
     <ul class="navbar-nav ml-auto">
         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
+        <li class="nav-item"><a class="nav-link" href="/analytics">Analytics</a></li>
         <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
     </ul>
 </nav>
@@ -189,7 +190,52 @@
     </div>
 
     <p th:if="${error != null}" th:text="${error}" class="error text-center mt-3"></p>
+
+    <!-- Download Report Section -->
+    <div class="account-details mt-4" id="downloadReportSection">
+        <h4>Download Report</h4>
+        <p class="text-muted" style="font-size: 14px;">Export your transaction history for a selected date range.</p>
+        <form id="reportForm" class="form-container" onsubmit="return downloadReport(event)">
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    <label for="reportStartDate">Start Date</label>
+                    <input type="date" class="form-control" id="reportStartDate" name="startDate" required />
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="reportEndDate">End Date</label>
+                    <input type="date" class="form-control" id="reportEndDate" name="endDate" required />
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="reportFormat">Format</label>
+                    <select class="form-control" id="reportFormat" name="format">
+                        <option value="csv">CSV</option>
+                        <option value="pdf">PDF</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Download Report</button>
+        </form>
+    </div>
 </div>
+
+<script>
+    function downloadReport(e) {
+        e.preventDefault();
+        var start = document.getElementById('reportStartDate').value;
+        var end = document.getElementById('reportEndDate').value;
+        var format = document.getElementById('reportFormat').value;
+        if (!start || !end) return false;
+        if (start > end) {
+            alert('Start date must be before or equal to end date.');
+            return false;
+        }
+        var url = '/api/reports/export/' + format
+            + '?startDate=' + encodeURIComponent(start)
+            + '&endDate=' + encodeURIComponent(end);
+        window.location.href = url;
+        return false;
+    }
+</script>
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>

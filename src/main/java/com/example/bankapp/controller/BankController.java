@@ -71,6 +71,12 @@ public class BankController {
         return "redirect:/dashboard";
     }
 
+    @GetMapping("/analytics")
+    public String analytics(Model model) {
+        model.addAttribute("account", getCurrentAccount());
+        return "analytics";
+    }
+
     @GetMapping("/transactions")
     public String transactionHistory(Model model) {
         Account account = getCurrentAccount();
