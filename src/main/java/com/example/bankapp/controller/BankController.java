@@ -18,11 +18,14 @@ public class BankController {
     @Autowired
     private AccountService accountService;
 
+    private Account getCurrentAccount() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return accountService.findAccountByUsername(username);
+    }
+
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
-        model.addAttribute("account", account);
+        model.addAttribute("account", getCurrentAccount());
         return "dashboard";
     }
 
@@ -49,16 +52,13 @@ public class BankController {
 
     @PostMapping("/deposit")
     public String deposit(@RequestParam BigDecimal amount) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
-        accountService.deposit(account, amount);
+        accountService.deposit(getCurrentAccount(), amount);
         return "redirect:/dashboard";
     }
 
     @PostMapping("/withdraw")
     public String withdraw(@RequestParam BigDecimal amount, Model model) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = getCurrentAccount();
 
         try {
             accountService.withdraw(account, amount);
@@ -71,18 +71,22 @@ public class BankController {
         return "redirect:/dashboard";
     }
 
+    @GetMapping("/analytics")
+    public String analytics(Model model) {
+        model.addAttribute("account", getCurrentAccount());
+        return "analytics";
+    }
+
     @GetMapping("/transactions")
     public String transactionHistory(Model model) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = getCurrentAccount();
         model.addAttribute("transactions", accountService.getTransactionHistory(account));
         return "transactions";
     }
 
     @PostMapping("/transfer")
     public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account fromAccount = accountService.findAccountByUsername(username);
+        Account fromAccount = getCurrentAccount();
 
         try {
             accountService.transferAmount(fromAccount, toUsername, amount);
