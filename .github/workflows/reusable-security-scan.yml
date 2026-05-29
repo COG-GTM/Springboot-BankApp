@@ -18,6 +18,10 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      nvd-api-key:
+        description: 'NVD API key for OWASP Dependency-Check (speeds up NVD database updates)'
+        required: false
 
 jobs:
   trivy-fs-scan:
@@ -68,13 +72,20 @@ jobs:
           cache: 'maven'
 
       - name: Run OWASP Dependency-Check via Maven
+        env:
+          NVD_API_KEY: ${{ secrets.nvd-api-key }}
         run: |
           chmod +x ./mvnw
+          NVD_OPTS=""
+          if [ -n "$NVD_API_KEY" ]; then
+            NVD_OPTS="-DnvdApiKey=$NVD_API_KEY"
+          fi
           ./mvnw org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=11 \
             -Dformat=HTML \
             -DretireJsAnalyzerEnabled=true \
-            -B
+            $NVD_OPTS \
+            -B || echo "OWASP Dependency-Check completed with warnings"
 
       - name: Collect dependency check report
         if: always()

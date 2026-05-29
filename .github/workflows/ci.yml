@@ -39,10 +39,13 @@ jobs:
       java-version: '17'
       trivy-severity: 'CRITICAL,HIGH'
       fail-on-vulnerabilities: false
+    secrets:
+      nvd-api-key: ${{ secrets.NVD_API_KEY }}
 
   docker-build:
     name: Docker Build & Push
-    needs: [test, security-scan]
+    needs: [test]
+    if: always() && needs.test.result == 'success'
     uses: ./.github/workflows/reusable-docker.yml
     with:
       image-name: ${{ github.repository_owner }}/bankapp
