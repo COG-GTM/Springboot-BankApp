@@ -30,6 +30,11 @@ on:
         required: false
         type: string
         default: 'helm/bankapp/values.yaml'
+      deployment-name:
+        description: 'Kubernetes Deployment resource name (as defined in Helm template)'
+        required: false
+        type: string
+        default: 'bankapp'
     secrets:
       kube-config:
         description: 'Kubernetes config for cluster access'
@@ -74,7 +79,7 @@ jobs:
 
       - name: Verify deployment
         run: |
-          kubectl rollout status deployment/${{ inputs.helm-release-name }} \
+          kubectl rollout status deployment/${{ inputs.deployment-name }} \
             --namespace ${{ inputs.namespace }} \
             --timeout=300s
 
