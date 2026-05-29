@@ -1,1 +1,3 @@
+-- PostgreSQL database creation
+-- Run this command before starting the application:
 CREATE DATABASE bankappdb;
