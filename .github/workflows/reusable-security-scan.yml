@@ -1,0 +1,89 @@
+name: Reusable Security Scan
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        description: 'Java version to use'
+        required: false
+        type: string
+        default: '17'
+      trivy-severity:
+        description: 'Trivy severity levels to scan for'
+        required: false
+        type: string
+        default: 'CRITICAL,HIGH'
+      fail-on-vulnerabilities:
+        description: 'Fail the build if vulnerabilities are found'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  trivy-fs-scan:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: ${{ inputs.trivy-severity }}
+          exit-code: ${{ inputs.fail-on-vulnerabilities && '1' || '0' }}
+
+      - name: Run Trivy filesystem scan (SARIF)
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: ${{ inputs.trivy-severity }}
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'trivy-filesystem'
+
+  dependency-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build project
+        run: ./mvnw clean compile -DskipTests -B
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'bankapp'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --failOnCVSS 11
+            --enableRetired
+
+      - name: Upload dependency check report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: reports/
+          retention-days: 10

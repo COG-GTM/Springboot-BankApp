@@ -1,0 +1,89 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: [CI Pipeline]
+    types: [completed]
+    branches: [DevOps, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image-tag:
+        description: 'Docker image tag to deploy'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/bankapp
+
+jobs:
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    outputs:
+      image-tag: ${{ steps.resolve-tag.outputs.tag }}
+      environment: ${{ steps.resolve-env.outputs.environment }}
+    steps:
+      - name: Resolve image tag
+        id: resolve-tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.image-tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve environment
+        id: resolve-env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event.workflow_run.head_branch }}" == "main" ]]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=staging" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: prepare
+    if: needs.prepare.outputs.environment == 'staging'
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: staging
+      image-tag: ${{ needs.prepare.outputs.image-tag }}
+      image-name: ghcr.io/${{ github.repository_owner }}/bankapp
+      namespace: bankapp-staging
+      helm-release-name: bankapp-staging
+      helm-values-file: helm/bankapp/values-staging.yaml
+    secrets:
+      kube-config: ${{ secrets.KUBE_CONFIG_STAGING }}
+
+  deploy-production:
+    name: Deploy to Production
+    needs: prepare
+    if: needs.prepare.outputs.environment == 'production'
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: production
+      image-tag: ${{ needs.prepare.outputs.image-tag }}
+      image-name: ghcr.io/${{ github.repository_owner }}/bankapp
+      namespace: bankapp-production
+      helm-release-name: bankapp-production
+      helm-values-file: helm/bankapp/values-production.yaml
+    secrets:
+      kube-config: ${{ secrets.KUBE_CONFIG_PRODUCTION }}

@@ -1,0 +1,77 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [DevOps, main]
+  pull_request:
+    branches: [DevOps, main]
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+  checks: write
+
+env:
+  JAVA_VERSION: '17'
+  IMAGE_NAME: ${{ github.repository_owner }}/bankapp
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      java-version: '17'
+      maven-goals: 'clean compile'
+
+  test:
+    name: Test
+    needs: build
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      java-version: '17'
+
+  security-scan:
+    name: Security Scan
+    needs: build
+    uses: ./.github/workflows/reusable-security-scan.yml
+    with:
+      java-version: '17'
+      trivy-severity: 'CRITICAL,HIGH'
+      fail-on-vulnerabilities: false
+
+  docker-build:
+    name: Docker Build & Push
+    needs: [test, security-scan]
+    uses: ./.github/workflows/reusable-docker.yml
+    with:
+      image-name: ${{ github.repository_owner }}/bankapp
+      image-tag: ${{ github.sha }}
+      push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/DevOps' || github.ref == 'refs/heads/main') }}
+      registry: ghcr.io
+      trivy-scan: true
+      trivy-severity: 'CRITICAL,HIGH'
+    secrets:
+      registry-username: ${{ github.actor }}
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [build, test, security-scan, docker-build]
+    if: always()
+    steps:
+      - name: Check CI results
+        run: |
+          echo "Build:         ${{ needs.build.result }}"
+          echo "Test:          ${{ needs.test.result }}"
+          echo "Security Scan: ${{ needs.security-scan.result }}"
+          echo "Docker Build:  ${{ needs.docker-build.result }}"
+
+          if [[ "${{ needs.build.result }}" == "failure" || \
+                "${{ needs.test.result }}" == "failure" ]]; then
+            echo "CI pipeline failed"
+            exit 1
+          fi
+
+          echo "CI pipeline completed successfully"
