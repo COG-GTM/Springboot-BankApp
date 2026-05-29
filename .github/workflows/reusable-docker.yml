@@ -1,0 +1,120 @@
+name: Reusable Docker Build & Push
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: 'Docker image name'
+        required: true
+        type: string
+      image-tag:
+        description: 'Docker image tag'
+        required: false
+        type: string
+        default: 'latest'
+      push:
+        description: 'Push the image to registry'
+        required: false
+        type: boolean
+        default: false
+      registry:
+        description: 'Container registry to push to'
+        required: false
+        type: string
+        default: 'ghcr.io'
+      trivy-scan:
+        description: 'Run Trivy scan on built image'
+        required: false
+        type: boolean
+        default: true
+      trivy-severity:
+        description: 'Trivy severity levels for image scan'
+        required: false
+        type: string
+        default: 'CRITICAL,HIGH'
+    secrets:
+      registry-username:
+        description: 'Registry username'
+        required: false
+      registry-password:
+        description: 'Registry password'
+        required: false
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    outputs:
+      image-digest: ${{ steps.build-push.outputs.digest }}
+      image-ref: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lowercase image name
+        id: lower
+        run: |
+          echo "image-name=$(echo '${{ inputs.image-name }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.registry }}/${{ steps.lower.outputs.image-name }}
+          tags: |
+            type=raw,value=${{ inputs.image-tag }}
+            type=sha,prefix=
+            type=ref,event=branch
+            type=ref,event=pr
+
+      - name: Login to container registry
+        if: inputs.push
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.registry-username }}
+          password: ${{ secrets.registry-password }}
+
+      - name: Build and push Docker image
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ inputs.push }}
+          load: ${{ !inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Run Trivy image scan
+        if: inputs.trivy-scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ inputs.registry }}/${{ steps.lower.outputs.image-name }}:${{ inputs.image-tag }}
+          format: 'table'
+          severity: ${{ inputs.trivy-severity }}
+          exit-code: '0'
+
+      - name: Run Trivy image scan (SARIF)
+        if: inputs.trivy-scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ inputs.registry }}/${{ steps.lower.outputs.image-name }}:${{ inputs.image-tag }}
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: ${{ inputs.trivy-severity }}
+
+      - name: Upload Trivy image scan results
+        if: inputs.trivy-scan
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+          category: 'trivy-container'
