@@ -1,0 +1,37 @@
+# enforce-multi-az.sentinel
+# Requires Multi-AZ for production RDS instances to ensure high availability.
+# Enforcement: soft-mandatory (availability)
+
+import "tfplan/v2" as tfplan
+
+# RDS instances
+rds_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_db_instance" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+multi_az_validated = true
+for rds_instances as _, rc {
+	after = rc.change.after
+
+	# Determine environment from tags
+	tags = after["tags"] else {}
+	if tags is null {
+		tags = {}
+	}
+	environment = tags["Environment"] else "unknown"
+
+	# Only enforce Multi-AZ for production
+	if environment is "production" or environment is "prod" {
+		multi_az = after.multi_az else false
+		if multi_az is not true {
+			print("Production RDS instance", rc.address,
+				"must have multi_az = true for high availability.",
+				"Environment tag:", environment)
+			multi_az_validated = false
+		}
+	}
+}
+
+main = rule { multi_az_validated }

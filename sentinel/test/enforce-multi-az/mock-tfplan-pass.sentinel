@@ -1,0 +1,40 @@
+resource_changes = {
+  "aws_db_instance.primary": {
+    "address":       "aws_db_instance.primary",
+    "mode":          "managed",
+    "type":          "aws_db_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_class": "db.r6g.large",
+        "multi_az":       true,
+        "tags": {
+          "Environment": "production",
+          "Project":     "bankapp",
+          "Team":        "data",
+          "ManagedBy":   "terraform",
+        },
+      },
+    },
+  },
+  "aws_db_instance.staging": {
+    "address":       "aws_db_instance.staging",
+    "mode":          "managed",
+    "type":          "aws_db_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_class": "db.r6g.medium",
+        "multi_az":       false,
+        "tags": {
+          "Environment": "staging",
+          "Project":     "bankapp",
+          "Team":        "data",
+          "ManagedBy":   "terraform",
+        },
+      },
+    },
+  },
+}

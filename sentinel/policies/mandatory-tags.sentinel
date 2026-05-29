@@ -1,0 +1,56 @@
+# mandatory-tags.sentinel
+# Ensures all taggable resources have required compliance tags.
+# Enforcement: soft-mandatory (tagging/cost governance)
+
+import "tfplan/v2" as tfplan
+
+# Required tags for financial services compliance
+required_tags = ["Environment", "Project", "Team", "ManagedBy"]
+
+# Get all resources that support tags
+get_taggable_resources = func() {
+	return filter tfplan.resource_changes as _, rc {
+		rc.mode is "managed" and
+			rc.change.actions is not ["delete"] and
+			(rc.change.after else {}) is not null
+	}
+}
+
+# Validate that a resource has all required tags
+validate_tags = func(rc) {
+	after = rc.change.after
+	tags = after["tags"] else {}
+
+	if tags is null {
+		tags = {}
+	}
+
+	missing = []
+	for required_tags as tag {
+		if (tags[tag] else null) is null {
+			append(missing, tag)
+		}
+	}
+
+	if length(missing) > 0 {
+		print("Resource", rc.address, "is missing required tags:", missing)
+		return false
+	}
+	return true
+}
+
+# Main rule
+taggable_resources = get_taggable_resources()
+tags_validated = true
+
+for taggable_resources as _, rc {
+	# Only check resources that have a tags attribute in their schema
+	after = rc.change.after
+	if after is not null and "tags" in keys(after) {
+		if not validate_tags(rc) {
+			tags_validated = false
+		}
+	}
+}
+
+main = rule { tags_validated }
