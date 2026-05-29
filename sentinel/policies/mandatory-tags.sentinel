@@ -27,7 +27,7 @@ validate_tags = func(rc) {
 
 	missing = []
 	for required_tags as tag {
-		if tags[tag] else null is null {
+		if (tags[tag] else null) is null {
 			append(missing, tag)
 		}
 	}

@@ -5,8 +5,8 @@
 import "tfplan/v2" as tfplan
 
 # Approved instance families for financial services workloads
-approved_ec2_prefixes = ["m6i.", "r6g.", "c6i."]
-approved_rds_prefixes = ["db.m6i.", "db.r6g.", "db.c6i."]
+approved_ec2_prefixes = ["m6i\\.", "r6g\\.", "c6i\\."]
+approved_rds_prefixes = ["db\\.m6i\\.", "db\\.r6g\\.", "db\\.c6i\\."]
 
 # Check if an instance type starts with any approved prefix
 is_approved_type = func(instance_type, approved_prefixes) {
