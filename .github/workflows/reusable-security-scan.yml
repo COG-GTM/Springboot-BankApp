@@ -67,26 +67,20 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build project
+      - name: Run OWASP Dependency-Check via Maven
         run: |
           chmod +x ./mvnw
-          ./mvnw clean compile -DskipTests -B
+          ./mvnw org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=11 \
+            -Dformat=HTML \
+            -DretireJsAnalyzerEnabled=true \
+            -B
 
-      - name: Download OWASP Dependency-Check
+      - name: Collect dependency check report
+        if: always()
         run: |
-          DC_VERSION="12.1.1"
-          curl -sL "https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip" -o /tmp/dc.zip
-          unzip -q /tmp/dc.zip -d /tmp/dependency-check
-
-      - name: Run OWASP Dependency-Check
-        run: |
-          /tmp/dependency-check/dependency-check/bin/dependency-check.sh \
-            --project "bankapp" \
-            --scan "." \
-            --format HTML \
-            --out reports/ \
-            --failOnCVSS 11 \
-            --enableRetired
+          mkdir -p reports
+          cp -r target/dependency-check-report.* reports/ 2>/dev/null || true
 
       - name: Upload dependency check report
         uses: actions/upload-artifact@v4
