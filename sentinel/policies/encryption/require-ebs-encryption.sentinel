@@ -1,0 +1,63 @@
+# Require EBS Volume Encryption
+# Enforcement: hard-mandatory
+#
+# All EBS volumes and EC2 launch templates must have encryption enabled.
+# The EKS worker nodes use EBS-backed storage; unencrypted volumes
+# risk exposing application data and MySQL backups at rest.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_ebs_volume ---
+
+ebs_volumes = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_ebs_volume" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_ebs_encryption = rule {
+	all ebs_volumes as _, rc {
+		rc.change.after.encrypted is true
+	}
+}
+
+# --- aws_launch_template (used by EKS node groups) ---
+
+launch_templates = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_launch_template" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_launch_template_ebs_encryption = rule {
+	all launch_templates as _, rc {
+		block_devices = rc.change.after.block_device_mappings else []
+		all block_devices as bd {
+			ebs = bd.ebs else null
+			ebs is not null and ebs.encrypted is true
+		}
+	}
+}
+
+# --- aws_instance (standalone EC2, e.g. Jenkins master) ---
+
+ec2_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_instance" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_ec2_ebs_encryption = rule {
+	all ec2_instances as _, rc {
+		root_block = rc.change.after.root_block_device else []
+		all root_block as rbd {
+			rbd.encrypted is true
+		}
+	}
+}
+
+main = rule {
+	validate_ebs_encryption and
+		validate_launch_template_ebs_encryption and
+		validate_ec2_ebs_encryption
+}

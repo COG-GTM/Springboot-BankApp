@@ -1,0 +1,90 @@
+# Enforce Mandatory Tags
+# Enforcement: soft-mandatory
+#
+# All taggable AWS resources must include mandatory tags for cost allocation,
+# ownership tracking, and environment classification. This is essential for
+# a banking application to meet audit and compliance requirements.
+
+import "tfplan/v2" as tfplan
+import "strings"
+
+# Mandatory tags required on all taggable resources.
+mandatory_tags = ["Environment", "Application", "Owner", "CostCenter"]
+
+# AWS resource types that support tags.
+taggable_resource_types = [
+	"aws_instance",
+	"aws_launch_template",
+	"aws_eks_cluster",
+	"aws_eks_node_group",
+	"aws_db_instance",
+	"aws_rds_cluster",
+	"aws_s3_bucket",
+	"aws_ebs_volume",
+	"aws_vpc",
+	"aws_subnet",
+	"aws_security_group",
+	"aws_lb",
+	"aws_lb_target_group",
+	"aws_ecr_repository",
+	"aws_cloudwatch_log_group",
+	"aws_sqs_queue",
+	"aws_sns_topic",
+	"aws_elasticache_replication_group",
+	"aws_elasticache_cluster",
+	"aws_kms_key",
+	"aws_iam_role",
+	"aws_lambda_function",
+	"aws_efs_file_system",
+	"aws_elasticsearch_domain",
+	"aws_opensearch_domain",
+	"aws_redshift_cluster",
+	"aws_nat_gateway",
+	"aws_eip",
+	"aws_flow_log",
+]
+
+# Collect all taggable resources being created or updated.
+taggable_resources = filter tfplan.resource_changes as _, rc {
+	rc.type in taggable_resource_types and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Validate each resource has all mandatory tags with non-empty values.
+validate_mandatory_tags = rule {
+	all taggable_resources as _, rc {
+		tags = rc.change.after.tags else {}
+		all mandatory_tags as tag {
+			tags[tag] else null is not null and
+				tags[tag] is not ""
+		}
+	}
+}
+
+# Validate the "Environment" tag value is from an allowed set.
+allowed_environments = ["production", "staging", "development", "testing", "dr"]
+
+validate_environment_tag_value = rule {
+	all taggable_resources as _, rc {
+		tags = rc.change.after.tags else {}
+		env_value = tags["Environment"] else ""
+		env_value is "" or
+			strings.to_lower(env_value) in allowed_environments
+	}
+}
+
+# Validate the "Application" tag is set to the expected application name.
+validate_application_tag = rule {
+	all taggable_resources as _, rc {
+		tags = rc.change.after.tags else {}
+		app_value = tags["Application"] else ""
+		app_value is not ""
+	}
+}
+
+main = rule {
+	validate_mandatory_tags and
+		validate_environment_tag_value and
+		validate_application_tag
+}
