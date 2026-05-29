@@ -26,7 +26,8 @@ Production-ready Terraform modules for deploying the Spring Boot banking applica
 | `vpc` | VPC with public, private, and database subnets, NAT gateways, flow logs |
 | `eks` | EKS cluster with managed node groups, OIDC provider, KMS encryption, add-ons |
 | `rds` | RDS MySQL 8.0 with parameter groups, encryption, Performance Insights, alarms |
-| `iam` | IAM roles for EKS cluster, nodes, IRSA workload roles (ALB controller, autoscaler, app) |
+| `iam` | Base IAM roles for EKS cluster and node groups (no EKS dependency) |
+| `irsa` | OIDC-based IRSA workload roles: bankapp, ALB controller, autoscaler, external DNS (depends on EKS) |
 | `security-groups` | Security groups for EKS cluster, nodes, RDS, and ALB |
 
 ## Prerequisites

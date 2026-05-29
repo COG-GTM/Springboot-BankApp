@@ -87,17 +87,17 @@ output "rds_database_name" {
 
 output "bankapp_workload_role_arn" {
   description = "ARN of the banking application workload IAM role (IRSA)"
-  value       = module.iam.bankapp_workload_role_arn
+  value       = module.irsa.bankapp_workload_role_arn
 }
 
 output "alb_controller_role_arn" {
   description = "ARN of the AWS Load Balancer Controller IAM role"
-  value       = module.iam.alb_controller_role_arn
+  value       = module.irsa.alb_controller_role_arn
 }
 
 output "cluster_autoscaler_role_arn" {
   description = "ARN of the Cluster Autoscaler IAM role"
-  value       = module.iam.cluster_autoscaler_role_arn
+  value       = module.irsa.cluster_autoscaler_role_arn
 }
 
 ################################################################################

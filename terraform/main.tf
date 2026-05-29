@@ -91,25 +91,15 @@ module "security_groups" {
 }
 
 ################################################################################
-# IAM
+# IAM (base roles — no dependency on EKS)
 ################################################################################
 
 module "iam" {
   source = "./modules/iam"
 
-  project_name                  = var.project_name
-  environment                   = var.environment
-  cluster_name                  = local.cluster_name
-  oidc_provider_arn             = module.eks.oidc_provider_arn
-  oidc_provider_url             = module.eks.oidc_provider_url
-  bankapp_namespace             = var.bankapp_namespace
-  bankapp_service_account_name  = var.bankapp_service_account_name
-  enable_secrets_manager_access = var.enable_secrets_manager_access
-  secrets_manager_arns          = var.secrets_manager_arns
-  enable_s3_access              = var.enable_s3_access
-  s3_bucket_arns                = var.s3_bucket_arns
-  enable_external_dns           = var.enable_external_dns
-  tags                          = local.common_tags
+  project_name = var.project_name
+  environment  = var.environment
+  tags         = local.common_tags
 }
 
 ################################################################################
@@ -134,6 +124,28 @@ module "eks" {
   node_groups                          = var.node_groups
   cluster_addons                       = var.cluster_addons
   tags                                 = local.common_tags
+}
+
+################################################################################
+# IRSA (OIDC-dependent workload roles — depends on EKS)
+################################################################################
+
+module "irsa" {
+  source = "./modules/irsa"
+
+  project_name                  = var.project_name
+  environment                   = var.environment
+  cluster_name                  = local.cluster_name
+  oidc_provider_arn             = module.eks.oidc_provider_arn
+  oidc_provider_url             = module.eks.oidc_provider_url
+  bankapp_namespace             = var.bankapp_namespace
+  bankapp_service_account_name  = var.bankapp_service_account_name
+  enable_secrets_manager_access = var.enable_secrets_manager_access
+  secrets_manager_arns          = var.secrets_manager_arns
+  enable_s3_access              = var.enable_s3_access
+  s3_bucket_arns                = var.s3_bucket_arns
+  enable_external_dns           = var.enable_external_dns
+  tags                          = local.common_tags
 }
 
 ################################################################################
