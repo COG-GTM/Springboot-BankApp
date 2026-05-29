@@ -1,0 +1,68 @@
+# Restrict RDS Public Access and Enforce Network Controls
+# Enforcement: hard-mandatory
+#
+# RDS instances must not be publicly accessible, must use a DB subnet
+# group within the VPC, and should enforce SSL connections.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_db_instance ---
+
+rds_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_db_instance" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Prohibit publicly_accessible = true.
+validate_not_publicly_accessible = rule {
+	all rds_instances as _, rc {
+		rc.change.after.publicly_accessible is false
+	}
+}
+
+# Require a DB subnet group (VPC placement).
+validate_db_subnet_group = rule {
+	all rds_instances as _, rc {
+		subnet_group = rc.change.after.db_subnet_group_name else null
+		subnet_group is not null and subnet_group is not ""
+	}
+}
+
+# Require multi-AZ deployment for production databases.
+validate_multi_az = rule {
+	all rds_instances as _, rc {
+		rc.change.after.multi_az is true
+	}
+}
+
+# --- aws_rds_cluster ---
+
+rds_clusters = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_rds_cluster" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Aurora clusters should also be in a DB subnet group.
+validate_cluster_subnet_group = rule {
+	all rds_clusters as _, rc {
+		subnet_group = rc.change.after.db_subnet_group_name else null
+		subnet_group is not null and subnet_group is not ""
+	}
+}
+
+# Aurora clusters should have deletion protection.
+validate_cluster_deletion_protection = rule {
+	all rds_clusters as _, rc {
+		rc.change.after.deletion_protection is true
+	}
+}
+
+main = rule {
+	validate_not_publicly_accessible and
+		validate_db_subnet_group and
+		validate_multi_az and
+		validate_cluster_subnet_group and
+		validate_cluster_deletion_protection
+}

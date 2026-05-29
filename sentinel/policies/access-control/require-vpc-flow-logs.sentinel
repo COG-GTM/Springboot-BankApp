@@ -1,0 +1,50 @@
+# Require VPC Flow Logs
+# Enforcement: soft-mandatory
+#
+# Every VPC must have flow logs enabled to capture network traffic metadata.
+# This is critical for forensics and compliance in a banking environment.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_vpc ---
+
+vpcs = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_vpc" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# --- aws_flow_log ---
+
+flow_logs = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_flow_log" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# If VPCs are being created, there should also be flow logs.
+validate_flow_logs_exist = rule when length(vpcs) > 0 {
+	length(flow_logs) > 0
+}
+
+# Flow logs should capture ALL traffic (not just ACCEPT or REJECT).
+validate_flow_log_traffic_type = rule {
+	all flow_logs as _, rc {
+		traffic_type = rc.change.after.traffic_type else ""
+		traffic_type is "ALL"
+	}
+}
+
+# Flow logs should send to CloudWatch Logs or S3 with encryption.
+validate_flow_log_destination = rule {
+	all flow_logs as _, rc {
+		dest_type = rc.change.after.log_destination_type else "cloud-watch-logs"
+		dest_type in ["cloud-watch-logs", "s3"]
+	}
+}
+
+main = rule {
+	validate_flow_logs_exist and
+		validate_flow_log_traffic_type and
+		validate_flow_log_destination
+}

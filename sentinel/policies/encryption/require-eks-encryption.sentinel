@@ -1,0 +1,66 @@
+# Require EKS Cluster Encryption
+# Enforcement: hard-mandatory
+#
+# EKS clusters must enable envelope encryption for Kubernetes secrets
+# using a customer-managed KMS key. This protects sensitive data such as
+# database credentials and TLS certificates stored in etcd.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_eks_cluster ---
+
+eks_clusters = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_eks_cluster" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Require encryption_config with at least the "secrets" resource type.
+validate_eks_secrets_encryption = rule {
+	all eks_clusters as _, rc {
+		enc_configs = rc.change.after.encryption_config else []
+		length(enc_configs) > 0 and
+			any enc_configs as ec {
+				resources = ec.resources else []
+				"secrets" in resources
+			}
+	}
+}
+
+# Ensure a KMS key ARN is provided in the encryption config.
+validate_eks_kms_key = rule {
+	all eks_clusters as _, rc {
+		enc_configs = rc.change.after.encryption_config else []
+		all enc_configs as ec {
+			provider = ec.provider else null
+			provider is not null and
+				(provider.key_arn else null) is not null
+		}
+	}
+}
+
+# Require private API server endpoint and restrict public access.
+validate_eks_endpoint_config = rule {
+	all eks_clusters as _, rc {
+		vpc_config = rc.change.after.vpc_config else null
+		vpc_config is not null and
+			vpc_config.endpoint_private_access is true
+	}
+}
+
+# Require logging for audit and authenticator events.
+validate_eks_logging = rule {
+	all eks_clusters as _, rc {
+		enabled_log_types = rc.change.after.enabled_cluster_log_types else []
+		"api" in enabled_log_types and
+			"audit" in enabled_log_types and
+			"authenticator" in enabled_log_types
+	}
+}
+
+main = rule {
+	validate_eks_secrets_encryption and
+		validate_eks_kms_key and
+		validate_eks_endpoint_config and
+		validate_eks_logging
+}

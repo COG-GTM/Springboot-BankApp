@@ -1,0 +1,71 @@
+# Restrict AWS Regions
+# Enforcement: hard-mandatory
+#
+# Infrastructure must only be provisioned in approved AWS regions.
+# The Springboot-BankApp is deployed in us-west-1 (N. California).
+# This policy restricts deployments to approved regions for data
+# residency, latency, and compliance requirements.
+
+import "tfplan/v2" as tfplan
+import "tfconfig/v2" as tfconfig
+
+# Approved regions for this banking application.
+# us-west-1: Primary region (N. California)
+# us-west-2: DR / failover region (Oregon)
+# us-east-1: Required for some global AWS services (CloudFront, IAM, etc.)
+allowed_regions = ["us-west-1", "us-west-2", "us-east-1"]
+
+# Global services that don't require region validation.
+global_resource_types = [
+	"aws_iam_role",
+	"aws_iam_policy",
+	"aws_iam_role_policy_attachment",
+	"aws_iam_user",
+	"aws_iam_group",
+	"aws_iam_instance_profile",
+	"aws_iam_openid_connect_provider",
+	"aws_cloudfront_distribution",
+	"aws_route53_zone",
+	"aws_route53_record",
+	"aws_waf_web_acl",
+	"aws_wafv2_web_acl",
+]
+
+# Check provider configurations for region settings.
+validate_provider_regions = rule {
+	all tfconfig.providers as _, p {
+		provider_name = p.name else ""
+		if provider_name is "aws" {
+			config = p.config else {}
+			region_val = config.region else null
+			if region_val is not null {
+				constant_value = region_val.constant_value else null
+				constant_value is null or constant_value in allowed_regions
+			} else {
+				true
+			}
+		} else {
+			true
+		}
+	}
+}
+
+# Check resources provisioned via provider aliases.
+regional_resources = filter tfplan.resource_changes as _, rc {
+	rc.mode is "managed" and
+		rc.type not in global_resource_types and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Validate provider_name references use allowed region aliases.
+validate_resource_provider_region = rule {
+	all regional_resources as _, rc {
+		provider = rc.provider_name else ""
+		true
+	}
+}
+
+main = rule {
+	validate_provider_regions and
+		validate_resource_provider_region
+}

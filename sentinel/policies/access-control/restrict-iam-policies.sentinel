@@ -1,0 +1,102 @@
+# Restrict IAM Policies
+# Enforcement: hard-mandatory
+#
+# Prevents creation of IAM policies with overly permissive actions or
+# resources. Blocks wildcard ("*") actions and enforces least-privilege.
+# Applies to IAM roles used by EKS node groups, Jenkins, and ArgoCD.
+
+import "tfplan/v2" as tfplan
+import "json"
+import "strings"
+
+# --- aws_iam_policy ---
+
+iam_policies = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_iam_policy" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Block policies that grant Action: "*" (full admin access).
+validate_no_wildcard_actions = rule {
+	all iam_policies as _, rc {
+		policy_doc = rc.change.after.policy else ""
+		not strings.has_prefix(policy_doc, "") or
+			not (policy_doc contains "\"Action\":\"*\"" or
+				policy_doc contains "\"Action\": \"*\"" or
+				policy_doc contains "\"Action\":[\"*\"]" or
+				policy_doc contains "\"Action\": [\"*\"]")
+	}
+}
+
+# Block policies that grant Resource: "*" with sensitive actions.
+validate_no_wildcard_resource_with_sensitive_actions = rule {
+	all iam_policies as _, rc {
+		policy_doc = rc.change.after.policy else ""
+		not (policy_doc contains "\"Effect\":\"Allow\"" or
+			policy_doc contains "\"Effect\": \"Allow\"") or
+			not (policy_doc contains "\"Resource\":\"*\"" or
+				policy_doc contains "\"Resource\": \"*\"") or
+			not (policy_doc contains "iam:" or
+				policy_doc contains "sts:AssumeRole")
+	}
+}
+
+# --- aws_iam_role ---
+
+iam_roles = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_iam_role" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Ensure IAM roles have a max session duration of 4 hours or less.
+validate_role_session_duration = rule {
+	all iam_roles as _, rc {
+		max_session = rc.change.after.max_session_duration else 3600
+		max_session <= 14400
+	}
+}
+
+# --- aws_iam_role_policy_attachment ---
+
+managed_policy_attachments = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_iam_role_policy_attachment" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Block attachment of the AdministratorAccess managed policy.
+denied_policy_arns = [
+	"arn:aws:iam::aws:policy/AdministratorAccess",
+	"arn:aws:iam::aws:policy/IAMFullAccess",
+	"arn:aws:iam::aws:policy/PowerUserAccess",
+]
+
+validate_no_admin_policy_attachment = rule {
+	all managed_policy_attachments as _, rc {
+		policy_arn = rc.change.after.policy_arn else ""
+		policy_arn not in denied_policy_arns
+	}
+}
+
+# --- aws_iam_user ---
+
+iam_users = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_iam_user" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Warn on creating IAM users (prefer roles for EKS workloads).
+validate_minimize_iam_users = rule {
+	length(iam_users) == 0
+}
+
+main = rule {
+	validate_no_wildcard_actions and
+		validate_no_wildcard_resource_with_sensitive_actions and
+		validate_role_session_duration and
+		validate_no_admin_policy_attachment and
+		validate_minimize_iam_users
+}

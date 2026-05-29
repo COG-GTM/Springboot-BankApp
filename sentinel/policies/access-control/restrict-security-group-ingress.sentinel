@@ -1,0 +1,91 @@
+# Restrict Security Group Ingress
+# Enforcement: hard-mandatory
+#
+# Prevents security groups from allowing unrestricted inbound access
+# (0.0.0.0/0 or ::/0) on sensitive ports. The banking application
+# exposes ports 8080 (app), 3306 (MySQL), 9000 (SonarQube), and
+# 8081 (Jenkins); none should be open to the public internet.
+
+import "tfplan/v2" as tfplan
+
+# Ports that must never be open to 0.0.0.0/0.
+restricted_ports = [22, 3306, 3389, 5432, 6379, 9000, 27017, 9200, 8081]
+
+# --- aws_security_group ---
+
+security_groups = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_security_group" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_sg_no_unrestricted_ingress = rule {
+	all security_groups as _, rc {
+		ingress_rules = rc.change.after.ingress else []
+		all ingress_rules as rule {
+			cidr_blocks = rule.cidr_blocks else []
+			ipv6_blocks = rule.ipv6_cidr_blocks else []
+			from_port = rule.from_port else 0
+			to_port = rule.to_port else 0
+
+			not ("0.0.0.0/0" in cidr_blocks or "::/0" in ipv6_blocks) or
+				not (from_port in restricted_ports or to_port in restricted_ports or
+					(from_port == 0 and to_port == 0) or
+					(from_port == 0 and to_port == 65535))
+		}
+	}
+}
+
+# --- aws_security_group_rule ---
+
+sg_rules = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_security_group_rule" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_sg_rule_no_unrestricted_ingress = rule {
+	all sg_rules as _, rc {
+		rule_type = rc.change.after.type else ""
+		if rule_type is "ingress" {
+			cidr_blocks = rc.change.after.cidr_blocks else []
+			ipv6_blocks = rc.change.after.ipv6_cidr_blocks else []
+			from_port = rc.change.after.from_port else 0
+			to_port = rc.change.after.to_port else 0
+
+			not ("0.0.0.0/0" in cidr_blocks or "::/0" in ipv6_blocks) or
+				not (from_port in restricted_ports or to_port in restricted_ports or
+					(from_port == 0 and to_port == 0) or
+					(from_port == 0 and to_port == 65535))
+		} else {
+			true
+		}
+	}
+}
+
+# --- aws_vpc_security_group_ingress_rule (newer resource) ---
+
+vpc_sg_ingress_rules = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_vpc_security_group_ingress_rule" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_vpc_sg_ingress_rule = rule {
+	all vpc_sg_ingress_rules as _, rc {
+		cidr = rc.change.after.cidr_ipv4 else ""
+		cidr6 = rc.change.after.cidr_ipv6 else ""
+		from_port = rc.change.after.from_port else 0
+		to_port = rc.change.after.to_port else 0
+
+		not (cidr is "0.0.0.0/0" or cidr6 is "::/0") or
+			not (from_port in restricted_ports or to_port in restricted_ports or
+				(from_port == 0 and to_port == 65535))
+	}
+}
+
+main = rule {
+	validate_sg_no_unrestricted_ingress and
+		validate_sg_rule_no_unrestricted_ingress and
+		validate_vpc_sg_ingress_rule
+}

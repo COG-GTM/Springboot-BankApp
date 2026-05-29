@@ -1,0 +1,63 @@
+# Require IMDSv2 on EC2 Instances
+# Enforcement: hard-mandatory
+#
+# All EC2 instances and launch templates must require IMDSv2 (Instance
+# Metadata Service v2) to mitigate SSRF-based credential theft attacks.
+# This applies to EKS worker nodes, Jenkins, and any other EC2 instances.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_instance ---
+
+ec2_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_instance" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_ec2_imdsv2 = rule {
+	all ec2_instances as _, rc {
+		metadata_options = rc.change.after.metadata_options else null
+		metadata_options is not null and
+			metadata_options.http_tokens is "required"
+	}
+}
+
+# --- aws_launch_template ---
+
+launch_templates = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_launch_template" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_lt_imdsv2 = rule {
+	all launch_templates as _, rc {
+		metadata_options = rc.change.after.metadata_options else null
+		metadata_options is not null and
+			metadata_options.http_tokens is "required"
+	}
+}
+
+# --- aws_eks_node_group ---
+
+eks_node_groups = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_eks_node_group" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# EKS node groups use launch templates; if a launch template is specified,
+# IMDSv2 should be enforced there. This rule checks for direct config.
+validate_eks_ng_launch_template = rule {
+	all eks_node_groups as _, rc {
+		lt = rc.change.after.launch_template else null
+		lt is not null
+	}
+}
+
+main = rule {
+	validate_ec2_imdsv2 and
+		validate_lt_imdsv2 and
+		validate_eks_ng_launch_template
+}

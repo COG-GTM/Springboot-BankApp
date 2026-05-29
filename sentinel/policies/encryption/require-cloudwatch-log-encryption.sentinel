@@ -1,0 +1,35 @@
+# Require CloudWatch Log Group Encryption
+# Enforcement: soft-mandatory
+#
+# CloudWatch Log Groups must be encrypted with a KMS key. Logs may contain
+# application stack traces, database queries, or sensitive request data.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_cloudwatch_log_group ---
+
+log_groups = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_cloudwatch_log_group" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_log_group_kms = rule {
+	all log_groups as _, rc {
+		kms_key = rc.change.after.kms_key_id else null
+		kms_key is not null and kms_key is not ""
+	}
+}
+
+# Ensure log groups have a retention policy to avoid indefinite storage.
+validate_log_group_retention = rule {
+	all log_groups as _, rc {
+		retention = rc.change.after.retention_in_days else 0
+		retention > 0 and retention <= 365
+	}
+}
+
+main = rule {
+	validate_log_group_kms and
+		validate_log_group_retention
+}
