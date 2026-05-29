@@ -24,7 +24,9 @@ jobs:
           cache: 'maven'
 
       - name: Run tests
-        run: ./mvnw clean test -B
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean test -B
 
       - name: Upload test results
         if: always()

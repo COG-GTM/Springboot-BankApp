@@ -68,7 +68,9 @@ jobs:
           cache: 'maven'
 
       - name: Build project
-        run: ./mvnw clean compile -DskipTests -B
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean compile -DskipTests -B
 
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
