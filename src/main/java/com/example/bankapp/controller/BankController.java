@@ -2,7 +2,6 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,15 +14,23 @@ import java.math.BigDecimal;
 @Controller
 public class BankController {
 
-    @Autowired
-    private AccountService accountService;
+    private static final String ATTR_ACCOUNT = "account";
+    private static final String ATTR_ERROR = "error";
+    private static final String VIEW_DASHBOARD = "dashboard";
+    private static final String REDIRECT_DASHBOARD = "redirect:/dashboard";
+
+    private final AccountService accountService;
+
+    public BankController(AccountService accountService) {
+        this.accountService = accountService;
+    }
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
-        model.addAttribute("account", account);
-        return "dashboard";
+        model.addAttribute(ATTR_ACCOUNT, account);
+        return VIEW_DASHBOARD;
     }
 
     @GetMapping("/register")
@@ -37,7 +44,7 @@ public class BankController {
             accountService.registerAccount(username, password);
             return "redirect:/login";
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute(ATTR_ERROR, e.getMessage());
             return "register";
         }
     }
@@ -52,7 +59,7 @@ public class BankController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
         accountService.deposit(account, amount);
-        return "redirect:/dashboard";
+        return REDIRECT_DASHBOARD;
     }
 
     @PostMapping("/withdraw")
@@ -63,12 +70,12 @@ public class BankController {
         try {
             accountService.withdraw(account, amount);
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("account", account);
-            return "dashboard";
+            model.addAttribute(ATTR_ERROR, e.getMessage());
+            model.addAttribute(ATTR_ACCOUNT, account);
+            return VIEW_DASHBOARD;
         }
 
-        return "redirect:/dashboard";
+        return REDIRECT_DASHBOARD;
     }
 
     @GetMapping("/transactions")
@@ -76,6 +83,7 @@ public class BankController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
         model.addAttribute("transactions", accountService.getTransactionHistory(account));
+
         return "transactions";
     }
 
@@ -87,12 +95,12 @@ public class BankController {
         try {
             accountService.transferAmount(fromAccount, toUsername, amount);
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("account", fromAccount);
-            return "dashboard";
+            model.addAttribute(ATTR_ERROR, e.getMessage());
+            model.addAttribute(ATTR_ACCOUNT, fromAccount);
+            return VIEW_DASHBOARD;
         }
 
-        return "redirect:/dashboard";
+        return REDIRECT_DASHBOARD;
     }
 
 }

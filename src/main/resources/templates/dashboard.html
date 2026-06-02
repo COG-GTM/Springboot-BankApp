@@ -141,7 +141,7 @@
                 Deposit
             </button>
             <div class="collapse mt-3" id="depositForm">
-                <form method="post" action="/deposit" class="form-container">
+                <form method="post" th:action="@{/deposit}" class="form-container">
                     <div class="form-group">
                         <label>Amount:</label>
                         <input type="number" class="form-control" name="amount" required />
@@ -157,7 +157,7 @@
                 Withdraw
             </button>
             <div class="collapse mt-3" id="withdrawForm">
-                <form method="post" action="/withdraw" class="form-container">
+                <form method="post" th:action="@{/withdraw}" class="form-container">
                     <div class="form-group">
                         <label>Amount:</label>
                         <input type="number" class="form-control" name="amount" required />
@@ -173,7 +173,7 @@
                 Transfer Money
             </button>
             <div class="collapse mt-3" id="transferForm">
-                <form method="post" action="/transfer" class="form-container">
+                <form method="post" th:action="@{/transfer}" class="form-container">
                     <div class="form-group">
                         <label>Recipient Username:</label>
                         <input type="text" class="form-control" name="toUsername" required />
