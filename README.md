@@ -14,7 +14,29 @@
 - ArgoCD (CD)
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
-  
+
+## Security
+
+Dependency vulnerabilities are remediated with minimal, surgical version pins in the
+root `pom.xml` `<dependencyManagement>` block, verified with `mvn dependency:tree` and
+Snyk before merge.
+
+### Security remediation log
+
+| Date | Dependency | Fixed version | CVE(s) | Severity |
+|------|------------|---------------|--------|----------|
+| 2026-06-03 | `org.apache.tomcat.embed:tomcat-embed-{core,el,websocket}` | `10.1.55` | CVE-2025-24813, CVE-2024-50379, CVE-2024-56337 (and related Tomcat advisories) | Critical |
+
+**Apache Tomcat embedded (CVE-2025-24813 / CVE-2024-50379 / CVE-2024-56337):** the
+embedded Tomcat `10.1.28` pulled in transitively via `spring-boot-starter-web` was
+affected by remote code execution and time-of-check/time-of-use (TOCTOU) race-condition
+advisories. Pinning `tomcat-embed-core`, `tomcat-embed-el`, and `tomcat-embed-websocket`
+to `10.1.55` forces resolution to a patched release. Verify with:
+
+```bash
+mvn dependency:tree -Dincludes=org.apache.tomcat.embed
+```
+
 ### Steps to deploy:
 
 ### Pre-requisites:
