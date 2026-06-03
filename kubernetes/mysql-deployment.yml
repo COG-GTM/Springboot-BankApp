@@ -15,11 +15,27 @@ spec:
       labels:
         app: mysql
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: mysql
         image: mysql:8.0  # Use a specific, stable version for production
+        imagePullPolicy: Always
         ports:
         - containerPort: 3306
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
@@ -31,12 +47,44 @@ spec:
             configMapKeyRef:
               name: bankapp-config
               key: MYSQL_DATABASE
+        livenessProbe:
+          exec:
+            command:
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+          initialDelaySeconds: 10
+          periodSeconds: 5
         volumeMounts:
         - name: mysql-pv-storage
           mountPath: /var/lib/mysql
           subPath: mysql-data  # Optional: Ensure a subdirectory is used for better volume organization
+        - name: mysql-run
+          mountPath: /var/run/mysqld
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
       volumes:
       - name: mysql-pv-storage
         persistentVolumeClaim:
           claimName: mysql-pvc
-
+      - name: mysql-run
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}

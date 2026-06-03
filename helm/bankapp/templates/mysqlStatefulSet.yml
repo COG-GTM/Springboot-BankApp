@@ -16,9 +16,25 @@ spec:
       labels:
         app: {{ .Values.db_statefulset.name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: {{ .Values.db_statefulset.name }}
         image: {{ .Values.image.db }}
+        imagePullPolicy: Always
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
         ports:
         - containerPort: 3306
         env:
@@ -35,6 +51,10 @@ spec:
         volumeMounts:
         - name: "{{ .Values.db_statefulset.name }}-data"
           mountPath: /var/lib/mysql
+        - name: mysql-run
+          mountPath: /var/run/mysqld
+        - name: tmp
+          mountPath: /tmp
         livenessProbe:
           exec:
             command:
@@ -53,6 +73,18 @@ spec:
             - localhost
           initialDelaySeconds: 10
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: mysql-run
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
   volumeClaimTemplates:
   - metadata:
       name: "{{ .Values.db_statefulset.name }}-data"

@@ -15,13 +15,35 @@ spec:
       labels:
         app: {{ .Values.app_deployment.name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
       - name: "wait-for-{{ .Values.db_statefulset.name }}"
         image: busybox:1.28
         command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 3306; do echo waiting for mysql; sleep 5; done;']
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
       containers:
       - name: {{ .Values.app_deployment.name }}
         image: {{ .Values.image.app }}
+        imagePullPolicy: Always
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
         ports:
         - containerPort: 8080
         env:
@@ -52,6 +74,9 @@ spec:
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: {{ .Values.app_deployment.mem_req}}
@@ -59,3 +84,6 @@ spec:
           limits:
             memory: {{ .Values.app_deployment.mem_limit}}
             cpu: {{ .Values.app_deployment.cpu_limit}}
+      volumes:
+      - name: tmp
+        emptyDir: {}
