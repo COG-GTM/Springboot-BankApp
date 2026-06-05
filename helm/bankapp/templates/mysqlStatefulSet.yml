@@ -16,9 +16,22 @@ spec:
       labels:
         app: {{ .Values.db_statefulset.name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: {{ .Values.db_statefulset.name }}
         image: {{ .Values.image.db }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
         ports:
         - containerPort: 3306
         env:
@@ -35,6 +48,13 @@ spec:
         volumeMounts:
         - name: "{{ .Values.db_statefulset.name }}-data"
           mountPath: /var/lib/mysql
+        resources:
+          requests:
+            memory: {{ .Values.db_statefulset.mem_req }}
+            cpu: {{ .Values.db_statefulset.cpu_req }}
+          limits:
+            memory: {{ .Values.db_statefulset.mem_limit }}
+            cpu: {{ .Values.db_statefulset.cpu_limit }}
         livenessProbe:
           exec:
             command:

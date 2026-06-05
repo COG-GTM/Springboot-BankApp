@@ -15,9 +15,23 @@ spec:
       labels:
         app: bankapp-deploy
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: bankapp
         image: trainwithshubham/bankapp-eks:v2
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
         ports:
         - containerPort: 8080
         env:
@@ -41,18 +55,18 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: SPRING_DATASOURCE_PASSWORD
-        # readinessProbe:
-        #   httpGet:
-        #     path: /actuator/health  # Update this based on your app's health endpoint
-        #     port: 8080
-        #   initialDelaySeconds: 10
-        #   periodSeconds: 5
-        # livenessProbe:
-        #   httpGet:
-        #     path: /actuator/health  # Update this based on your app's health endpoint
-        #     port: 8080
-        #   initialDelaySeconds: 30
-        #   periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health  # Update this based on your app's health endpoint
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /actuator/health  # Update this based on your app's health endpoint
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
         resources:
           requests:
             memory: "512Mi"
@@ -60,4 +74,10 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "500m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
 
