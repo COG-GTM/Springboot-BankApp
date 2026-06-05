@@ -12,6 +12,10 @@ configmap:
 db_statefulset:
   name: mysql
   storage: 5Gi
+  cpu_req: 250m
+  cpu_limit: 500m
+  mem_req: 512Mi
+  mem_limit: 1Gi
 
 ## name and label of app deployment
 app_deployment: 
