@@ -1,0 +1,57 @@
+# Zero Trust network segmentation for the bankapp namespace.
+# Default-deny all ingress, then explicitly allow only the required east-west and
+# north-south paths. This stops lateral movement if any pod is compromised.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: bankapp-namespace
+spec:
+  # Empty podSelector selects every pod in the namespace.
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  # No ingress rules => deny all inbound traffic by default.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-bankapp-from-ingress-nginx
+  namespace: bankapp-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: bankapp-deploy
+  policyTypes:
+  - Ingress
+  ingress:
+  # Only the NGINX ingress controller may reach the app on 8080.
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mysql-from-bankapp
+  namespace: bankapp-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+  - Ingress
+  ingress:
+  # The database accepts connections only from the application pods on 3306.
+  - from:
+    - podSelector:
+        matchLabels:
+          app: bankapp-deploy
+    ports:
+    - protocol: TCP
+      port: 3306

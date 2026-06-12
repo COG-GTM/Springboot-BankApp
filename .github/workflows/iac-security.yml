@@ -1,0 +1,66 @@
+name: IaC Security
+
+# Zero Trust policy-as-code gate. Runs the Conftest/OPA policies and a Trivy
+# misconfiguration scan against the Kubernetes manifests on every change so the
+# hardening controls cannot regress.
+on:
+  pull_request:
+    paths:
+      - "kubernetes/**"
+      - "policy/**"
+      - ".github/workflows/iac-security.yml"
+  push:
+    branches:
+      - DevOps
+    paths:
+      - "kubernetes/**"
+      - "policy/**"
+      - ".github/workflows/iac-security.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  policy-as-code:
+    name: Conftest (OPA) policy gate
+    runs-on: ubuntu-latest
+    env:
+      CONFTEST_VERSION: 0.56.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Conftest
+        run: |
+          curl -sSL -o conftest.tar.gz \
+            "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          tar xzf conftest.tar.gz conftest
+          sudo install conftest /usr/local/bin/conftest
+          conftest --version
+
+      - name: Run policy unit tests
+        run: conftest verify --policy policy
+
+      - name: Enforce pod/container security context
+        run: conftest test kubernetes/bankapp-deployment.yml kubernetes/mysql-deployment.yml --policy policy
+
+      - name: Enforce default-deny NetworkPolicy
+        run: conftest test --combine kubernetes/ --namespace netpol --policy policy
+
+  trivy-iac:
+    name: Trivy IaC misconfiguration scan
+    runs-on: ubuntu-latest
+    env:
+      TRIVY_VERSION: 0.71.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Trivy
+        run: |
+          curl -sSL -o trivy.tar.gz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          tar xzf trivy.tar.gz trivy
+          sudo install trivy /usr/local/bin/trivy
+          trivy --version
+
+      - name: Trivy config scan (fail on HIGH/CRITICAL)
+        run: trivy config --severity HIGH,CRITICAL --exit-code 1 kubernetes/

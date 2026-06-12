@@ -15,11 +15,30 @@ spec:
       labels:
         app: mysql
     spec:
+      # Zero Trust: run MySQL as the unprivileged mysql user (uid/gid 999 in the
+      # official image) and apply the runtime default seccomp profile.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: mysql
         image: mysql:8.0  # Use a specific, stable version for production
         ports:
         - containerPort: 3306
+        # Zero Trust: drop all capabilities, forbid privilege escalation and run
+        # on a read-only root filesystem (writable paths are mounted explicitly).
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
@@ -35,8 +54,21 @@ spec:
         - name: mysql-pv-storage
           mountPath: /var/lib/mysql
           subPath: mysql-data  # Optional: Ensure a subdirectory is used for better volume organization
+        # Writable paths required by mysqld when the root filesystem is read-only.
+        - name: run
+          mountPath: /var/run/mysqld
+        - name: tmp
+          mountPath: /tmp
+        - name: files
+          mountPath: /var/lib/mysql-files
       volumes:
       - name: mysql-pv-storage
         persistentVolumeClaim:
           claimName: mysql-pvc
+      - name: run
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+      - name: files
+        emptyDir: {}
 

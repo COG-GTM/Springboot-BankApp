@@ -15,11 +15,30 @@ spec:
       labels:
         app: bankapp-deploy
     spec:
+      # Zero Trust: run the whole pod as an unprivileged user and apply the
+      # runtime's default seccomp profile so syscalls are filtered by default.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: bankapp
         image: trainwithshubham/bankapp-eks:v2
         ports:
         - containerPort: 8080
+        # Zero Trust: drop every Linux capability, forbid privilege escalation
+        # and make the root filesystem read-only to shrink the attack surface.
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: SPRING_DATASOURCE_URL
           valueFrom:
@@ -60,4 +79,12 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "500m"
+        # Writable scratch space required because the root filesystem is read-only.
+        # The JVM and embedded Tomcat only need a writable temp dir.
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
 
