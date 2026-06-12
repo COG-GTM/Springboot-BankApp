@@ -1,0 +1,61 @@
+name: IaC Security
+
+# Zero Trust policy-as-code gate. Runs the Conftest/OPA policies and a Trivy
+# misconfiguration scan against the Kubernetes manifests on every change so the
+# hardening controls cannot regress.
+on:
+  pull_request:
+    paths:
+      - "kubernetes/**"
+      - "policy/**"
+      - ".github/workflows/iac-security.yml"
+  push:
+    branches:
+      - DevOps
+    paths:
+      - "kubernetes/**"
+      - "policy/**"
+      - ".github/workflows/iac-security.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  policy-as-code:
+    name: Conftest (OPA) policy gate
+    runs-on: ubuntu-latest
+    env:
+      CONFTEST_VERSION: 0.56.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Conftest
+        run: |
+          curl -sSL -o conftest.tar.gz \
+            "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          tar xzf conftest.tar.gz conftest
+          sudo install conftest /usr/local/bin/conftest
+          conftest --version
+
+      - name: Run policy unit tests
+        run: conftest verify --policy policy
+
+      - name: Enforce pod/container security context
+        run: conftest test kubernetes/bankapp-deployment.yml kubernetes/mysql-deployment.yml --policy policy
+
+      - name: Enforce default-deny NetworkPolicy
+        run: conftest test --combine kubernetes/ --namespace netpol --policy policy
+
+  trivy-iac:
+    name: Trivy IaC misconfiguration scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy config scan (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: kubernetes/
+          severity: HIGH,CRITICAL
+          exit-code: "1"
