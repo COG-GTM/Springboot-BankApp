@@ -49,13 +49,16 @@ jobs:
   trivy-iac:
     name: Trivy IaC misconfiguration scan
     runs-on: ubuntu-latest
+    env:
+      TRIVY_VERSION: 0.55.0
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Trivy
+        run: |
+          curl -sSL "https://raw.githubusercontent.com/aquasecurity/trivy/v${TRIVY_VERSION}/contrib/install.sh" \
+            | sudo sh -s -- -b /usr/local/bin "v${TRIVY_VERSION}"
+          trivy --version
+
       - name: Trivy config scan (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          scan-type: config
-          scan-ref: kubernetes/
-          severity: HIGH,CRITICAL
-          exit-code: "1"
+        run: trivy config --severity HIGH,CRITICAL --exit-code 1 kubernetes/
