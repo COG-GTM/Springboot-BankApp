@@ -1,0 +1,14 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  'snyk:lic:maven:com.mysql:mysql-connector-j:GPL-2.0':
+    - '*':
+        reason: >-
+          MySQL Connector/J is the official MySQL JDBC driver, licensed GPL-2.0
+          with the Universal FOSS Exception 1.0. Pre-existing in the app (was
+          mysql:mysql-connector-java@8.0.33, same license); intrinsic to the
+          MySQL backend and not resolvable by upgrade.
+        expires: 2027-06-12T00:00:00.000Z
+        created: 2026-06-12T00:00:00.000Z
+patch: {}
