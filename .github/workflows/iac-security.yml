@@ -50,7 +50,7 @@ jobs:
     name: Trivy IaC misconfiguration scan
     runs-on: ubuntu-latest
     env:
-      TRIVY_VERSION: 0.55.0
+      TRIVY_VERSION: 0.71.0
     steps:
       - uses: actions/checkout@v4
 
