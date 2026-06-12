@@ -1,5 +1,6 @@
+{@java.util.List<com.example.bankapp.model.Transaction> transactions}
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <head>
     <title>Transaction History - Wells Fargo</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
@@ -113,15 +114,16 @@
             </tr>
             </thead>
             <tbody>
-            <tr th:each="transaction : ${transactions}">
-                <td th:text="${transaction.id}"></td>
-                <td th:text="${transaction.type}"></td>
-                <td th:text="${transaction.amount}"
-                    th:classappend="${transaction.type.contains('Transfer In') || transaction.type == 'Deposit'} ? 'text-success' : 'text-danger'">
-                    <span th:text="${transaction.type.contains('Transfer In') || transaction.type == 'Deposit'} ? '+$' + transaction.amount : '-$' + transaction.amount"></span>
+            {#for transaction in transactions}
+            <tr>
+                <td>{transaction.id}</td>
+                <td>{transaction.type}</td>
+                <td class="{#if transaction.type.contains('Transfer In') || transaction.type == 'Deposit'}text-success{#else}text-danger{/if}">
+                    {#if transaction.type.contains('Transfer In') || transaction.type == 'Deposit'}+${transaction.amount}{#else}-${transaction.amount}{/if}
                 </td>
-                <td th:text="${transaction.timestamp}"></td>
+                <td>{transaction.timestamp}</td>
             </tr>
+            {/for}
             </tbody>
         </table>
     </div>

@@ -1,10 +1,15 @@
 package com.example.bankapp.repository;
 
 import com.example.bankapp.model.Account;
-import org.springframework.data.jpa.repository.JpaRepository;
+import io.quarkus.mongodb.panache.PanacheMongoRepository;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Optional;
 
-public interface AccountRepository extends JpaRepository<Account, Long> {
-    Optional<Account> findByUsername(String username);
+@ApplicationScoped
+public class AccountRepository implements PanacheMongoRepository<Account> {
+
+    public Optional<Account> findByUsername(String username) {
+        return find("username", username).firstResultOptional();
+    }
 }
