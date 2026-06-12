@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql-svc
+  name: mongodb-svc
   namespace: bankapp-namespace
   labels:
-    app: mysql
+    app: mongodb
 spec:
   selector:
-    app: mysql
+    app: mongodb
   ports:
   - protocol: TCP
-    port: 3306
-    targetPort: 3306
+    port: 27017
+    targetPort: 27017

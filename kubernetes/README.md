@@ -2,6 +2,8 @@
 
 This README provides a complete step-by-step guide with all the commands required to set up ArgoCD on an AWS EKS cluster, deploy your applications, and configure GitOps.
 
+The application is a Quarkus service backed by MongoDB. The manifests in this directory provision MongoDB (`mongodb-deployment.yml`, `mongodb-service.yml`, `mongodb-pv.yml`, `mongodb-pvc.yml`) and the Quarkus app (`bankapp-deployment.yml`, `bankapp-service.yml`). The app reads its MongoDB connection from `bankapp-config` (`QUARKUS_MONGODB_CONNECTION_STRING`, `QUARKUS_MONGODB_DATABASE`) and exposes health endpoints under `/q/health`.
+
 ---
 
 ## **1. Create an EKS Cluster**
@@ -116,7 +118,7 @@ argocd cluster add <cluster-context-name> --name bankapp-eks-cluster
 ## **4. Deploy Applications Using ArgoCD**
 
 ### **Prepare Kubernetes Manifests in a Git Repository**
-- Organize your manifests (e.g., `namespace.yaml`, `deployment.yaml`, `service.yaml`) in a Git repository.
+- Organize your manifests (e.g., `namespace.yaml`, `configmap.yaml`, `mongodb-deployment.yml`, `mongodb-service.yml`, `mongodb-pvc.yml`, `bankapp-deployment.yml`, `bankapp-service.yml`) in a Git repository.
 
 ### **Create an Application in ArgoCD**
 ```bash

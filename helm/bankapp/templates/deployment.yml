@@ -18,37 +18,32 @@ spec:
       initContainers:
       - name: "wait-for-{{ .Values.db_statefulset.name }}"
         image: busybox:1.28
-        command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 3306; do echo waiting for mysql; sleep 5; done;']
+        command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 27017; do echo waiting for mongodb; sleep 5; done;']
       containers:
       - name: {{ .Values.app_deployment.name }}
         image: {{ .Values.image.app }}
         ports:
         - containerPort: 8080
         env:
-        - name: SPRING_DATASOURCE_URL
+        - name: QUARKUS_MONGODB_CONNECTION_STRING
           valueFrom:
             configMapKeyRef:
-              name: {{ .Values.configmap.name }} 
-              key: SPRING_DATASOURCE_URL
-        - name: SPRING_DATASOURCE_USERNAME
+              name: {{ .Values.configmap.name }}
+              key: QUARKUS_MONGODB_CONNECTION_STRING
+        - name: QUARKUS_MONGODB_DATABASE
           valueFrom:
             configMapKeyRef:
-              name: {{ .Values.configmap.name }} 
-              key: SPRING_DATASOURCE_USERNAME
-        - name: SPRING_DATASOURCE_PASSWORD        
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret  
-              key: SPRING_DATASOURCE_PASSWORD      
+              name: {{ .Values.configmap.name }}
+              key: QUARKUS_MONGODB_DATABASE
         livenessProbe:
           httpGet:
-            path: /actuator/health
+            path: /q/health/live
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /actuator/health
+            path: /q/health/ready
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5

@@ -1,10 +1,12 @@
 ## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
-- This is a multi-tier bank an application written in Java (Springboot).
+- This is a multi-tier bank application written in Java on Quarkus, backed by MongoDB (migrated from the original Spring Boot + MySQL stack).
 
 ![Login diagram](images/login.png)
 ![Transactions diagram](images/transactions.png)
 
 ## Tech stack used in this project:
+- Quarkus (Application framework)
+- MongoDB (Database)
 - GitHub (Code)
 - Docker (Containerization)
 - Jenkins (CI)
@@ -102,7 +104,7 @@ sudo apt-get update -y
 sudo apt-get install jenkins -y
 ```
 
-- After installing Jenkins, change the default port of jenkins from 8080 to 8081. Because our bankapp application will be running on 8080.
+- After installing Jenkins, change the default port of jenkins from 8080 to 8081. Because our bankapp (Quarkus) application will be running on 8080. The application health endpoint is exposed at `/q/health`.
   - Open /usr/lib/systemd/system/jenkins.service file and change JENKINS_PORT environment variable 
 ![image](https://github.com/user-attachments/assets/6320ae49-82d4-4ae3-9811-bd6f06778483)
   - Reload daemon

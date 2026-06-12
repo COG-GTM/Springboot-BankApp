@@ -1,56 +1,25 @@
 package com.example.bankapp.model;
 
-import jakarta.persistence.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import io.quarkus.mongodb.panache.PanacheMongoEntity;
+import io.quarkus.mongodb.panache.common.MongoEntity;
 
 import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.List;
 
-@Entity
-public class Account implements UserDetails {
+@MongoEntity(collection = "accounts")
+public class Account extends PanacheMongoEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
     private String username;
     private String password;
     private BigDecimal balance;
-
-    @OneToMany(mappedBy = "account")
-    private List<Transaction> transactions;
-
-    @Transient
-    private Collection<? extends GrantedAuthority> authorities;
 
     public Account() {
 
     }
 
-    public Account(String username, String password, BigDecimal balance, List<Transaction> transactions, Collection<? extends GrantedAuthority> authorities) {
+    public Account(String username, String password, BigDecimal balance) {
         this.username = username;
         this.password = password;
         this.balance = balance;
-        this.transactions = transactions;
-        this.authorities = authorities;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
-
-    public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
-        this.authorities = authorities;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getUsername() {
@@ -75,13 +44,5 @@ public class Account implements UserDetails {
 
     public void setBalance(BigDecimal balance) {
         this.balance = balance;
-    }
-
-    public List<Transaction> getTransactions() {
-        return transactions;
-    }
-
-    public void setTransactions(List<Transaction> transactions) {
-        this.transactions = transactions;
     }
 }
