@@ -1,40 +1,28 @@
 package com.example.bankapp.model;
 
-import jakarta.persistence.*;
+import io.quarkus.mongodb.panache.PanacheMongoEntity;
+import io.quarkus.mongodb.panache.common.MongoEntity;
+import org.bson.types.ObjectId;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-public class Transaction {
+@MongoEntity(collection = "transactions")
+public class Transaction extends PanacheMongoEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private BigDecimal amount;
-    private String type;
-    private LocalDateTime timestamp;
-
-    @ManyToOne
-    @JoinColumn(name = "account_id")
-    private Account account;
+    public BigDecimal amount;
+    public String type;
+    public LocalDateTime timestamp;
+    public ObjectId accountId;
 
     public Transaction() {
-
     }
 
-    public Transaction(BigDecimal amount, String type, LocalDateTime timestamp, Account account) {
+    public Transaction(BigDecimal amount, String type, LocalDateTime timestamp, ObjectId accountId) {
         this.amount = amount;
         this.type = type;
         this.timestamp = timestamp;
-        this.account = account;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
+        this.accountId = accountId;
     }
 
     public BigDecimal getAmount() {
@@ -61,11 +49,15 @@ public class Transaction {
         this.timestamp = timestamp;
     }
 
-    public Account getAccount() {
-        return account;
+    public boolean isCredit() {
+        return type != null && (type.contains("Transfer In") || type.equals("Deposit"));
     }
 
-    public void setAccount(Account account) {
-        this.account = account;
+    public ObjectId getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(ObjectId accountId) {
+        this.accountId = accountId;
     }
 }
