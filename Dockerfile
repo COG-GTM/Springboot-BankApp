@@ -1,14 +1,8 @@
 #----------------------------------
-# Stage 1
+# Stage 1: Build the Quarkus application
 #----------------------------------
+FROM maven:3.9-eclipse-temurin-17 AS builder
 
-# Import docker image with maven installed
-FROM maven:3.8.3-openjdk-17 as builder 
-
-# Add maintainer, so that new user will understand who had written this Dockerfile
-MAINTAINER Madhup Pandey<madhuppandey2908@gmail.com>
-
-# Add labels to the image to filter out if we have multiple application running
 LABEL app=bankapp
 
 # Set working directory
@@ -17,21 +11,21 @@ WORKDIR /src
 # Copy source code from local to container
 COPY . /src
 
-# Build application and skip test cases
-RUN mvn clean install -DskipTests=true
+# Build the Quarkus application (fast-jar) and skip test cases
+RUN mvn clean package -DskipTests
 
 #--------------------------------------
-# Stage 2
+# Stage 2: Runtime image
 #--------------------------------------
+FROM eclipse-temurin:17-jre-alpine AS deployer
 
-# Import small size java image
-FROM openjdk:17-alpine as deployer
+WORKDIR /deployments
 
-# Copy build from stage 1 (builder)
-COPY --from=builder /src/target/*.jar /src/target/bankapp.jar
+# Copy the Quarkus fast-jar layout from the builder stage
+COPY --from=builder /src/target/quarkus-app/ /deployments/
 
-# Expose application port 
+# Expose application port
 EXPOSE 8080
 
 # Start the application
-ENTRYPOINT ["java", "-jar", "/src/target/bankapp.jar"]
+ENTRYPOINT ["java", "-jar", "quarkus-run.jar"]
