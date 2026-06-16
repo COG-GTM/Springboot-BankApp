@@ -1,0 +1,88 @@
+name: Security Scan Gate
+
+# Governance-as-code: fail the build on new HIGH/CRITICAL vulnerabilities and IaC
+# misconfigurations. Mirrors the Trivy/OWASP DevSecOps tooling used in the Jenkins
+# pipeline so the same security posture is enforced on every pull request.
+on:
+  push:
+    branches: [DevOps, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-scan:
+    name: Dependency scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Build the fat jar so Trivy resolves the exact, BOM-managed dependency
+      # versions that ship in the artifact (skip tests: they require a live MySQL).
+      # A plain `trivy fs` on pom.xml does not resolve the managed transitive
+      # tree, so we scan the built artifact (scan-type: rootfs) instead.
+      - name: Build application (skip tests)
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -q -DskipTests package
+          cp target/*.jar target/app.jar
+
+      # Human-readable report (uploaded as an artifact, never fails the build).
+      - name: Trivy report (informational)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: rootfs
+          scan-ref: target/app.jar
+          format: table
+          output: trivy-dependency-report.txt
+          severity: CRITICAL,HIGH,MEDIUM
+          scanners: vuln
+
+      - name: Upload Trivy dependency report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-dependency-report
+          path: trivy-dependency-report.txt
+
+      # The gate: fail on fixable HIGH/CRITICAL CVEs in the built artifact.
+      # Explicitly-waived findings live in .trivyignore.yaml.
+      - name: Trivy vulnerability gate (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: rootfs
+          scan-ref: target/app.jar
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
+          scanners: vuln
+
+  iac-scan:
+    name: IaC misconfiguration scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Misconfiguration gate for the Dockerfile and Kubernetes manifests.
+      - name: Trivy config gate (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          trivyignores: .trivyignore.yaml
