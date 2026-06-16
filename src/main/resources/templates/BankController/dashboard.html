@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <head>
     <title>Dashboard - Wells Fargo</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
@@ -123,14 +123,14 @@
 
 <div class="container dashboard-container">
     <div class="text-center">
-        <h2 th:text="'Welcome, ' + ${account.username}"></h2>
-        <h3 th:text="'Current Balance: $' + ${account.balance}"></h3>
+        <h2>Welcome, {account.username}</h2>
+        <h3>Current Balance: ${account.balance}</h3>
     </div>
 
     <!-- Account Details Section -->
     <div class="account-details">
         <h4>Account Details</h4>
-        <p><strong>Account Number:</strong> <span th:text="${account.id}"></span></p> <!-- Use account.id for account number -->
+        <p><strong>Account Number:</strong> <span>{account.id}</span></p> <!-- Use account.id for account number -->
         <p><strong>Account Type:</strong> Savings</p>
     </div>
 
@@ -188,7 +188,7 @@
         </div>
     </div>
 
-    <p th:if="${error != null}" th:text="${error}" class="error text-center mt-3"></p>
+    {#if error}<p class="error text-center mt-3">{error}</p>{/if}
 </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

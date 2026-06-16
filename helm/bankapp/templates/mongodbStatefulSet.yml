@@ -1,4 +1,4 @@
-apiVersion: apps/v1 
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ .Values.db_statefulset.name }}
@@ -20,37 +20,32 @@ spec:
       - name: {{ .Values.db_statefulset.name }}
         image: {{ .Values.image.db }}
         ports:
-        - containerPort: 3306
+        - containerPort: 27017
         env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:                      ### CRITICAL
-              name: mysql-secret                  ### CRITICAL
-              key: MYSQL_ROOT_PASSWORD    ### CRITICAL
-        - name: MYSQL_DATABASE
+        - name: MONGO_INITDB_DATABASE
           valueFrom:
             configMapKeyRef:
-              name: {{ .Values.configmap.name }} 
-              key: MYSQL_DATABASE 
+              name: {{ .Values.configmap.name }}
+              key: MONGO_INITDB_DATABASE
         volumeMounts:
         - name: "{{ .Values.db_statefulset.name }}-data"
-          mountPath: /var/lib/mysql
+          mountPath: /data/db
         livenessProbe:
           exec:
             command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            - mongosh
+            - --quiet
+            - --eval
+            - "db.runCommand({ ping: 1 })"
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           exec:
             command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            - mongosh
+            - --quiet
+            - --eval
+            - "db.runCommand({ ping: 1 })"
           initialDelaySeconds: 10
           periodSeconds: 5
   volumeClaimTemplates:
@@ -64,4 +59,3 @@ spec:
       resources:
         requests:
           storage:  {{ .Values.db_statefulset.storage }}
-

@@ -117,6 +117,13 @@ argocd cluster add <cluster-context-name> --name bankapp-eks-cluster
 
 ### **Prepare Kubernetes Manifests in a Git Repository**
 - Organize your manifests (e.g., `namespace.yaml`, `deployment.yaml`, `service.yaml`) in a Git repository.
+- This directory contains the manifests for the Quarkus + MongoDB stack:
+  - `bankapp-namespace.yaml` — application namespace
+  - `configmap.yaml` — holds `QUARKUS_MONGODB_CONNECTION_STRING`, `QUARKUS_MONGODB_DATABASE` and `MONGO_INITDB_DATABASE`
+  - `mongodb-pvc.yml`, `mongodb-deployment.yml`, `mongodb-service.yml` — MongoDB (`mongo:7.0`, port `27017`, data at `/data/db`, headless service `mongodb-svc`)
+  - `bankapp-deployment.yml`, `bankapp-service.yaml` — the Quarkus app (port `8080`, readiness `/q/health/ready`, liveness `/q/health/live`)
+  - `bankapp-hpa.yml`, `bankapp-ingress.yml`, `letsencrypt-clusterissuer.yaml`
+- The app connects to MongoDB via the in-cluster service DNS `mongodb-svc.bankapp-namespace.svc.cluster.local:27017` (no database credentials are required for this setup).
 
 ### **Create an Application in ArgoCD**
 ```bash

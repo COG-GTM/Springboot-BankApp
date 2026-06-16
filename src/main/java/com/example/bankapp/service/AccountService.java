@@ -4,35 +4,26 @@ import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
+import io.quarkus.elytron.security.common.BcryptUtil;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
-@Service
-public class AccountService implements UserDetailsService {
+@ApplicationScoped
+public class AccountService {
 
-    @Autowired
-    PasswordEncoder passwordEncoder;
+    @Inject
+    AccountRepository accountRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Inject
+    TransactionRepository transactionRepository;
 
     public Account findAccountByUsername(String username) {
-        return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
+        return accountRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
     }
 
     public Account registerAccount(String username, String password) {
@@ -42,23 +33,23 @@ public class AccountService implements UserDetailsService {
 
         Account account = new Account();
         account.setUsername(username);
-        account.setPassword(passwordEncoder.encode(password)); // Encrypt password
+        account.setPassword(BcryptUtil.bcryptHash(password)); // Encrypt password
         account.setBalance(BigDecimal.ZERO); // Initial balance set to 0
-        return accountRepository.save(account);
+        accountRepository.persist(account);
+        return account;
     }
-
 
     public void deposit(Account account, BigDecimal amount) {
         account.setBalance(account.getBalance().add(amount));
-        accountRepository.save(account);
+        accountRepository.update(account);
 
         Transaction transaction = new Transaction(
                 amount,
                 "Deposit",
                 LocalDateTime.now(),
-                account
+                account.id
         );
-        transactionRepository.save(transaction);
+        transactionRepository.persist(transaction);
     }
 
     public void withdraw(Account account, BigDecimal amount) {
@@ -66,38 +57,19 @@ public class AccountService implements UserDetailsService {
             throw new RuntimeException("Insufficient funds");
         }
         account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
+        accountRepository.update(account);
 
         Transaction transaction = new Transaction(
                 amount,
                 "Withdrawal",
                 LocalDateTime.now(),
-                account
+                account.id
         );
-        transactionRepository.save(transaction);
+        transactionRepository.persist(transaction);
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
-        return transactionRepository.findByAccountId(account.getId());
-    }
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-        Account account = findAccountByUsername(username);
-        if (account == null) {
-            throw new UsernameNotFoundException("Username or Password not found");
-        }
-        return new Account(
-                account.getUsername(),
-                account.getPassword(),
-                account.getBalance(),
-                account.getTransactions(),
-                authorities());
-    }
-
-    public Collection<? extends GrantedAuthority> authorities() {
-        return Arrays.asList(new SimpleGrantedAuthority("USER"));
+        return transactionRepository.findByAccountId(account.id);
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
@@ -110,28 +82,27 @@ public class AccountService implements UserDetailsService {
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        accountRepository.save(fromAccount);
+        accountRepository.update(fromAccount);
 
         // Add to recipient's account
         toAccount.setBalance(toAccount.getBalance().add(amount));
-        accountRepository.save(toAccount);
+        accountRepository.update(toAccount);
 
         // Create transaction records for both accounts
         Transaction debitTransaction = new Transaction(
                 amount,
                 "Transfer Out to " + toAccount.getUsername(),
                 LocalDateTime.now(),
-                fromAccount
+                fromAccount.id
         );
-        transactionRepository.save(debitTransaction);
+        transactionRepository.persist(debitTransaction);
 
         Transaction creditTransaction = new Transaction(
                 amount,
                 "Transfer In from " + fromAccount.getUsername(),
                 LocalDateTime.now(),
-                toAccount
+                toAccount.id
         );
-        transactionRepository.save(creditTransaction);
+        transactionRepository.persist(creditTransaction);
     }
-
 }

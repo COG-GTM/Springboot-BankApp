@@ -1,6 +1,11 @@
 # Bank Application - Deployment on Kubernetes
 
+This is a multi-tier bank application written in Java using the [Quarkus](https://quarkus.io/) framework with [MongoDB](https://www.mongodb.com/) (via MongoDB Panache) for persistence.
+
 ## Tech stack used in this project:
+- Quarkus (Application framework)
+- MongoDB (Database)
+- Qute (Server-side templating)
 - GitHub (Code)
 - Docker (Containerization)
 - Jenkins (CI)
@@ -98,7 +103,7 @@ sudo apt-get update -y
 sudo apt-get install jenkins -y
 ```
 
-- After installing Jenkins, change the default port of jenkins from 8080 to 8081. Because our bankapp application will be running on 8080.
+- After installing Jenkins, change the default port of jenkins from 8080 to 8081. Because our bankapp application (Quarkus) will be running on 8080. The application health endpoint is exposed at `/q/health`.
   - Open /usr/lib/systemd/system/jenkins.service file and change JENKINS_PORT environment variable 
 ![image](https://github.com/user-attachments/assets/6320ae49-82d4-4ae3-9811-bd6f06778483)
   - Reload daemon

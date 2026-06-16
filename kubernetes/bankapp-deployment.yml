@@ -21,38 +21,28 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: SPRING_DATASOURCE_URL
+        - name: QUARKUS_MONGODB_CONNECTION_STRING
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
-              key: SPRING_DATASOURCE_URL
-        - name: SPRING_DATASOURCE_USERNAME
+              key: QUARKUS_MONGODB_CONNECTION_STRING
+        - name: QUARKUS_MONGODB_DATABASE
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
-              key: SPRING_DATASOURCE_USERNAME
-        - name: MYSQL_DATABASE
-          valueFrom:
-            configMapKeyRef:
-              name: bankapp-config
-              key: MYSQL_DATABASE
-        - name: SPRING_DATASOURCE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: SPRING_DATASOURCE_PASSWORD
-        # readinessProbe:
-        #   httpGet:
-        #     path: /actuator/health  # Update this based on your app's health endpoint
-        #     port: 8080
-        #   initialDelaySeconds: 10
-        #   periodSeconds: 5
-        # livenessProbe:
-        #   httpGet:
-        #     path: /actuator/health  # Update this based on your app's health endpoint
-        #     port: 8080
-        #   initialDelaySeconds: 30
-        #   periodSeconds: 10
+              key: QUARKUS_MONGODB_DATABASE
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
         resources:
           requests:
             memory: "512Mi"
