@@ -22,3 +22,4 @@ misconfigurations:
   - id: KSV014
     paths:
       - "kubernetes/mysql-deployment.yml"
+      - "helm/bankapp/templates/mysqlStatefulSet.yml"
