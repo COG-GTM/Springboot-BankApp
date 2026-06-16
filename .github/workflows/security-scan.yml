@@ -38,7 +38,7 @@ jobs:
 
       # Human-readable report (uploaded as an artifact, never fails the build).
       - name: Trivy report (informational)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
         with:
           scan-type: rootfs
           scan-ref: target/app.jar
@@ -57,7 +57,7 @@ jobs:
       # The gate: fail on fixable HIGH/CRITICAL CVEs in the built artifact.
       # Explicitly-waived findings live in .trivyignore.yaml.
       - name: Trivy vulnerability gate (HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
         with:
           scan-type: rootfs
           scan-ref: target/app.jar
@@ -77,7 +77,7 @@ jobs:
 
       # Misconfiguration gate for the Dockerfile and Kubernetes manifests.
       - name: Trivy config gate (HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
         with:
           scan-type: config
           scan-ref: .
