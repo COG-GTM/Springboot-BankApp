@@ -1,0 +1,18 @@
+# Snyk policy file (governance-as-code).
+# Documents explicitly-accepted license findings so the Snyk license gate is
+# auditable rather than silently red. Reviewed by platform/security.
+version: v1.25.0
+ignore:
+  # MySQL Connector/J is the JDBC driver the application requires to reach its
+  # MySQL database; it cannot be removed without breaking the app. Oracle ships
+  # it under GPL-2.0 *with the Universal FOSS Exception*, which expressly permits
+  # distribution together with other open-source software such as this project.
+  # Pre-existing finding (the prior mysql:mysql-connector-java@8.0.33 carried the
+  # same GPL-2.0 license); this PR only patches its version. Accepted, time-boxed
+  # for re-review at the next dependency audit.
+  'snyk:lic:maven:com.mysql:mysql-connector-j:GPL-2.0':
+    - '*':
+        reason: >-
+          Required MySQL JDBC driver; GPL-2.0 WITH Universal FOSS Exception
+          permits use/redistribution with this OSS application.
+        expires: 2027-06-16T00:00:00.000Z
