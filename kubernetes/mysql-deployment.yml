@@ -15,9 +15,21 @@ spec:
       labels:
         app: mysql
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: mysql
         image: mysql:8.0  # Use a specific, stable version for production
+        securityContext:
+          allowPrivilegeEscalation: false
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
         ports:
         - containerPort: 3306
         env:

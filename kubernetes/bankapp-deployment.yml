@@ -15,9 +15,25 @@ spec:
       labels:
         app: bankapp-deploy
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: bankapp
         image: trainwithshubham/bankapp-eks:v2
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
         ports:
         - containerPort: 8080
         env:
@@ -60,4 +76,9 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "500m"
+      volumes:
+      # Writable scratch space so the container root filesystem can stay read-only
+      # (embedded Tomcat extracts to java.io.tmpdir=/tmp).
+      - name: tmp
+        emptyDir: {}
 

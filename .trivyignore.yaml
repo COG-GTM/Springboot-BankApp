@@ -1,0 +1,24 @@
+# Explicitly-waived security baseline for the Trivy gate.
+#
+# Everything listed here is either (a) not fixable within the Spring Boot 3.3.x
+# line this app is pinned to, or (b) a deliberate, documented design decision.
+# Nothing is silently ignored: each item has a rationale and a review owner.
+#
+# Review owner: platform/security  |  Re-evaluate on next Spring Boot upgrade.
+
+vulnerabilities:
+  # No fix in the Spring Boot 3.3.x line. Fixes require a Spring Boot minor/major
+  # upgrade (3.4+/3.5+/4.0+), which breaks framework compatibility -> out of scope
+  # for this hardening pass and tracked for a future platform upgrade.
+  - id: CVE-2026-22732   # spring-security-web 6.3.10 -> fixed 6.5.9 / 7.0.4 (Spring Boot 3.5+)
+  - id: CVE-2025-41249   # spring-core 6.1.21 -> fixed 6.2.11 (Spring Boot 3.4+)
+  - id: CVE-2026-40973   # spring-boot 3.3.13 -> fixed 3.5.14 / 4.0.6 (Spring Boot 3.5+)
+
+misconfigurations:
+  # The official MySQL image bootstraps as root and writes to multiple paths
+  # (/var/run/mysqld, /etc, socket). A read-only root filesystem breaks startup,
+  # so this control is waived for the database container only. Data at rest is
+  # already isolated on the mysql PVC.
+  - id: KSV014
+    paths:
+      - "kubernetes/mysql-deployment.yml"
