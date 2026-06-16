@@ -33,6 +33,7 @@ jobs:
       # tree, so we scan the built artifact (scan-type: rootfs) instead.
       - name: Build application (skip tests)
         run: |
+          chmod +x mvnw
           ./mvnw -B -q -DskipTests package
           cp target/*.jar target/app.jar
 
