@@ -1,0 +1,101 @@
+# CD pipeline migrated from GitOps/Jenkinsfile.
+# Updates the Kubernetes manifest with the new image tag and commits it back (GitOps),
+# mirroring the original "Update: Kubernetes manifest" + "Git: Code update and push" stages.
+name: CD
+
+on:
+  # Chained from CI (Jenkins post { success { build job: "BankApp-CD" } }).
+  workflow_call:
+    inputs:
+      docker_tag:
+        description: "Docker tag of the image built by the CI job."
+        required: true
+        type: string
+  # Manual run (Jenkins parameterized build).
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: "Docker tag of the image to deploy."
+        required: true
+        default: ""
+  # Cross-repo / external trigger alternative.
+  repository_dispatch:
+    types: [deploy-bankapp]
+
+# Required so the workflow can commit the updated manifest back to the repo.
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      # Single source of truth for the tag across workflow_call / workflow_dispatch / repository_dispatch.
+      DOCKER_TAG: ${{ inputs.docker_tag || github.event.client_payload.docker_tag }}
+      # Job-level so it is readable from step `if:` conditions (gates the optional email step).
+      MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+    steps:
+      # Jenkins stage "Git: Code Checkout" (cleanWs() is not needed on fresh runners).
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: DevOps
+          # Token with write access so the follow-up push is authenticated.
+          token: ${{ secrets.GITOPS_TOKEN || github.token }}
+
+      # Jenkins stage "Verify: Docker Image Tags".
+      - name: Verify Docker image tag
+        run: |
+          echo "DOCKER TAG RECEIVED: ${DOCKER_TAG}"
+          if [ -z "${DOCKER_TAG}" ]; then
+            echo "::error::No docker_tag provided to the CD workflow"
+            exit 1
+          fi
+
+      # Jenkins stage "Update: Kubernetes manifest" (sed on the deployment image tag).
+      - name: Update Kubernetes manifest
+        run: |
+          sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${DOCKER_TAG}|g" kubernetes/bankapp-deployment.yml
+          echo "Updated manifest:"
+          grep "image:" kubernetes/bankapp-deployment.yml
+
+      # Jenkins stage "Git: Code update and push to GitHub" (withCredentials git push).
+      - name: Commit and push manifest update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+          git add kubernetes/bankapp-deployment.yml
+          git commit -m "Updated K8s Deployment Docker Image Version to ${DOCKER_TAG}"
+          git push origin DevOps
+
+      # Jenkins post { always { emailext ... } } -> send-mail action.
+      # Only runs when SMTP secrets are configured; otherwise skipped gracefully.
+      - name: Send deployment notification email
+        if: always() && env.MAIL_SERVER != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          from: ${{ secrets.MAIL_FROM }}
+          to: ${{ secrets.MAIL_TO }}
+          subject: "BankApp Application has been updated and deployed - '${{ job.status }}'"
+          html_body: |
+            <html>
+            <body>
+              <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">Project: ${{ github.repository }}</p>
+              </div>
+              <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">Run Number: ${{ github.run_number }}</p>
+              </div>
+              <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+              </div>
+            </body>
+            </html>
