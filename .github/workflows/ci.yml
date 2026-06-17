@@ -56,7 +56,9 @@ jobs:
           cache: maven
 
       - name: Build with Maven (skip tests, mirrors Dockerfile)
-        run: ./mvnw clean package -DskipTests -B
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean package -DskipTests -B
 
       - name: Upload application jar
         uses: actions/upload-artifact@v4
