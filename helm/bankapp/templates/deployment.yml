@@ -15,6 +15,9 @@ spec:
       labels:
         app: {{ .Values.app_deployment.name }}
     spec:
+      # Security: use dedicated SA with least-privilege; disable API token mount
+      serviceAccountName: "{{ .Values.app_deployment.name }}-sa"
+      automountServiceAccountToken: false
       initContainers:
       - name: "wait-for-{{ .Values.db_statefulset.name }}"
         # Security: pin init container image to SHA digest for supply-chain integrity

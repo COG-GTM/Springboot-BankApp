@@ -15,6 +15,9 @@ spec:
       labels:
         app: mysql
     spec:
+      # Security: use dedicated SA with least-privilege; disable API token mount
+      serviceAccountName: mysql-sa
+      automountServiceAccountToken: false
       containers:
       - name: mysql
         # Security: pin image to SHA digest for supply-chain integrity
