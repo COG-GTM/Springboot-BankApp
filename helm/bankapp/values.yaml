@@ -45,11 +45,12 @@ hpa:
     max_replica: 5
     cpu_utilizatoion: 40
 
-# Secret for Database connectivity
-
+# Security: in production, use an external secrets operator (e.g., AWS Secrets Manager,
+# HashiCorp Vault, or Sealed Secrets) instead of storing credentials in values.yaml.
+# Override these placeholder values via --set or a values-override file at deploy time.
 secret:
   name: mysql-secret
-  data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
-    SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
+  data:
+    MYSQL_ROOT_PASSWORD: CHANGEME
+    SPRING_DATASOURCE_PASSWORD: CHANGEME
  
