@@ -1,37 +1,38 @@
 #----------------------------------
-# Stage 1
+# Stage 1: Build
 #----------------------------------
 
-# Import docker image with maven installed
-FROM maven:3.8.3-openjdk-17 as builder 
+# Security: pin base image to SHA digest to prevent supply-chain attacks via tag mutation
+FROM maven:3.8.3-openjdk-17@sha256:8a66581a077762c8752a9f64f73cdd8c59e9c4446eb810417119e0436b075931 AS builder
 
-# Add maintainer, so that new user will understand who had written this Dockerfile
-MAINTAINER Madhup Pandey<madhuppandey2908@gmail.com>
-
-# Add labels to the image to filter out if we have multiple application running
 LABEL app=bankapp
 
-# Set working directory
 WORKDIR /src
 
-# Copy source code from local to container
 COPY . /src
 
-# Build application and skip test cases
 RUN mvn clean install -DskipTests=true
 
 #--------------------------------------
-# Stage 2
+# Stage 2: Runtime
 #--------------------------------------
 
-# Import small size java image
-FROM openjdk:17-alpine as deployer
+# Security: replaced deprecated openjdk:17-alpine with actively maintained eclipse-temurin;
+#           pinned to SHA digest for reproducible builds
+FROM eclipse-temurin:17-jre-alpine@sha256:02320dd4ce20e243dfb915c686089cf9315c763084fafbb12d5c9993aee18b57
 
-# Copy build from stage 1 (builder)
-COPY --from=builder /src/target/*.jar /src/target/bankapp.jar
+# Security: remove unnecessary OS packages and caches from final image
+RUN apk --no-cache upgrade \
+ && rm -rf /var/cache/apk/*
 
-# Expose application port 
+# Security: create a non-root user to run the application (CIS Docker Benchmark 4.1)
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder --chown=appuser:appgroup /src/target/*.jar /app/bankapp.jar
+
 EXPOSE 8080
 
-# Start the application
-ENTRYPOINT ["java", "-jar", "/src/target/bankapp.jar"]
+# Security: run as non-root user to limit blast radius of container compromise
+USER appuser
+
+ENTRYPOINT ["java", "-jar", "/app/bankapp.jar"]

@@ -22,9 +22,10 @@ app_deployment:
   mem_limit: 700Mi
 
 ## image repository and tag of app and db.
+## Security: pin images to SHA digests to prevent tag-mutation supply-chain attacks
 image:
   app: trainwithshubham/springboot-bankapp:latest
-  db: mysql:latest
+  db: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
 
 # NodePort svc for bankapp
 bankapp_svc:
