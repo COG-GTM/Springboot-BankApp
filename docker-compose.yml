@@ -1,10 +1,12 @@
 version: "3.8"
 services:
   mysql:
-    image: mysql:latest
+    # Security: pin image to SHA digest for reproducible, tamper-resistant builds
+    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
     container_name: mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=Test@123
+      # Security: credentials sourced from .env file or environment variables instead of hardcoded values
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       - MYSQL_DATABASE=BankDB
     volumes:
       - bankapp-volume:/var/lib/mysql
@@ -23,7 +25,8 @@ services:
     environment:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - SPRING_DATASOURCE_PASSWORD=Test@123
+      # Security: credentials sourced from .env file or environment variables instead of hardcoded values
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in .env}
     ports:
       - "8080:8080"
     depends_on:

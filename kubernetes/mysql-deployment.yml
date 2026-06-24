@@ -15,9 +15,13 @@ spec:
       labels:
         app: mysql
     spec:
+      # Security: use dedicated SA with least-privilege; disable API token mount
+      serviceAccountName: mysql-sa
+      automountServiceAccountToken: false
       containers:
       - name: mysql
-        image: mysql:8.0  # Use a specific, stable version for production
+        # Security: pin image to SHA digest for supply-chain integrity
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
         ports:
         - containerPort: 3306
         env:

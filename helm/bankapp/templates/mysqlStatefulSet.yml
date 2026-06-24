@@ -16,6 +16,9 @@ spec:
       labels:
         app: {{ .Values.db_statefulset.name }}
     spec:
+      # Security: use dedicated SA with least-privilege; disable API token mount
+      serviceAccountName: "{{ .Values.db_statefulset.name }}-sa"
+      automountServiceAccountToken: false
       containers:
       - name: {{ .Values.db_statefulset.name }}
         image: {{ .Values.image.db }}

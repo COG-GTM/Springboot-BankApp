@@ -1,0 +1,72 @@
+# Security: dedicated ServiceAccount for the bankapp deployment.
+# Pods should not use the default SA, which may carry cluster-wide permissions.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Values.app_deployment.name }}-sa"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+  labels:
+    app: {{ .Values.app_deployment.name }}
+automountServiceAccountToken: false
+---
+# Security: dedicated ServiceAccount for MySQL.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Values.db_statefulset.name }}-sa"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+  labels:
+    app: {{ .Values.db_statefulset.name }}
+automountServiceAccountToken: false
+---
+# Security: namespace-scoped Role for bankapp — read-only ConfigMaps/Secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: "{{ .Values.app_deployment.name }}-role"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+---
+# Security: bind the Role to bankapp SA (namespace-scoped, not ClusterRoleBinding).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "{{ .Values.app_deployment.name }}-rolebinding"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: "{{ .Values.app_deployment.name }}-sa"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+roleRef:
+  kind: Role
+  name: "{{ .Values.app_deployment.name }}-role"
+  apiGroup: rbac.authorization.k8s.io
+---
+# Security: namespace-scoped Role for MySQL — read-only ConfigMaps/Secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: "{{ .Values.db_statefulset.name }}-role"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get"]
+---
+# Security: bind the Role to MySQL SA (namespace-scoped).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "{{ .Values.db_statefulset.name }}-rolebinding"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: "{{ .Values.db_statefulset.name }}-sa"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+roleRef:
+  kind: Role
+  name: "{{ .Values.db_statefulset.name }}-role"
+  apiGroup: rbac.authorization.k8s.io

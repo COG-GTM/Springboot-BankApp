@@ -1,0 +1,78 @@
+# Security: dedicated ServiceAccount for the bankapp deployment.
+# Pods should not use the default SA, which may carry cluster-wide permissions
+# granted by addon controllers or prior admin actions.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bankapp-sa
+  namespace: bankapp-namespace
+  labels:
+    app: bankapp
+# Security: disable automatic token mounting; the app does not call the K8s API
+automountServiceAccountToken: false
+---
+# Security: dedicated ServiceAccount for the MySQL deployment.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql-sa
+  namespace: bankapp-namespace
+  labels:
+    app: mysql
+automountServiceAccountToken: false
+---
+# Security: namespace-scoped Role granting only the minimum permissions the
+# bankapp pods need (read-only access to ConfigMaps and Secrets in its namespace).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bankapp-role
+  namespace: bankapp-namespace
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+---
+# Security: bind the bankapp Role to its ServiceAccount within the namespace.
+# Using a RoleBinding (not ClusterRoleBinding) ensures the permission is scoped
+# to bankapp-namespace only, following least-privilege.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bankapp-rolebinding
+  namespace: bankapp-namespace
+subjects:
+- kind: ServiceAccount
+  name: bankapp-sa
+  namespace: bankapp-namespace
+roleRef:
+  kind: Role
+  name: bankapp-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Security: namespace-scoped Role for MySQL — read-only access to its own
+# ConfigMaps and Secrets for credential injection.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mysql-role
+  namespace: bankapp-namespace
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get"]
+---
+# Security: bind the mysql Role to its ServiceAccount within the namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mysql-rolebinding
+  namespace: bankapp-namespace
+subjects:
+- kind: ServiceAccount
+  name: mysql-sa
+  namespace: bankapp-namespace
+roleRef:
+  kind: Role
+  name: mysql-role
+  apiGroup: rbac.authorization.k8s.io

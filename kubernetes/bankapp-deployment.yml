@@ -15,6 +15,9 @@ spec:
       labels:
         app: bankapp-deploy
     spec:
+      # Security: use dedicated SA with least-privilege; disable API token mount
+      serviceAccountName: bankapp-sa
+      automountServiceAccountToken: false
       containers:
       - name: bankapp
         image: trainwithshubham/bankapp-eks:v2

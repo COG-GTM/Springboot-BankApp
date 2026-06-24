@@ -1,0 +1,110 @@
+# Security: default-deny all ingress and egress traffic in the namespace.
+# Only explicitly allowed paths (defined below) will be permitted.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: bankapp-namespace
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Security: allow bankapp pods to receive traffic only from the ingress controller.
+# This prevents direct pod-to-pod access from unauthorized sources.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-bankapp
+  namespace: bankapp-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: bankapp-deploy
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    # Allow traffic from the NGINX ingress controller namespace
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+# Security: allow bankapp pods to connect only to MySQL (port 3306) and DNS.
+# Egress is restricted to prevent data exfiltration or lateral movement.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bankapp-egress
+  namespace: bankapp-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: bankapp-deploy
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution (required for service discovery)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow connection to MySQL within the namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mysql
+    ports:
+    - protocol: TCP
+      port: 3306
+---
+# Security: MySQL should only accept connections from bankapp pods.
+# No other pod or external source should reach the database directly.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-bankapp-to-mysql
+  namespace: bankapp-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: bankapp-deploy
+    ports:
+    - protocol: TCP
+      port: 3306
+---
+# Security: MySQL egress — allow only DNS for internal resolution.
+# The database should not initiate outbound connections.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mysql-egress
+  namespace: bankapp-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

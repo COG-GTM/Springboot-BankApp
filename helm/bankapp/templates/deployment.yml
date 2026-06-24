@@ -15,9 +15,13 @@ spec:
       labels:
         app: {{ .Values.app_deployment.name }}
     spec:
+      # Security: use dedicated SA with least-privilege; disable API token mount
+      serviceAccountName: "{{ .Values.app_deployment.name }}-sa"
+      automountServiceAccountToken: false
       initContainers:
       - name: "wait-for-{{ .Values.db_statefulset.name }}"
-        image: busybox:1.28
+        # Security: pin init container image to SHA digest for supply-chain integrity
+        image: busybox:1.28@sha256:141c253bc4c3fd0a201d32dc1f493bcf3fff003b6df416dea4f41046e0f37d47
         command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 3306; do echo waiting for mysql; sleep 5; done;']
       containers:
       - name: {{ .Values.app_deployment.name }}

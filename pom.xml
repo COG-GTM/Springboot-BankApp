@@ -5,7 +5,8 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.3</version>
+		<!-- Security: upgraded from 3.3.3 to fix CVE-2026-22733, CVE-2026-40972, CVE-2026-40973 -->
+		<version>3.5.15</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
@@ -51,10 +52,11 @@
 			<artifactId>thymeleaf-extras-springsecurity6</artifactId>
 		</dependency>
 
+		<!-- Security: migrated from legacy mysql:mysql-connector-java 8.0.33 to
+		     com.mysql:mysql-connector-j; version managed by Spring Boot BOM -->
 		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<version>8.0.33</version>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
@@ -75,15 +77,9 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.8.0</version>
-				<configuration>
-    					<source>1.8</source>
-    					<target>1.8</target>
-				</configuration>
-			</plugin>
+			<!-- Security: removed explicit maven-compiler-plugin 3.8.0 override that
+			     forced source/target 1.8; Spring Boot parent POM now controls compilation
+			     via java.version=17, ensuring consistent bytecode and language level. -->
 		</plugins>
 	</build>
 
