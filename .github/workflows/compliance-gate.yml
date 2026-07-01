@@ -28,4 +28,6 @@ jobs:
           cache: maven
 
       - name: Re-perform control test (CredentialManagementControlTest)
-        run: ./mvnw -B -ntp -Dtest=CredentialManagementControlTest -DfailIfNoTests=false test
+        run: |
+          chmod +x ./mvnw
+          ./mvnw -B -ntp -Dtest=CredentialManagementControlTest -DfailIfNoTests=false test
