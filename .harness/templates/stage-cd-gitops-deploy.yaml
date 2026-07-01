@@ -1,0 +1,83 @@
+# Reusable CD Stage Template: GitOps manifest bump -> deploy.
+# Reproduces the Jenkins `GitOps/Jenkinsfile` (CD job): update the image tag in
+# the Kubernetes manifest, push to Git, and let ArgoCD reconcile the cluster.
+template:
+  name: GitOps Deploy
+  identifier: gitops_deploy
+  versionLabel: v1
+  type: Stage
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  tags:
+    layer: cd
+    reusable: "true"
+  spec:
+    type: CI
+    spec:
+      cloneCodebase: true
+      infrastructure:
+        type: KubernetesDirect
+        spec:
+          connectorRef: <+input>
+          namespace: <+input>
+          os: Linux
+      execution:
+        steps:
+          - step:
+              identifier: verify_docker_tag
+              name: Verify Docker Image Tag
+              type: Run
+              spec:
+                connectorRef: <+input>
+                image: alpine:3.20
+                shell: Sh
+                command: |
+                  # Jenkins: echo "DOCKER TAG RECEIVED: ${params.DOCKER_TAG}"
+                  echo "DOCKER TAG RECEIVED: <+stage.variables.docker_tag>"
+                  test -n "<+stage.variables.docker_tag>"
+          - step:
+              identifier: update_manifest_and_push
+              name: Update K8s Manifest and Push (GitOps)
+              type: Run
+              spec:
+                connectorRef: <+input>
+                image: alpine/git:latest
+                shell: Sh
+                envVariables:
+                  GIT_TOKEN: <+secrets.getValue("gitops_token")>
+                command: |
+                  # Jenkins: sed image tag then git commit/push to DevOps branch.
+                  cd <+stage.variables.manifest_dir>
+                  sed -i -e "s|<+stage.variables.image_repo>:.*|<+stage.variables.image_repo>:<+stage.variables.docker_tag>|g" \
+                    <+stage.variables.manifest_file>
+                  git config user.email "harness-bot@example.com"
+                  git config user.name "harness-bot"
+                  git add <+stage.variables.manifest_file>
+                  git commit -m "feature: update K8s deployment image to <+stage.variables.docker_tag>" || echo "no changes"
+                  git push "https://${GIT_TOKEN}@<+stage.variables.gitops_repo>" HEAD:<+stage.variables.gitops_branch>
+                  # ArgoCD then reconciles the cluster to match Git (GitOps CD).
+    variables:
+      - name: docker_tag
+        type: String
+        value: <+input>
+        description: Image tag produced by the CI stage.
+      - name: image_repo
+        type: String
+        value: <+input>
+        description: Image repo referenced in the manifest (e.g. trainwithshubham/bankapp-eks).
+      - name: manifest_dir
+        type: String
+        value: kubernetes
+        description: Directory holding the deployment manifest.
+      - name: manifest_file
+        type: String
+        value: bankapp-deployment.yml
+        description: Manifest file whose image tag is rewritten.
+      - name: gitops_repo
+        type: String
+        value: <+input>
+        description: GitOps repo host/path, e.g. github.com/org/Springboot-BankApp.git.
+      - name: gitops_branch
+        type: String
+        value: DevOps
+        description: Branch ArgoCD watches.

@@ -1,0 +1,88 @@
+# Reusable Step Group Template: DevSecOps security scans.
+# Reproduces the Jenkins shared-lib steps trivy_scan(), owasp_dependency(),
+# sonarqube_analysis() and sonarqube_code_quality() as one drop-in unit.
+# Any team's CI stage can reference this template and only supply variables.
+template:
+  name: DevSecOps Security Scans
+  identifier: devsecops_security_scans
+  versionLabel: v1
+  type: StepGroup
+  # Replace with your Harness org/project (or promote to account-level template).
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  tags:
+    layer: security
+    reusable: "true"
+  spec:
+    # Runs inside a CI stage's Kubernetes/hosted infrastructure.
+    stepGroupInfra:
+      type: KubernetesDirect
+      spec:
+        connectorRef: <+input>
+        namespace: <+input>
+    steps:
+      - step:
+          identifier: trivy_fs_scan
+          name: Trivy Filesystem Scan
+          type: Run
+          spec:
+            connectorRef: <+input>
+            image: aquasec/trivy:latest
+            shell: Sh
+            command: |
+              # Jenkins: trivy_scan() -> `trivy fs .`
+              trivy fs --exit-code 0 --severity HIGH,CRITICAL --format table .
+      - step:
+          identifier: owasp_dependency_check
+          name: OWASP Dependency Check
+          type: Run
+          spec:
+            connectorRef: <+input>
+            image: owasp/dependency-check:latest
+            shell: Sh
+            command: |
+              # Jenkins: owasp_dependency() -> dependencyCheck --scan ./
+              /usr/share/dependency-check/bin/dependency-check.sh \
+                --scan ./ \
+                --format XML \
+                --project "<+stage.variables.service_name>" \
+                --out .
+          # Publishes dependency-check-report.xml (Jenkins archiveArtifacts equiv).
+      - step:
+          identifier: sonarqube_analysis
+          name: SonarQube Code Analysis
+          type: Run
+          spec:
+            connectorRef: <+input>
+            image: maven:3.8.3-openjdk-17
+            shell: Sh
+            envVariables:
+              SONAR_HOST_URL: <+stage.variables.sonar_host_url>
+              SONAR_TOKEN: <+secrets.getValue("sonar_token")>
+            command: |
+              # Jenkins: sonarqube_analysis("Sonar","bankapp","bankapp")
+              ./mvnw -B verify sonar:sonar \
+                -Dsonar.projectKey=<+stage.variables.sonar_project_key> \
+                -Dsonar.projectName=<+stage.variables.service_name> \
+                -Dsonar.host.url=${SONAR_HOST_URL} \
+                -Dsonar.login=${SONAR_TOKEN}
+      - step:
+          identifier: sonarqube_quality_gate
+          name: SonarQube Quality Gate
+          type: Run
+          timeout: 5m
+          spec:
+            connectorRef: <+input>
+            image: curlimages/curl:latest
+            shell: Sh
+            envVariables:
+              SONAR_HOST_URL: <+stage.variables.sonar_host_url>
+              SONAR_TOKEN: <+secrets.getValue("sonar_token")>
+            command: |
+              # Jenkins: sonarqube_code_quality() -> waitForQualityGate
+              status=$(curl -s -u "${SONAR_TOKEN}:" \
+                "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=<+stage.variables.sonar_project_key>" \
+                | grep -o '"status":"[A-Z]*"' | head -1 | cut -d'"' -f4)
+              echo "Quality gate status: ${status}"
+              # abortPipeline:false in Jenkins -> do not hard-fail here.
+              if [ "${status}" = "ERROR" ]; then echo "Quality gate FAILED (non-blocking)"; fi

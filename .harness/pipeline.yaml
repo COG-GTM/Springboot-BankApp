@@ -1,0 +1,145 @@
+# Full Harness CI/CD pipeline for THIS service (bankapp).
+# This is a concrete instantiation of the reusable stage templates in
+# .harness/templates/ with bankapp's values filled in — it is exactly what an
+# onboarding team produces after cloning the templates.
+#
+# Jenkins -> Harness stage mapping (see .harness/JENKINS_INVENTORY.md):
+#   Jenkinsfile (CI): checkout -> Build&Test -> Trivy -> OWASP -> Sonar ->
+#                     Quality Gate -> Docker build -> push   => stage `ci_build_scan_push`
+#   GitOps/Jenkinsfile (CD): verify tag -> update manifest -> git push (ArgoCD)
+#                                                              => stage `cd_gitops_deploy`
+pipeline:
+  name: BankApp CICD
+  identifier: bankapp_cicd
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  tags:
+    app: bankapp
+    source: jenkins-migration
+  properties:
+    ci:
+      codebase:
+        # Replaces Jenkins code_checkout(url,"DevOps"). Wire to your Git connector.
+        connectorRef: account.Github
+        repoName: Springboot-BankApp
+        build: <+input>
+  stages:
+    - stage:
+        identifier: ci_build_scan_push
+        name: CI - Build, Scan, Push
+        template:
+          templateRef: build_scan_and_push_maven
+          versionLabel: v1
+          templateInputs:
+            type: CI
+            spec:
+              infrastructure:
+                spec:
+                  connectorRef: account.EKS
+                  namespace: harness-ci
+              execution:
+                steps:
+                  - step:
+                      identifier: build_and_test
+                      type: Run
+                      spec:
+                        connectorRef: account.DockerHub
+                  - stepGroup:
+                      identifier: security_scans
+                      template:
+                        templateInputs:
+                          type: StepGroup
+                          spec:
+                            stepGroupInfra:
+                              spec:
+                                connectorRef: account.EKS
+                                namespace: harness-ci
+                            steps:
+                              - step:
+                                  identifier: trivy_fs_scan
+                                  type: Run
+                                  spec:
+                                    connectorRef: account.DockerHub
+                              - step:
+                                  identifier: owasp_dependency_check
+                                  type: Run
+                                  spec:
+                                    connectorRef: account.DockerHub
+                              - step:
+                                  identifier: sonarqube_analysis
+                                  type: Run
+                                  spec:
+                                    connectorRef: account.DockerHub
+                              - step:
+                                  identifier: sonarqube_quality_gate
+                                  type: Run
+                                  spec:
+                                    connectorRef: account.DockerHub
+                  - step:
+                      identifier: docker_build_push
+                      type: BuildAndPushDockerRegistry
+                      spec:
+                        connectorRef: account.DockerHub
+            variables:
+              - name: service_name
+                type: String
+                value: bankapp
+              - name: image_repo
+                type: String
+                value: madhupdevops/bankapp
+              - name: docker_tag
+                type: String
+                value: <+input>
+              - name: sonar_host_url
+                type: String
+                value: https://sonarqube.example.com
+              - name: sonar_project_key
+                type: String
+                value: bankapp
+    - stage:
+        identifier: cd_gitops_deploy
+        name: CD - GitOps Deploy
+        template:
+          templateRef: gitops_deploy
+          versionLabel: v1
+          templateInputs:
+            type: CI
+            spec:
+              infrastructure:
+                spec:
+                  connectorRef: account.EKS
+                  namespace: harness-cd
+              execution:
+                steps:
+                  - step:
+                      identifier: verify_docker_tag
+                      type: Run
+                      spec:
+                        connectorRef: account.DockerHub
+                  - step:
+                      identifier: update_manifest_and_push
+                      type: Run
+                      spec:
+                        connectorRef: account.DockerHub
+            variables:
+              - name: docker_tag
+                type: String
+                value: <+pipeline.stages.ci_build_scan_push.variables.docker_tag>
+              - name: image_repo
+                type: String
+                value: trainwithshubham/bankapp-eks
+              - name: gitops_repo
+                type: String
+                value: github.com/COG-GTM/Springboot-BankApp.git
+  notificationRules:
+    - name: build_status
+      identifier: build_status
+      pipelineEvents:
+        - type: PipelineSuccess
+        - type: PipelineFailed
+      notificationMethod:
+        type: Email
+        spec:
+          recipients:
+            - platform-team@example.com
+      enabled: true
