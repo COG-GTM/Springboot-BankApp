@@ -1,0 +1,116 @@
+# Reusable CI Stage Template: Build & Test -> Security Scans -> Docker build+push.
+# Reproduces the whole Jenkins `Jenkinsfile` (CI job) for ANY Java/Maven service.
+# Onboarding teams reference this template and supply the stage variables only.
+template:
+  name: Build Scan and Push (Maven)
+  identifier: build_scan_and_push_maven
+  versionLabel: v1
+  type: Stage
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  tags:
+    layer: ci
+    reusable: "true"
+  spec:
+    type: CI
+    # cloneCodebase replaces the Jenkins code_checkout() shared-lib step.
+    spec:
+      cloneCodebase: true
+      infrastructure:
+        type: KubernetesDirect
+        spec:
+          connectorRef: <+input>
+          namespace: <+input>
+          automountServiceAccountToken: true
+          nodeSelector: {}
+          os: Linux
+      execution:
+        steps:
+          - step:
+              identifier: build_and_test
+              name: Build and Test (Maven)
+              type: Run
+              spec:
+                connectorRef: <+input>
+                image: maven:3.8.3-openjdk-17
+                shell: Sh
+                command: |
+                  # Explicit unit tests up front (Jenkins built these only inside
+                  # the Dockerfile with -DskipTests=true). Fail fast on test break.
+                  ./mvnw -B clean test
+          - stepGroup:
+              identifier: security_scans
+              name: DevSecOps Security Scans
+              template:
+                templateRef: devsecops_security_scans
+                versionLabel: v1
+                templateInputs:
+                  type: StepGroup
+                  spec:
+                    stepGroupInfra:
+                      type: KubernetesDirect
+                      spec:
+                        connectorRef: <+input>
+                        namespace: <+input>
+                    steps:
+                      - step:
+                          identifier: trivy_fs_scan
+                          type: Run
+                          spec:
+                            connectorRef: <+input>
+                      - step:
+                          identifier: owasp_dependency_check
+                          type: Run
+                          spec:
+                            connectorRef: <+input>
+                      - step:
+                          identifier: sonarqube_analysis
+                          type: Run
+                          spec:
+                            connectorRef: <+input>
+                      - step:
+                          identifier: sonarqube_quality_gate
+                          type: Run
+                          spec:
+                            connectorRef: <+input>
+          - step:
+              identifier: docker_build_push
+              name: Docker Build and Push
+              type: BuildAndPushDockerRegistry
+              spec:
+                # Jenkins: docker_build()/docker_push() with creds id `docker`.
+                connectorRef: <+input>
+                repo: <+stage.variables.image_repo>
+                tags:
+                  - <+stage.variables.docker_tag>
+                  - latest
+                dockerfile: <+stage.variables.dockerfile>
+                context: .
+      sharedPaths:
+        - /var/run
+    # Variables an onboarding team overrides — this is the entire contract.
+    variables:
+      - name: service_name
+        type: String
+        value: <+input>
+        description: Logical service name (Sonar project name, OWASP project).
+      - name: image_repo
+        type: String
+        value: <+input>
+        description: Container image repository, e.g. madhupdevops/bankapp.
+      - name: docker_tag
+        type: String
+        value: <+input>
+        description: Image tag to build/push (Jenkins DOCKER_TAG parameter).
+      - name: dockerfile
+        type: String
+        value: Dockerfile
+        description: Path to the Dockerfile.
+      - name: sonar_host_url
+        type: String
+        value: <+input>
+        description: SonarQube server URL.
+      - name: sonar_project_key
+        type: String
+        value: <+input>
+        description: SonarQube project key (Jenkins passed "bankapp").
