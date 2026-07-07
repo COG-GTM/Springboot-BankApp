@@ -1,5 +1,5 @@
 ## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
-- This is a multi-tier bank an application written in Java (Springboot).
+- This is a multi-tier bank an application written in Java (Springboot). It targets Java 25 and Spring Boot 3.5.x.
 
 ![Login diagram](images/login.png)
 ![Transactions diagram](images/transactions.png)
@@ -89,7 +89,15 @@ sudo su
 - <b>Install Jenkins</b>
 ```bash
 sudo apt update -y
-sudo apt install fontconfig openjdk-17-jre -y
+
+# Install Eclipse Temurin 25 (JRE) from the Adoptium apt repository.
+# Ubuntu's default repos may not ship openjdk-25 yet, so we use Adoptium.
+sudo apt install -y wget apt-transport-https gnupg
+sudo mkdir -p /etc/apt/keyrings
+wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | sudo gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg
+echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | sudo tee /etc/apt/sources.list.d/adoptium.list
+sudo apt update -y
+sudo apt install fontconfig temurin-25-jre -y
 
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
