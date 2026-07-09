@@ -36,9 +36,10 @@ import static org.mockito.Mockito.when;
  * validated (non-positive amounts, self-transfer). They form the safety net
  * that lets us remediate the service with confidence.
  *
- * <p>Tests whose names contain {@code current_} document behavior that is
- * presently INCORRECT/UNSAFE. The remediation phase updates these to assert the
- * new, validated behavior.
+ * <p>Tests whose names contain {@code isRejected} were originally written to pin
+ * the pre-remediation UNSAFE behavior (non-positive amounts and self-transfers
+ * were silently accepted). After remediation they assert the new, validated
+ * behavior: the service now rejects these inputs.
  */
 @ExtendWith(MockitoExtension.class)
 class AccountServiceCharacterizationTest {
@@ -113,25 +114,28 @@ class AccountServiceCharacterizationTest {
         }
 
         @Test
-        @DisplayName("CURRENT (unsafe): a negative deposit is accepted and DECREASES the balance")
-        void deposit_negativeAmount_currentlyDecreasesBalance() {
+        @DisplayName("REMEDIATED: a negative deposit is rejected and leaves the balance unchanged")
+        void deposit_negativeAmount_isRejected() {
             Account account = accountWithBalance("alice", "100.00");
 
-            accountService.deposit(account, new BigDecimal("-50.00"));
-
-            assertThat(account.getBalance()).isEqualByComparingTo("50.00");
-            verify(transactionRepository).save(any(Transaction.class));
+            assertThatThrownBy(() -> accountService.deposit(account, new BigDecimal("-50.00")))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Deposit amount must be greater than zero");
+            assertThat(account.getBalance()).isEqualByComparingTo("100.00");
+            verify(accountRepository, never()).save(any(Account.class));
+            verify(transactionRepository, never()).save(any(Transaction.class));
         }
 
         @Test
-        @DisplayName("CURRENT (unsafe): a zero deposit is accepted and records a transaction")
-        void deposit_zeroAmount_currentlyAccepted() {
+        @DisplayName("REMEDIATED: a zero deposit is rejected")
+        void deposit_zeroAmount_isRejected() {
             Account account = accountWithBalance("alice", "100.00");
 
-            accountService.deposit(account, BigDecimal.ZERO);
-
+            assertThatThrownBy(() -> accountService.deposit(account, BigDecimal.ZERO))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Deposit amount must be greater than zero");
             assertThat(account.getBalance()).isEqualByComparingTo("100.00");
-            verify(transactionRepository).save(any(Transaction.class));
+            verify(transactionRepository, never()).save(any(Transaction.class));
         }
     }
 
@@ -165,25 +169,28 @@ class AccountServiceCharacterizationTest {
         }
 
         @Test
-        @DisplayName("CURRENT (unsafe): a negative withdrawal passes the funds check and INCREASES the balance")
-        void withdraw_negativeAmount_currentlyIncreasesBalance() {
+        @DisplayName("REMEDIATED: a negative withdrawal is rejected and leaves the balance unchanged")
+        void withdraw_negativeAmount_isRejected() {
             Account account = accountWithBalance("alice", "100.00");
 
-            accountService.withdraw(account, new BigDecimal("-50.00"));
-
-            assertThat(account.getBalance()).isEqualByComparingTo("150.00");
-            verify(transactionRepository).save(any(Transaction.class));
+            assertThatThrownBy(() -> accountService.withdraw(account, new BigDecimal("-50.00")))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Withdrawal amount must be greater than zero");
+            assertThat(account.getBalance()).isEqualByComparingTo("100.00");
+            verify(accountRepository, never()).save(any(Account.class));
+            verify(transactionRepository, never()).save(any(Transaction.class));
         }
 
         @Test
-        @DisplayName("CURRENT (unsafe): a zero withdrawal is accepted and records a transaction")
-        void withdraw_zeroAmount_currentlyAccepted() {
+        @DisplayName("REMEDIATED: a zero withdrawal is rejected")
+        void withdraw_zeroAmount_isRejected() {
             Account account = accountWithBalance("alice", "100.00");
 
-            accountService.withdraw(account, BigDecimal.ZERO);
-
+            assertThatThrownBy(() -> accountService.withdraw(account, BigDecimal.ZERO))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Withdrawal amount must be greater than zero");
             assertThat(account.getBalance()).isEqualByComparingTo("100.00");
-            verify(transactionRepository).save(any(Transaction.class));
+            verify(transactionRepository, never()).save(any(Transaction.class));
         }
     }
 
@@ -206,14 +213,15 @@ class AccountServiceCharacterizationTest {
         }
 
         @Test
-        @DisplayName("rejects a transfer that exceeds the sender balance (checked before recipient lookup)")
-        void transfer_insufficientFunds_throwsBeforeRecipientLookup() {
+        @DisplayName("rejects a transfer that exceeds the sender balance")
+        void transfer_insufficientFunds_throws() {
             Account from = accountWithBalance("alice", "10.00");
+            Account to = accountWithBalance("bob", "0.00");
+            when(accountRepository.findByUsername("bob")).thenReturn(Optional.of(to));
 
             assertThatThrownBy(() -> accountService.transferAmount(from, "bob", new BigDecimal("30.00")))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessage("Insufficient funds");
-            verify(accountRepository, never()).findByUsername("bob");
             verify(transactionRepository, never()).save(any(Transaction.class));
         }
 
@@ -230,29 +238,28 @@ class AccountServiceCharacterizationTest {
         }
 
         @Test
-        @DisplayName("CURRENT (unsafe): a negative transfer STEALS from the recipient and credits the sender")
-        void transfer_negativeAmount_currentlyStealsFromRecipient() {
+        @DisplayName("REMEDIATED: a negative transfer is rejected and leaves both balances unchanged")
+        void transfer_negativeAmount_isRejected() {
             Account from = accountWithBalance("alice", "100.00");
-            Account to = accountWithBalance("bob", "100.00");
-            when(accountRepository.findByUsername("bob")).thenReturn(Optional.of(to));
 
-            accountService.transferAmount(from, "bob", new BigDecimal("-40.00"));
-
-            assertThat(from.getBalance()).isEqualByComparingTo("140.00");
-            assertThat(to.getBalance()).isEqualByComparingTo("60.00");
-            verify(transactionRepository, times(2)).save(any(Transaction.class));
+            assertThatThrownBy(() -> accountService.transferAmount(from, "bob", new BigDecimal("-40.00")))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Transfer amount must be greater than zero");
+            assertThat(from.getBalance()).isEqualByComparingTo("100.00");
+            verify(accountRepository, never()).findByUsername(any());
+            verify(transactionRepository, never()).save(any(Transaction.class));
         }
 
         @Test
-        @DisplayName("CURRENT (unsafe): a self-transfer is accepted and records spurious transactions")
-        void transfer_toSelf_currentlyAccepted() {
+        @DisplayName("REMEDIATED: a self-transfer is rejected")
+        void transfer_toSelf_isRejected() {
             Account self = accountWithBalance("alice", "100.00");
-            when(accountRepository.findByUsername("alice")).thenReturn(Optional.of(self));
 
-            accountService.transferAmount(self, "alice", new BigDecimal("30.00"));
-
+            assertThatThrownBy(() -> accountService.transferAmount(self, "alice", new BigDecimal("30.00")))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Cannot transfer to the same account");
             assertThat(self.getBalance()).isEqualByComparingTo("100.00");
-            verify(transactionRepository, times(2)).save(any(Transaction.class));
+            verify(transactionRepository, never()).save(any(Transaction.class));
         }
     }
 

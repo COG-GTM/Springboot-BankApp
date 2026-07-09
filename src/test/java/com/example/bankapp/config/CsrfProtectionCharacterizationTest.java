@@ -22,9 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * CHARACTERIZATION TEST for CSRF protection configured in {@link SecurityConfig}.
  *
- * <p>Pins the CURRENT state: CSRF is disabled, so a state-changing POST is
- * accepted WITHOUT a CSRF token. The remediation phase re-enables CSRF and
- * flips these assertions.
+ * <p>Originally pinned the pre-remediation state (CSRF disabled: a state-changing
+ * POST was accepted without a token). After remediation CSRF is enabled, so a
+ * POST without a valid token is now rejected while a POST with a token succeeds.
  */
 @WebMvcTest(controllers = BankController.class)
 @Import(SecurityConfig.class)
@@ -38,15 +38,10 @@ class CsrfProtectionCharacterizationTest {
 
     @Test
     @WithMockUser(username = "alice")
-    @DisplayName("CURRENT (unsafe): a POST without a CSRF token is accepted because CSRF is disabled")
-    void deposit_withoutCsrfToken_currentlyAccepted() throws Exception {
-        Account account = new Account();
-        account.setUsername("alice");
-        account.setBalance(new BigDecimal("100.00"));
-        when(accountService.findAccountByUsername("alice")).thenReturn(account);
-
+    @DisplayName("REMEDIATED: a POST without a CSRF token is forbidden because CSRF is enabled")
+    void deposit_withoutCsrfToken_isForbidden() throws Exception {
         mockMvc.perform(post("/deposit").param("amount", "50.00"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isForbidden());
     }
 
     @Test
