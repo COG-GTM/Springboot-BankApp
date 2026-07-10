@@ -14,7 +14,26 @@
 - ArgoCD (CD)
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
-  
+
+## Configuration (Database credentials)
+
+Database credentials are **not** hardcoded in `src/main/resources/application.properties`.
+They are read from environment variables (bound to `spring.datasource.*` via Spring Boot
+relaxed binding). Copy `.env.example` to `.env` and set the values, or export them directly:
+
+| Environment variable         | Property                     | Required | Default (local dev)                                                        |
+| ---------------------------- | ---------------------------- | -------- | -------------------------------------------------------------------------- |
+| `SPRING_DATASOURCE_URL`      | `spring.datasource.url`      | No       | `jdbc:mysql://localhost:3306/bankappdb?useSSL=false&serverTimezone=UTC`     |
+| `SPRING_DATASOURCE_USERNAME` | `spring.datasource.username` | No       | `root`                                                                     |
+| `SPRING_DATASOURCE_PASSWORD` | `spring.datasource.password` | **Yes**  | _none_ — must be supplied by the environment / secret manager              |
+
+```bash
+export SPRING_DATASOURCE_PASSWORD='your-db-password'
+./mvnw spring-boot:run
+```
+
+`docker-compose.yml` already injects these variables for the containerized deployment.
+
 ### Steps to deploy:
 
 ### Pre-requisites:
