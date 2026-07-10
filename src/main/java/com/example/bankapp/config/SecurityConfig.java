@@ -10,7 +10,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
@@ -28,9 +27,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                )
+                // CSRF protection is enabled with the default HttpSessionCsrfTokenRepository.
+                // Tokens are rendered into the server-side Thymeleaf forms as hidden fields,
+                // so the token never needs to be readable by JavaScript.
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/register").permitAll()
                         .anyRequest().authenticated()

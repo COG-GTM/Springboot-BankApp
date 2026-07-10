@@ -147,6 +147,20 @@ class AccountServiceTest {
     }
 
     @Test
+    void deposit_isAnnotatedTransactional() throws NoSuchMethodException {
+        Method m = AccountService.class.getMethod("deposit", Account.class, BigDecimal.class);
+        assertNotNull(m.getAnnotation(Transactional.class),
+                "deposit must be @Transactional so the balance and ledger writes are atomic");
+    }
+
+    @Test
+    void withdraw_isAnnotatedTransactional() throws NoSuchMethodException {
+        Method m = AccountService.class.getMethod("withdraw", Account.class, BigDecimal.class);
+        assertNotNull(m.getAnnotation(Transactional.class),
+                "withdraw must be @Transactional so the balance and ledger writes are atomic");
+    }
+
+    @Test
     void transfer_propagatesFailureSoTransactionRollsBack() {
         Account from = account(new BigDecimal("100"));
         // Recipient lookup fails mid-operation: the exception must propagate out of the

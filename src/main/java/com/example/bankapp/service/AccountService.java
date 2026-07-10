@@ -55,6 +55,7 @@ public class AccountService implements UserDetailsService {
         }
     }
 
+    @Transactional
     public void deposit(Account account, BigDecimal amount) {
         validatePositiveAmount(amount);
         account.setBalance(account.getBalance().add(amount));
@@ -69,6 +70,7 @@ public class AccountService implements UserDetailsService {
         transactionRepository.save(transaction);
     }
 
+    @Transactional
     public void withdraw(Account account, BigDecimal amount) {
         validatePositiveAmount(amount);
         if (account.getBalance().compareTo(amount) < 0) {
