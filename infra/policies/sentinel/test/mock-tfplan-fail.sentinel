@@ -1,0 +1,121 @@
+# Mock of a NON-COMPLIANT plan (mirrors the current in-cluster/eksctl setup:
+# untagged, unencrypted, public, wildcard IAM, no logging, wrong region/type).
+# Used by the failing test cases for every policy.
+
+resource_changes = {
+	"aws_vpc.this": {
+		"type": "aws_vpc",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"cidr_block": "10.0.0.0/16",
+				"tags":       {},
+			},
+		},
+	},
+	"aws_subnet.public[0]": {
+		"type": "aws_subnet",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"map_public_ip_on_launch": true,
+				"tags":                    {"Tier": "private"},
+			},
+		},
+	},
+	"aws_eks_cluster.this": {
+		"type": "aws_eks_cluster",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"enabled_cluster_log_types": [],
+				"encryption_config":         [],
+				"tags":                      {},
+			},
+		},
+	},
+	"aws_eks_node_group.this": {
+		"type": "aws_eks_node_group",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"instance_types": ["t2.medium"],
+				"tags":           {},
+			},
+		},
+	},
+	"aws_launch_template.node": {
+		"type": "aws_launch_template",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"block_device_mappings": [{"ebs": [{"encrypted": false}]}],
+			},
+		},
+	},
+	"aws_db_instance.this": {
+		"type": "aws_db_instance",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"storage_encrypted":              false,
+				"kms_key_id":                      "",
+				"publicly_accessible":             true,
+				"instance_class":                  "db.m5.large",
+				"enabled_cloudwatch_logs_exports": [],
+				"tags":                            {},
+			},
+		},
+	},
+	"aws_cloudwatch_log_group.cluster": {
+		"type": "aws_cloudwatch_log_group",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"kms_key_id": "",
+				"tags":       {},
+			},
+		},
+	},
+	"aws_security_group_rule.ssh_open": {
+		"type": "aws_security_group_rule",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"type":        "ingress",
+				"from_port":   22,
+				"to_port":     22,
+				"cidr_blocks": ["0.0.0.0/0"],
+			},
+		},
+	},
+	"aws_iam_policy.admin": {
+		"type": "aws_iam_policy",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}",
+			},
+		},
+	},
+}
+
+configuration = {
+	"provider_config": {
+		"aws": {
+			"name": "aws",
+			"expressions": {
+				"region": {"constant_value": "eu-central-1"},
+			},
+		},
+	},
+}

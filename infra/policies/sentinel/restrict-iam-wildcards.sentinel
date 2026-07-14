@@ -1,0 +1,95 @@
+# Reject IAM policies that grant wildcard actions ("*" or "service:*") or that
+# combine a wildcard resource with mutating actions. Enforces least privilege.
+
+import "tfplan/v2" as tfplan
+import "resources"
+import "json"
+import "strings"
+import "types"
+
+violations = 0
+
+# Actions that are acceptable against Resource "*" because they cannot be
+# resource-scoped (read-only / describe-style, no data or state mutation).
+resource_star_allowlist_prefixes = [
+	"ec2:Describe",
+	"elasticloadbalancing:Describe",
+	"autoscaling:Describe",
+	"cloudwatch:",
+	"logs:CreateLogStream",
+	"logs:PutLogEvents",
+	"logs:DescribeLog",
+]
+
+action_is_allowed_on_star = func(action) {
+	for resource_star_allowlist_prefixes as prefix {
+		if strings.has_prefix(action, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+check_policy_json = func(address, policy_json) {
+	count = 0
+	doc = json.unmarshal(policy_json)
+	statements = doc.Statement else []
+
+	# A single statement (object) instead of a list.
+	if types.type_of(statements) is not "list" {
+		statements = [statements]
+	}
+
+	for statements as stmt {
+		if stmt.Effect else "" is not "Allow" {
+			continue
+		}
+
+		actions = stmt.Action else []
+		if types.type_of(actions) is not "list" {
+			actions = [actions]
+		}
+
+		resources_field = stmt.Resource else []
+		if types.type_of(resources_field) is not "list" {
+			resources_field = [resources_field]
+		}
+
+		for actions as action {
+			# Full wildcard action is never allowed.
+			if action is "*" {
+				print("DENY:", address, "- IAM statement grants Action \"*\"")
+				count += 1
+			} else if strings.has_suffix(action, ":*") {
+				print("DENY:", address, "- IAM statement grants service-wide wildcard action:", action)
+				count += 1
+			} else if resources_field contains "*" and not action_is_allowed_on_star(action) {
+				print("DENY:", address, "- action", action, "granted on Resource \"*\"")
+				count += 1
+			}
+		}
+	}
+	return count
+}
+
+# Standalone managed policies.
+policies = resources.find_resources("aws_iam_policy")
+for policies as address, rc {
+	pj = resources.planned(rc).policy else ""
+	if pj is not "" {
+		violations += check_policy_json(address, pj)
+	}
+}
+
+# Inline role policies.
+role_policies = resources.find_resources("aws_iam_role_policy")
+for role_policies as address, rc {
+	pj = resources.planned(rc).policy else ""
+	if pj is not "" {
+		violations += check_policy_json(address, pj)
+	}
+}
+
+main = rule {
+	violations is 0
+}

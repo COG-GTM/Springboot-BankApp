@@ -1,0 +1,210 @@
+# Mock of a COMPLIANT plan for the Springboot-BankApp infrastructure.
+# Used by the passing test cases for every policy.
+
+compliant_tags = {
+	"Application":        "springboot-bankapp",
+	"Environment":        "prod",
+	"Owner":              "platform-engineering",
+	"CostCenter":         "public-cloud-platform",
+	"DataClassification": "confidential",
+	"ManagedBy":          "terraform",
+}
+
+resource_changes = {
+	"aws_vpc.this": {
+		"type": "aws_vpc",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"cidr_block": "10.0.0.0/16",
+				"tags":       compliant_tags,
+			},
+		},
+	},
+	"aws_subnet.public[0]": {
+		"type": "aws_subnet",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"map_public_ip_on_launch": false,
+				"tags": {
+					"Application":        "springboot-bankapp",
+					"Environment":        "prod",
+					"Owner":              "platform-engineering",
+					"CostCenter":         "public-cloud-platform",
+					"DataClassification": "confidential",
+					"ManagedBy":          "terraform",
+					"Tier":               "public",
+				},
+			},
+		},
+	},
+	"aws_subnet.private[0]": {
+		"type": "aws_subnet",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"map_public_ip_on_launch": false,
+				"tags": {
+					"Application":        "springboot-bankapp",
+					"Environment":        "prod",
+					"Owner":              "platform-engineering",
+					"CostCenter":         "public-cloud-platform",
+					"DataClassification": "confidential",
+					"ManagedBy":          "terraform",
+					"Tier":               "private",
+				},
+			},
+		},
+	},
+	"aws_subnet.database[0]": {
+		"type": "aws_subnet",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"map_public_ip_on_launch": false,
+				"tags": {
+					"Application":        "springboot-bankapp",
+					"Environment":        "prod",
+					"Owner":              "platform-engineering",
+					"CostCenter":         "public-cloud-platform",
+					"DataClassification": "confidential",
+					"ManagedBy":          "terraform",
+					"Tier":               "database",
+				},
+			},
+		},
+	},
+	"aws_flow_log.this": {
+		"type": "aws_flow_log",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after":   {"traffic_type": "ALL"},
+		},
+	},
+	"aws_eks_cluster.this": {
+		"type": "aws_eks_cluster",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"enabled_cluster_log_types": ["api", "audit", "authenticator", "controllerManager", "scheduler"],
+				"encryption_config":         [{"resources": ["secrets"]}],
+				"tags":                      compliant_tags,
+			},
+		},
+	},
+	"aws_eks_node_group.this": {
+		"type": "aws_eks_node_group",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"instance_types": ["m6i.large"],
+				"tags":           compliant_tags,
+			},
+		},
+	},
+	"aws_launch_template.node": {
+		"type": "aws_launch_template",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"block_device_mappings": [{"ebs": [{"encrypted": true}]}],
+			},
+		},
+	},
+	"aws_db_instance.this": {
+		"type": "aws_db_instance",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"storage_encrypted":               true,
+				"kms_key_id":                       "arn:aws:kms:us-west-1:111122223333:key/abcd",
+				"publicly_accessible":              false,
+				"instance_class":                   "db.t3.medium",
+				"enabled_cloudwatch_logs_exports":  ["error", "general", "slowquery"],
+				"tags":                             compliant_tags,
+			},
+		},
+	},
+	"aws_cloudwatch_log_group.cluster": {
+		"type": "aws_cloudwatch_log_group",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"kms_key_id": "arn:aws:kms:us-west-1:111122223333:key/abcd",
+				"tags":       compliant_tags,
+			},
+		},
+	},
+	"aws_security_group.this": {
+		"type": "aws_security_group",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"ingress": [],
+				"tags":    compliant_tags,
+			},
+		},
+	},
+	"aws_security_group_rule.ingress_mysql[0]": {
+		"type": "aws_security_group_rule",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"type":        "ingress",
+				"from_port":   3306,
+				"to_port":     3306,
+				"cidr_blocks": [],
+			},
+		},
+	},
+	"aws_iam_role.node": {
+		"type": "aws_iam_role",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after":   {"tags": compliant_tags},
+		},
+	},
+	"aws_iam_policy.this[0]": {
+		"type": "aws_iam_policy",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after": {
+				"policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"ReadDatabaseSecret\",\"Effect\":\"Allow\",\"Action\":[\"secretsmanager:GetSecretValue\"],\"Resource\":[\"arn:aws:secretsmanager:us-west-1:111122223333:secret:rds!abc\"]}]}",
+			},
+		},
+	},
+	"aws_kms_key.rds": {
+		"type": "aws_kms_key",
+		"mode": "managed",
+		"change": {
+			"actions": ["create"],
+			"after":   {"tags": compliant_tags},
+		},
+	},
+}
+
+configuration = {
+	"provider_config": {
+		"aws": {
+			"name": "aws",
+			"expressions": {
+				"region": {"constant_value": "us-west-1"},
+			},
+		},
+	},
+}
