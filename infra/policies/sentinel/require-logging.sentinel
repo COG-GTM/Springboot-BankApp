@@ -1,0 +1,45 @@
+# Require audit/observability logging across the stack. The existing deployment
+# has no EKS control-plane logging, no VPC flow logs, and no RDS log exports.
+
+import "tfplan/v2" as tfplan
+import "resources"
+
+violations = 0
+
+# EKS control-plane logs: require the full audit-relevant set.
+required_eks_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
+eks = resources.find_resources("aws_eks_cluster")
+for eks as address, rc {
+	after = resources.planned(rc)
+	enabled = after.enabled_cluster_log_types else []
+	for required_eks_log_types as lt {
+		if not (enabled contains lt) {
+			print("DENY:", address, "- EKS control-plane log type not enabled:", lt)
+			violations += 1
+		}
+	}
+}
+
+# VPC Flow Logs must exist for every VPC being created.
+vpcs = resources.find_resources("aws_vpc")
+flow_logs = resources.find_resources("aws_flow_log")
+if length(vpcs) > 0 and length(flow_logs) is 0 {
+	print("DENY: a VPC is being created but no aws_flow_log resource is defined")
+	violations += 1
+}
+
+# RDS must export logs to CloudWatch.
+rds = resources.find_resources("aws_db_instance")
+for rds as address, rc {
+	after = resources.planned(rc)
+	exports = after.enabled_cloudwatch_logs_exports else []
+	if length(exports) is 0 {
+		print("DENY:", address, "- RDS must set enabled_cloudwatch_logs_exports")
+		violations += 1
+	}
+}
+
+main = rule {
+	violations is 0
+}
