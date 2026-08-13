@@ -139,6 +139,46 @@ argocd app list
 
 ---
 
+## **4b. Provide the Database Credentials (never committed)**
+
+The `mysql-secret` consumed by `mysql-deployment.yml` and `bankapp-deployment.yml` is
+deliberately **not** stored in this repository - a Kubernetes `Secret` is only base64
+encoded, so committing it publishes the database credentials to everyone with repo or
+git-history access. Create it in the cluster with one of the options below before
+syncing the application.
+
+### **Option A - External Secrets Operator (recommended)**
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm install external-secrets external-secrets/external-secrets \
+  --namespace external-secrets --create-namespace
+
+# AWS Secrets Manager entry holding {"MYSQL_ROOT_PASSWORD": "...", "SPRING_DATASOURCE_PASSWORD": "..."}
+aws secretsmanager create-secret --name bankapp/mysql \
+  --secret-string "{\"MYSQL_ROOT_PASSWORD\":\"$MYSQL_ROOT_PASSWORD\",\"SPRING_DATASOURCE_PASSWORD\":\"$SPRING_DATASOURCE_PASSWORD\"}"
+
+kubectl apply -f external-secret.yaml
+```
+
+### **Option B - create the Secret directly from your secret manager / CI**
+```bash
+kubectl create secret generic mysql-secret \
+  --namespace bankapp-namespace \
+  --from-literal=MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+  --from-literal=SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
+```
+`secrets.example.yaml` is a template for this Secret; a filled-in copy must be kept out
+of Git (`kubernetes/secrets.yaml` is git-ignored).
+
+### **Notes**
+- The application connects as the least-privilege `bankapp` user (see
+  `configmap.yaml`), which MySQL creates with grants limited to the `BankDB` database.
+  `MYSQL_ROOT_PASSWORD` stays administrative-only.
+- Any credential that was previously committed to this repository must be considered
+  compromised: rotate it in the database and in your secret manager.
+
+---
+
 ## **5. Deploy NGINX Ingress Controller**
 
 ### **Install NGINX Ingress Controller Using Helm**
