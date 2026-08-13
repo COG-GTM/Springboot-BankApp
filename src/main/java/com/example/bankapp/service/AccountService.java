@@ -22,6 +22,10 @@ import java.util.List;
 @Service
 public class AccountService implements UserDetailsService {
 
+    private static final int CURRENCY_SCALE = 2;
+
+    private static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("1000000.00");
+
     @Autowired
     PasswordEncoder passwordEncoder;
 
@@ -49,11 +53,12 @@ public class AccountService implements UserDetailsService {
 
 
     public void deposit(Account account, BigDecimal amount) {
-        account.setBalance(account.getBalance().add(amount));
+        BigDecimal validAmount = validateAmount(amount);
+        account.setBalance(account.getBalance().add(validAmount));
         accountRepository.save(account);
 
         Transaction transaction = new Transaction(
-                amount,
+                validAmount,
                 "Deposit",
                 LocalDateTime.now(),
                 account
@@ -62,19 +67,33 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
-        if (account.getBalance().compareTo(amount) < 0) {
+        BigDecimal validAmount = validateAmount(amount);
+        if (account.getBalance().compareTo(validAmount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
-        account.setBalance(account.getBalance().subtract(amount));
+        account.setBalance(account.getBalance().subtract(validAmount));
         accountRepository.save(account);
 
         Transaction transaction = new Transaction(
-                amount,
+                validAmount,
                 "Withdrawal",
                 LocalDateTime.now(),
                 account
         );
         transactionRepository.save(transaction);
+    }
+
+    private BigDecimal validateAmount(BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new RuntimeException("Amount must be greater than zero");
+        }
+        if (amount.scale() > CURRENCY_SCALE) {
+            throw new RuntimeException("Amount must have at most " + CURRENCY_SCALE + " decimal places");
+        }
+        if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+            throw new RuntimeException("Amount exceeds the maximum allowed of " + MAX_TRANSACTION_AMOUNT);
+        }
+        return amount.setScale(CURRENCY_SCALE);
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
