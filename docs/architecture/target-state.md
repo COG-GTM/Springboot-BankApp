@@ -24,6 +24,10 @@
 
 ## 1. Target diagram
 
+![Target-state architecture on AWS](diagrams/03-target-state.png)
+
+<details><summary>Diagram source</summary>
+
 ```mermaid
 flowchart TB
     subgraph Edge
@@ -75,6 +79,8 @@ flowchart TB
     CIB --> ECRR --> HAR --> ECS
     HAR --> ECSR
 ```
+
+</details>
 
 ---
 

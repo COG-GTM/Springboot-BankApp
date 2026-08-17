@@ -12,6 +12,10 @@ design rather than the schedule.
 
 ## Dependency graph
 
+![Migration workstream dependency graph](diagrams/04-migration-sequencing.png)
+
+<details><summary>Diagram source</summary>
+
 ```mermaid
 flowchart LR
     WS0["WS0 · Decisions & discovery<br/>(open-questions.md)"]
@@ -49,6 +53,8 @@ flowchart LR
     WS10 --> WS13
     WS12 --> WS13
 ```
+
+</details>
 
 ---
 

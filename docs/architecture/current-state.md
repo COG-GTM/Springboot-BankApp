@@ -10,6 +10,10 @@ No application code was changed in producing this document.
 
 ## 1. System context (as coded)
 
+![Current-state system context](diagrams/01-current-state.png)
+
+<details><summary>Diagram source</summary>
+
 ```mermaid
 flowchart TB
     subgraph Browser["End user browser"]
@@ -63,6 +67,8 @@ flowchart TB
     GH --> ARGO --> EKS
     DH -.->|image pull| APP
 ```
+
+</details>
 
 ---
 
@@ -203,6 +209,10 @@ coupling is Jenkins job chaining: CI triggers `BankApp-CD` on success (`Jenkinsf
 
 ### How a release reaches prod today
 
+![Current release flow](diagrams/02-current-release-flow.png)
+
+<details><summary>Diagram source</summary>
+
 ```mermaid
 sequenceDiagram
     participant Dev
@@ -227,6 +237,8 @@ sequenceDiagram
     Argo->>GH: detects manifest change
     Argo->>EKS: sync
 ```
+
+</details>
 
 Four defects in this path are readable directly from the files and must be treated as facts, not
 risks:
