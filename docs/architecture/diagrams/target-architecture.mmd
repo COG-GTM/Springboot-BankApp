@@ -1,0 +1,46 @@
+graph TB
+    user["Browser user"]
+
+    subgraph edge["Edge (ASSUMED approved list)"]
+        r53["Amazon Route 53<br/>latency records + health checks"]
+        waf["AWS WAF"]
+        acm["AWS Certificate Manager"]
+    end
+
+    subgraph prod["Production account (Control Tower vended) - multi-region"]
+        subgraph regionA["Region A (primary) - VPC, 3 AZs, private subnets"]
+            albA["Application Load Balancer<br/>public subnets, TLS via ACM"]
+            subgraph ecsA["ECS Fargate service bankapp<br/>min 3 tasks across 3 AZs"]
+                taskA["Task: bankapp container<br/>image from Amazon ECR"]
+            end
+            auroraA["Aurora PostgreSQL Global Database<br/>writer + 2 readers, KMS encrypted"]
+            smA["AWS Secrets Manager<br/>DB credentials, rotation"]
+        end
+        subgraph regionB["Region B (secondary)"]
+            albB["ALB (warm standby)"]
+            ecsB["ECS Fargate service<br/>scaled-down standby"]
+            auroraB["Aurora Global secondary cluster"]
+        end
+        obs["CloudWatch Logs / Metrics<br/>+ AWS X-Ray"]
+        ecr["Amazon ECR<br/>approved image source, scan on push"]
+    end
+
+    subgraph cicd["Delivery"]
+        repo["Git repository (this repo)"]
+        pipe["Approved CD tooling<br/>build, scan, deploy"]
+        tf["Terraform<br/>all infrastructure as code"]
+    end
+
+    user --> r53 --> waf --> albA
+    r53 -.->|"failover"| albB
+    acm -.-> albA
+    albA --> taskA
+    taskA -->|"TLS JDBC :5432"| auroraA
+    smA -.->|"IAM task role"| taskA
+    auroraA -.->|"Global Database replication"| auroraB
+    albB --> ecsB --> auroraB
+    taskA -.-> obs
+    ecr -.-> taskA
+    repo --> pipe --> ecr
+    pipe --> ecsA
+    tf --> prod

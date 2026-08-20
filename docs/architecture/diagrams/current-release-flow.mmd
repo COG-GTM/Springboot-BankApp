@@ -1,0 +1,18 @@
+graph LR
+    dev["Developer commit<br/>COG-GTM/Springboot-BankApp<br/>branch DevOps"]
+    ci["Jenkins CI job<br/>Jenkinsfile"]
+    checkout["code_checkout<br/>github.com/LondheShubham153/Springboot-BankApp @ DevOps<br/>Jenkinsfile:26 - NOT this repo"]
+    trivy["Trivy fs scan<br/>vars/trivy_scan.groovy:2"]
+    owasp["OWASP dependency-check<br/>vars/owasp_dependency.groovy:2"]
+    sonar["SonarQube scan + quality gate<br/>abortPipeline: false<br/>vars/sonarqube_code_quality.groovy:3"]
+    build["docker build madhupdevops/bankapp:DOCKER_TAG<br/>Jenkinsfile:66"]
+    push["docker push to Docker Hub<br/>docker login -u -p in shell<br/>vars/docker_push.groovy:3-5"]
+    cd["Jenkins CD job BankApp-CD<br/>GitOps/Jenkinsfile"]
+    sed["sed on kubernetes/bankapp-deployment.yaml<br/>GitOps/Jenkinsfile:40 - file is .yml, no-op"]
+    gitpush["git commit + push to<br/>LondheShubham153/Springboot-BankApp DevOps<br/>GitOps/Jenkinsfile:62"]
+    email["emailext notification<br/>trainwithshubham@gmail.com"]
+    argo["ArgoCD sync to EKS<br/>documented only, kubernetes/README.md:123-131<br/>no Application manifest in repo"]
+
+    dev --> ci --> checkout --> trivy --> owasp --> sonar --> build --> push --> cd
+    cd --> sed --> gitpush --> email
+    gitpush -.-> argo
