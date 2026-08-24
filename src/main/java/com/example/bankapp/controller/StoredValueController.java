@@ -10,6 +10,7 @@ import com.example.bankapp.model.StoredValueCard;
 import com.example.bankapp.service.StoredValueService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,7 +52,9 @@ public class StoredValueController {
     @PostMapping("/{token}/redeem")
     public RedemptionResponse redeem(@PathVariable String token,
                                      @RequestHeader(name = "Idempotency-Key")
-                                     @NotBlank(message = "Idempotency-Key header is required") String idempotencyKey,
+                                     @NotBlank(message = "Idempotency-Key header is required")
+                                     @Size(max = 128, message = "Idempotency-Key must be at most 128 characters")
+                                     String idempotencyKey,
                                      @Valid @RequestBody RedeemRequest request) {
         StoredValueService.Redemption redemption =
                 storedValueService.redeem(token, request.amount(), idempotencyKey);

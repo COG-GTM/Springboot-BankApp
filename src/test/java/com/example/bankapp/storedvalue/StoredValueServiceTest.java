@@ -88,6 +88,13 @@ class StoredValueServiceTest {
     }
 
     @Test
+    void issueCardRejectsAmountAboveTheCap() {
+        assertThatThrownBy(() -> service.issueCard(new BigDecimal("10000.01"), "USD", null))
+                .isInstanceOf(StoredValueException.class)
+                .hasMessageContaining("must not exceed 10000.00");
+    }
+
+    @Test
     void issueCardRejectsExpiryInThePast() {
         assertThatThrownBy(() -> service.issueCard(new BigDecimal("10.00"), "USD", NOW.minusSeconds(1)))
                 .isInstanceOf(StoredValueException.class)

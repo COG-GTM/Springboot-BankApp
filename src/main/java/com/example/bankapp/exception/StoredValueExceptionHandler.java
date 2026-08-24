@@ -50,6 +50,11 @@ public class StoredValueExceptionHandler {
                 .body(ErrorResponse.of("MALFORMED_REQUEST", "Request body could not be parsed"));
     }
 
+    /**
+     * Last resort for genuinely unexpected failures. Dispatch-level problems (unsupported method or
+     * media type) never reach here: they are raised before a handler is resolved, so Spring answers
+     * them with the correct 4xx itself.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

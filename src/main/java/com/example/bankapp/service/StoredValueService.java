@@ -36,6 +36,7 @@ public class StoredValueService {
 
     private static final Logger log = LoggerFactory.getLogger(StoredValueService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final BigDecimal MAX_ISSUE_AMOUNT = new BigDecimal("10000.00");
 
     private final StoredValueCardRepository cardRepository;
     private final StoredValueTransactionRepository transactionRepository;
@@ -59,6 +60,10 @@ public class StoredValueService {
     public StoredValueCard issueCard(BigDecimal amount, String currency, Instant expiresAt) {
         Instant now = clock.instant();
         requirePositiveMinorUnits(amount);
+        if (amount.compareTo(MAX_ISSUE_AMOUNT) > 0) {
+            throw new StoredValueException("INVALID_AMOUNT", HttpStatus.BAD_REQUEST,
+                    "amount must not exceed " + MAX_ISSUE_AMOUNT);
+        }
         if (expiresAt != null && !expiresAt.isAfter(now)) {
             throw new StoredValueException("INVALID_EXPIRY", HttpStatus.BAD_REQUEST,
                     "expiresAt must be in the future");

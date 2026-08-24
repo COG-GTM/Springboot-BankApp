@@ -1,6 +1,8 @@
 package com.example.bankapp.config;
 
+import com.example.bankapp.dto.ErrorResponse;
 import com.example.bankapp.service.AccountService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,12 +35,13 @@ public class SecurityConfig {
      */
     @Bean
     @Order(1)
-    public SecurityFilterChain storedValueApiFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain storedValueApiFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         AuthenticationEntryPoint jsonEntryPoint = (request, response, authException) -> {
             response.setStatus(401);
             response.setHeader("WWW-Authenticate", "Basic realm=\"stored-value-api\"");
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().write("{\"code\":\"UNAUTHORIZED\",\"message\":\"Authentication required\"}");
+            objectMapper.writeValue(response.getWriter(),
+                    ErrorResponse.of("UNAUTHORIZED", "Authentication required"));
         };
 
         http

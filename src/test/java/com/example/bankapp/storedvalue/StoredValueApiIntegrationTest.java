@@ -230,7 +230,29 @@ class StoredValueApiIntegrationTest {
     void apiRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/stored-value/cards/{token}/balance", UUID.randomUUID().toString()))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.details").isArray())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    void unsupportedMethodIsAClientErrorNotAServerError() throws Exception {
+        mockMvc.perform(post("/api/v1/stored-value/cards/{token}/balance", UUID.randomUUID().toString())
+                        .with(partner()))
+                .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void oversizedIdempotencyKeyIsRejectedAsAClientError() throws Exception {
+        String token = issueCard("{\"amount\":10.00,\"currency\":\"USD\"}");
+
+        mockMvc.perform(post("/api/v1/stored-value/cards/{token}/redeem", token)
+                        .with(partner())
+                        .header("Idempotency-Key", "k".repeat(129))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":1.00}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
     @Test
