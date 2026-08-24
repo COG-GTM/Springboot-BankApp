@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -46,7 +45,7 @@ public class StoredValueController {
 
     @GetMapping("/{token}/balance")
     public BalanceResponse getBalance(@PathVariable String token) {
-        return BalanceResponse.from(storedValueService.getCard(token), Instant.now());
+        return BalanceResponse.from(storedValueService.getCard(token), storedValueService.now());
     }
 
     @PostMapping("/{token}/redeem")

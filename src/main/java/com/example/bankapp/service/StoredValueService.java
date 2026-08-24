@@ -86,6 +86,11 @@ public class StoredValueService {
         return card;
     }
 
+    /** Single time source for the API, so responses cannot disagree with the expiry decisions. */
+    public Instant now() {
+        return clock.instant();
+    }
+
     @Transactional(readOnly = true)
     public StoredValueCard getCard(String cardToken) {
         StoredValueCard card = cardRepository.findByCardToken(cardToken).orElseThrow(CardNotFoundException::new);
@@ -107,6 +112,7 @@ public class StoredValueService {
     public Redemption redeem(String cardToken, BigDecimal amount, String idempotencyKey) {
         Instant now = clock.instant();
         requirePositiveMinorUnits(amount);
+        amount = amount.setScale(2, RoundingMode.UNNECESSARY);
         StoredValueCard card = cardRepository.findByCardTokenForUpdate(cardToken)
                 .orElseThrow(CardNotFoundException::new);
 
