@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,6 +47,7 @@ class StoredValueConcurrencyTest {
 
         AtomicInteger succeeded = new AtomicInteger();
         AtomicInteger rejected = new AtomicInteger();
+        ConcurrentLinkedQueue<Throwable> unexpected = new ConcurrentLinkedQueue<>();
         CountDownLatch start = new CountDownLatch(1);
         CountDownLatch done = new CountDownLatch(THREADS);
         ExecutorService pool = Executors.newFixedThreadPool(THREADS);
@@ -60,6 +63,8 @@ class StoredValueConcurrencyTest {
                     rejected.incrementAndGet();
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
+                } catch (RuntimeException ex) {
+                    unexpected.add(ex);
                 } finally {
                     done.countDown();
                 }
@@ -71,6 +76,7 @@ class StoredValueConcurrencyTest {
         pool.shutdownNow();
 
         StoredValueCard reloaded = cardRepository.findByCardToken(token).orElseThrow();
+        assertThat(List.copyOf(unexpected)).isEmpty();
         assertThat(succeeded.get()).isEqualTo(10);
         assertThat(rejected.get()).isEqualTo(THREADS - 10);
         assertThat(reloaded.getBalance()).isEqualByComparingTo("0.00");
