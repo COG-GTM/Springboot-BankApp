@@ -1,0 +1,122 @@
+name: CI
+
+# Change control: every pull request into a protected branch runs the test gate and the
+# security scans, and every job below is a required check (ITGC-CM-07, ITGC-SDLC-09).
+on:
+  pull_request:
+    branches: [DevOps]
+  push:
+    branches: [DevOps]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:v8.18.4 \
+            detect --source=/repo --no-git --config=/repo/.gitleaks.toml \
+                   --redact --no-banner --exit-code 1 \
+                   --report-format sarif --report-path gitleaks-report.sarif
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.sarif
+          if-no-files-found: ignore
+
+  build-and-test:
+    name: Build, migrate and test
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          # Ephemeral CI database credentials; the application itself reads them from the environment.
+          MYSQL_ROOT_PASSWORD: ${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-only-password' }}
+          MYSQL_DATABASE: bankappdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/bankappdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-only-password' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysql -h 127.0.0.1 -P 3306 -uroot -p"$SPRING_DATASOURCE_PASSWORD" -e 'SELECT 1' >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "MySQL did not become available" >&2
+          exit 1
+      - name: Verify migrations apply to a clean database
+        run: |
+          mysql -h 127.0.0.1 -uroot -p"$SPRING_DATASOURCE_PASSWORD" \
+            -e "DROP DATABASE IF EXISTS bankappdb; CREATE DATABASE bankappdb;"
+          chmod +x ./mvnw
+          ./mvnw -B flyway:migrate
+          mysql -h 127.0.0.1 -uroot -p"$SPRING_DATASOURCE_PASSWORD" bankappdb \
+            -e "SELECT version, description, success FROM flyway_schema_history;"
+      - name: Build and test
+        run: ./mvnw -B clean verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+  security-scan:
+    name: Dependency and config scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The pinned container is the same scanner the Jenkins pipeline runs, so a finding
+      # here reproduces there.
+      - name: Trivy secret scan (blocking on HIGH,CRITICAL)
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo aquasec/trivy:0.71.2 \
+            fs --scanners secret --severity HIGH,CRITICAL --no-progress \
+               --offline-scan --skip-version-check --exit-code 1 /repo
+      # Infrastructure misconfiguration gate. CRITICAL is blocking; the HIGH findings in the
+      # existing Kubernetes manifests (pod security contexts) are reported and tracked as
+      # follow-on work rather than waived with an ignore file.
+      - name: Trivy misconfiguration scan (blocking on CRITICAL)
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo aquasec/trivy:0.71.2 \
+            fs --scanners misconfig --severity CRITICAL --no-progress \
+               --offline-scan --skip-version-check --exit-code 1 /repo
+      - name: Trivy misconfiguration and dependency report
+        if: always()
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo aquasec/trivy:0.71.2 \
+            fs --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed \
+               --no-progress --offline-scan --skip-version-check \
+               --format table --output /repo/trivy-dependencies.txt /repo
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-dependency-report
+          path: trivy-dependencies.txt
+          if-no-files-found: ignore

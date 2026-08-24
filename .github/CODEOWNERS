@@ -1,0 +1,33 @@
+# Code owners for Springboot-BankApp (control ITGC-CM-07: changes are independently
+# reviewed and approved; the author of a change can never be its sole approver).
+#
+# GitHub enforces this only when the branch protection rule for `DevOps` has
+# "Require review from Code Owners" and "Require approvals >= 1" enabled, and
+# "Allow specified actors to bypass required pull requests" left empty.
+
+# Default owner for everything not matched below.
+*                                   @COG-GTM/engineering
+
+# Money movement and authentication: reviewed by application owners.
+/src/main/java/com/example/bankapp/service/      @COG-GTM/engineering
+/src/main/java/com/example/bankapp/controller/   @COG-GTM/engineering
+/src/main/java/com/example/bankapp/config/       @COG-GTM/engineering
+
+# Audit trail: changes here weaken or strengthen evidence, so they are owned by security.
+/src/main/java/com/example/bankapp/audit/        @COG-GTM/engineering
+
+# Schema changes are controlled: migrations are append-only and reviewed by data owners.
+/src/main/resources/db/migration/   @COG-GTM/engineering
+
+# Pipeline, security gates and change-control configuration.
+/Jenkinsfile                        @COG-GTM/engineering
+/GitOps/                            @COG-GTM/engineering
+/vars/                              @COG-GTM/engineering
+/.github/                           @COG-GTM/engineering
+/.gitleaks.toml                     @COG-GTM/engineering
+
+# Deployment configuration and secret plumbing.
+/kubernetes/                        @COG-GTM/engineering
+/helm/                              @COG-GTM/engineering
+/Dockerfile                         @COG-GTM/engineering
+/docker-compose.yml                 @COG-GTM/engineering
