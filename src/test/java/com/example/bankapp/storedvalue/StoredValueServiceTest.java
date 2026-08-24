@@ -154,6 +154,21 @@ class StoredValueServiceTest {
     }
 
     @Test
+    void replayOnAnExpiredCardStillReportsExpiredStatus() {
+        StoredValueCard card = card(new BigDecimal("90.00"), NOW.minusSeconds(1));
+        StoredValueTransaction original = new StoredValueTransaction(card, StoredValueTransactionType.REDEMPTION,
+                new BigDecimal("10.00"), new BigDecimal("90.00"), "key-1", NOW);
+        when(cardRepository.findByCardTokenForUpdate(TOKEN)).thenReturn(Optional.of(card));
+        when(transactionRepository.findByCardIdAndIdempotencyKey(1L, "key-1")).thenReturn(Optional.of(original));
+
+        StoredValueService.Redemption redemption = service.redeem(TOKEN, new BigDecimal("10.00"), "key-1");
+
+        assertThat(redemption.replayed()).isTrue();
+        assertThat(redemption.card().getStatus()).isEqualTo(StoredValueCardStatus.EXPIRED);
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
     void reusingIdempotencyKeyWithDifferentAmountIsRejected() {
         StoredValueCard card = card(new BigDecimal("90.00"), null);
         StoredValueTransaction original = new StoredValueTransaction(card, StoredValueTransactionType.REDEMPTION,

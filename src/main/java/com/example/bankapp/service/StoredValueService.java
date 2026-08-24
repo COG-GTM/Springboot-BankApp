@@ -115,6 +115,7 @@ public class StoredValueService {
         amount = amount.setScale(2, RoundingMode.UNNECESSARY);
         StoredValueCard card = cardRepository.findByCardTokenForUpdate(cardToken)
                 .orElseThrow(CardNotFoundException::new);
+        card.applyExpiry(now);
 
         StoredValueTransaction replay = transactionRepository
                 .findByCardIdAndIdempotencyKey(card.getId(), idempotencyKey).orElse(null);
@@ -126,7 +127,6 @@ public class StoredValueService {
             return new Redemption(replay, card, true);
         }
 
-        card.applyExpiry(now);
         if (card.getStatus() == StoredValueCardStatus.EXPIRED) {
             throw new CardExpiredException();
         }

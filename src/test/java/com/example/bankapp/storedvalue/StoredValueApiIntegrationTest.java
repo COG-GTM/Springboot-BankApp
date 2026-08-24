@@ -243,6 +243,16 @@ class StoredValueApiIntegrationTest {
     }
 
     @Test
+    void unsupportedContentTypeIsAClientError() throws Exception {
+        mockMvc.perform(post("/api/v1/stored-value/cards")
+                        .with(partner())
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("amount=10"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
+    }
+
+    @Test
     void oversizedIdempotencyKeyIsRejectedAsAClientError() throws Exception {
         String token = issueCard("{\"amount\":10.00,\"currency\":\"USD\"}");
 

@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -50,10 +51,15 @@ public class StoredValueExceptionHandler {
                 .body(ErrorResponse.of("MALFORMED_REQUEST", "Request body could not be parsed"));
     }
 
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ErrorResponse.of("UNSUPPORTED_MEDIA_TYPE", "Request body must be application/json"));
+    }
+
     /**
-     * Last resort for genuinely unexpected failures. Dispatch-level problems (unsupported method or
-     * media type) never reach here: they are raised before a handler is resolved, so Spring answers
-     * them with the correct 4xx itself.
+     * Last resort for genuinely unexpected failures. An unsupported request method is raised before a
+     * handler is resolved, so this advice is never consulted for it and Spring answers with 405 itself.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
