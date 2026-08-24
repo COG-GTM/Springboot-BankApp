@@ -2,6 +2,12 @@
 pipeline {
     agent any
     
+    environment{
+        // Manifest repository under audit; CD must update this repository and nothing else (ITGC-CM-08).
+        MANIFEST_REPO_URL = "https://github.com/COG-GTM/Springboot-BankApp.git"
+        MANIFEST_REPO_BRANCH = "DevOps"
+    }
+
     parameters {
         string(name: 'DOCKER_TAG', defaultValue: '', description: 'Docker tag of the image built by the CI job')
     }
@@ -18,7 +24,7 @@ pipeline {
         stage('Git: Code Checkout') {
             steps {
                 script{
-                    code_checkout("https://github.com/LondheShubham153/Springboot-BankApp.git","DevOps")
+                    code_checkout("${env.MANIFEST_REPO_URL}","${env.MANIFEST_REPO_BRANCH}")
                 }
             }
         }
@@ -37,7 +43,8 @@ pipeline {
                 script{
                     dir('kubernetes'){
                         sh """
-                            sed -i -e 's|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${params.DOCKER_TAG}|g' bankapp-deployment.yaml
+                            sed -i -e 's|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${params.DOCKER_TAG}|g' bankapp-deployment.yml
+                            grep -q 'trainwithshubham/bankapp-eks:${params.DOCKER_TAG}' bankapp-deployment.yml
                         """
                     }
                 }
@@ -48,7 +55,7 @@ pipeline {
             steps{
                 script{
                     withCredentials([gitUsernamePassword(credentialsId: 'Github-cred', gitToolName: 'Default')]) {
-                        sh '''
+                        sh """
                         echo "Checking repository status: "
                         git status
                     
@@ -59,8 +66,8 @@ pipeline {
                         git commit -m "Updated K8s Deployment Docker Image Version"
                         
                         echo "Pushing changes to github: "
-                        git push https://github.com/LondheShubham153/Springboot-BankApp.git DevOps
-                    '''
+                        git push ${env.MANIFEST_REPO_URL} ${env.MANIFEST_REPO_BRANCH}
+                    """
                     }
                 }
             }

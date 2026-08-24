@@ -4,6 +4,12 @@ pipeline {
     
     environment{
         SONAR_HOME = tool "Sonar"
+        // Repository under audit. The pipeline must build this repository and nothing else (ITGC-CM-08).
+        APP_REPO_URL = "https://github.com/COG-GTM/Springboot-BankApp.git"
+        APP_REPO_BRANCH = "DevOps"
+        // Vulnerability gate: any finding at or above this severity fails the build (ITGC-SDLC-09).
+        TRIVY_SEVERITY = "HIGH,CRITICAL"
+        OWASP_FAIL_ON_CVSS = "7"
     }
     
     parameters {
@@ -23,7 +29,35 @@ pipeline {
         stage('Git: Code Checkout') {
             steps {
                 script{
-                    code_checkout("https://github.com/LondheShubham153/Springboot-BankApp.git","DevOps")
+                    code_checkout("${env.APP_REPO_URL}","${env.APP_REPO_BRANCH}")
+                }
+            }
+        }
+
+        stage("Gitleaks: Secret scan"){
+            steps{
+                script{
+                    // Fails the build when credentials are committed to the repository (ITGC-SEC-06).
+                    sh '''
+                        docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:v8.18.4 \
+                            detect --source=/repo --no-git --config=/repo/.gitleaks.toml \
+                                   --redact --no-banner --exit-code 1 \
+                                   --report-format sarif --report-path gitleaks-report.sarif
+                    '''
+                }
+            }
+        }
+
+        stage("Maven: Build and unit tests"){
+            steps{
+                script{
+                    // Test gate: the build fails on any failing test (ITGC-SDLC-09).
+                    sh './mvnw -B clean verify -DskipITs'
+                }
+            }
+            post{
+                always{
+                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
                 }
             }
         }
@@ -31,7 +65,13 @@ pipeline {
         stage("Trivy: Filesystem scan"){
             steps{
                 script{
-                    trivy_scan()
+                    sh """
+                        trivy fs . --scanners vuln,secret,misconfig \
+                            --severity ${env.TRIVY_SEVERITY} --ignore-unfixed \
+                            --exit-code 1 --no-progress \
+                            --format template --template '@/usr/local/share/trivy/templates/junit.tpl' \
+                            --output trivy-fs-report.xml
+                    """
                 }
             }
         }
@@ -39,7 +79,11 @@ pipeline {
         stage("OWASP: Dependency check"){
             steps{
                 script{
-                    owasp_dependency()
+                    dependencyCheck additionalArguments: "--scan ./ --failOnCVSS ${env.OWASP_FAIL_ON_CVSS} --format XML",
+                                    odcInstallation: 'OWASP'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
+                                             failedTotalCritical: 0, failedTotalHigh: 0,
+                                             unstableTotalMedium: 0
                 }
             }
         }
@@ -55,7 +99,10 @@ pipeline {
         stage("SonarQube: Code Quality Gates"){
             steps{
                 script{
-                    sonarqube_code_quality()
+                    // Quality gate is blocking: a failed gate stops the pipeline (ITGC-SDLC-09).
+                    timeout(time: 5, unit: "MINUTES"){
+                        waitForQualityGate abortPipeline: true
+                    }
                 }
             }
         }
@@ -77,6 +124,10 @@ pipeline {
         }
     }
     post{
+        always{
+            archiveArtifacts artifacts: 'gitleaks-report.sarif, trivy-fs-report.xml, **/dependency-check-report.xml',
+                             allowEmptyArchive: true, followSymlinks: false
+        }
         success{
             archiveArtifacts artifacts: '*.xml', followSymlinks: false
             build job: "BankApp-CD", parameters: [
