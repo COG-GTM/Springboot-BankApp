@@ -248,9 +248,16 @@ components:
         transactionId: { type: integer, format: int64 }
         cardToken: { type: string }
         amountRedeemed: { type: number, format: double }
-        remainingBalance: { type: number, format: double }
+        remainingBalance:
+          type: number
+          format: double
+          description: >-
+            Balance settled by this redemption. On a replay this is the original value and never
+            changes, even if later redemptions have moved the card on.
         currency: { type: string }
-        status: { $ref: '#/components/schemas/CardStatus' }
+        status:
+          allOf: [ { $ref: '#/components/schemas/CardStatus' } ]
+          description: Current card status, not the status at the time of the original redemption.
         idempotencyKey: { type: string }
         redeemedAt: { type: string, format: date-time }
         replayed:
