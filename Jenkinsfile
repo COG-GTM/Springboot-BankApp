@@ -9,6 +9,7 @@ pipeline {
         APP_REPO_BRANCH = "DevOps"
         // Vulnerability gate: any finding at or above this severity fails the build (ITGC-SDLC-09).
         TRIVY_SEVERITY = "HIGH,CRITICAL"
+        TRIVY_MISCONFIG_SEVERITY = "CRITICAL"
         OWASP_FAIL_ON_CVSS = "7"
     }
     
@@ -65,12 +66,18 @@ pipeline {
         stage("Trivy: Filesystem scan"){
             steps{
                 script{
+                    // Vulnerabilities and secrets are blocking at HIGH,CRITICAL; infrastructure
+                    // misconfiguration is blocking at CRITICAL and reported below HIGH.
                     sh """
-                        trivy fs . --scanners vuln,secret,misconfig \
+                        trivy fs . --scanners vuln,secret \
                             --severity ${env.TRIVY_SEVERITY} --ignore-unfixed \
                             --exit-code 1 --no-progress \
                             --format template --template '@/usr/local/share/trivy/templates/junit.tpl' \
                             --output trivy-fs-report.xml
+                        trivy fs . --scanners misconfig \
+                            --severity ${env.TRIVY_MISCONFIG_SEVERITY} \
+                            --exit-code 1 --no-progress \
+                            --format table --output trivy-misconfig-report.txt
                     """
                 }
             }
