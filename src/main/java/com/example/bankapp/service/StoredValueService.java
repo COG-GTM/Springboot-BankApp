@@ -86,16 +86,24 @@ public class StoredValueService {
         return card;
     }
 
-    /** Single time source for the API, so responses cannot disagree with the expiry decisions. */
-    public Instant now() {
-        return clock.instant();
-    }
-
     @Transactional(readOnly = true)
     public StoredValueCard getCard(String cardToken) {
+        return getCardAsOf(cardToken).card();
+    }
+
+    /**
+     * Reads a card together with the instant its status was evaluated at, so a response can never
+     * report a status and an {@code asOf} taken from two different clock reads.
+     */
+    @Transactional(readOnly = true)
+    public CardSnapshot getCardAsOf(String cardToken) {
+        Instant now = clock.instant();
         StoredValueCard card = cardRepository.findByCardToken(cardToken).orElseThrow(CardNotFoundException::new);
-        card.applyExpiry(clock.instant());
-        return card;
+        card.applyExpiry(now);
+        return new CardSnapshot(card, now);
+    }
+
+    public record CardSnapshot(StoredValueCard card, Instant asOf) {
     }
 
     @Transactional(readOnly = true)

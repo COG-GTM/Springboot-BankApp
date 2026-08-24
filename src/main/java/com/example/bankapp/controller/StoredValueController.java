@@ -45,7 +45,8 @@ public class StoredValueController {
 
     @GetMapping("/{token}/balance")
     public BalanceResponse getBalance(@PathVariable String token) {
-        return BalanceResponse.from(storedValueService.getCard(token), storedValueService.now());
+        StoredValueService.CardSnapshot snapshot = storedValueService.getCardAsOf(token);
+        return BalanceResponse.from(snapshot.card(), snapshot.asOf());
     }
 
     @PostMapping("/{token}/redeem")
