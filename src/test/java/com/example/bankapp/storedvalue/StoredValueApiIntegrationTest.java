@@ -229,7 +229,16 @@ class StoredValueApiIntegrationTest {
     @Test
     void apiRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/stored-value/cards/{token}/balance", UUID.randomUUID().toString()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void wrongCredentialsReturnJsonUnauthorizedRatherThanLoginRedirect() throws Exception {
+        mockMvc.perform(get("/api/v1/stored-value/cards/{token}/balance", UUID.randomUUID().toString())
+                        .with(httpBasic(username, "not-the-password")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test

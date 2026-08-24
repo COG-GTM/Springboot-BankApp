@@ -6,9 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
-@Table(name = "stored_value_card", indexes = {
-        @Index(name = "idx_stored_value_card_token", columnList = "card_token", unique = true)
-})
+@Table(name = "stored_value_card")
 public class StoredValueCard {
 
     @Id

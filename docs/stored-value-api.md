@@ -10,7 +10,8 @@ Base path: `/api/v1/stored-value`
 
 Stateless HTTP Basic against an existing bank account (`Authorization: Basic ...`). The API filter
 chain (`SecurityConfig.storedValueApiFilterChain`) is session-less, so no CSRF token is required or
-accepted; the browser/Thymeleaf chain is unchanged. Unauthenticated calls get `401` with a JSON body.
+accepted; the browser/Thymeleaf chain is unchanged. Missing *and* invalid credentials both get a
+`401` with the JSON error body — never a redirect to the HTML login page.
 
 ## Invariants enforced
 

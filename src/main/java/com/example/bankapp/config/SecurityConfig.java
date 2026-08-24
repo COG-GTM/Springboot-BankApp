@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
@@ -33,17 +34,20 @@ public class SecurityConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain storedValueApiFilterChain(HttpSecurity http) throws Exception {
+        AuthenticationEntryPoint jsonEntryPoint = (request, response, authException) -> {
+            response.setStatus(401);
+            response.setHeader("WWW-Authenticate", "Basic realm=\"stored-value-api\"");
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"code\":\"UNAUTHORIZED\",\"message\":\"Authentication required\"}");
+        };
+
         http
                 .securityMatcher("/api/v1/stored-value/**")
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz.anyRequest().authenticated())
-                .httpBasic(basic -> basic.realmName("stored-value-api"))
-                .exceptionHandling(handling -> handling.authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(401);
-                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    response.getWriter().write("{\"code\":\"UNAUTHORIZED\",\"message\":\"Authentication required\"}");
-                }));
+                .httpBasic(basic -> basic.authenticationEntryPoint(jsonEntryPoint))
+                .exceptionHandling(handling -> handling.authenticationEntryPoint(jsonEntryPoint));
 
         return http.build();
     }
