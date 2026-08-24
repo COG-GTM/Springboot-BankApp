@@ -321,7 +321,7 @@ curl $AUTH $BASE/$TOKEN/transactions
 
 Schema follows the repo's existing approach: JPA entities with `spring.jpa.hibernate.ddl-auto=update`
 creating the tables, and a checked-in DDL script for environments that provision the schema up front —
-`src/main/resources/static/mysql/stored_value_schema.sql`.
+`src/main/resources/db/stored_value_schema.sql` (kept out of `static/`, which Spring Boot serves unauthenticated).
 
 ## Tests
 
