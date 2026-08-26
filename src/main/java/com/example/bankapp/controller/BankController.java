@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Controller
 public class BankController {
@@ -23,6 +24,7 @@ public class BankController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
         model.addAttribute("account", account);
+        model.addAttribute("transferToken", newTransferToken());
         return "dashboard";
     }
 
@@ -65,6 +67,7 @@ public class BankController {
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", account);
+            model.addAttribute("transferToken", newTransferToken());
             return "dashboard";
         }
 
@@ -80,19 +83,27 @@ public class BankController {
     }
 
     @PostMapping("/transfer")
-    public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
+    public String transferAmount(@RequestParam String toUsername,
+                                 @RequestParam BigDecimal amount,
+                                 @RequestParam(name = "transferToken", required = false) String transferToken,
+                                 Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account fromAccount = accountService.findAccountByUsername(username);
 
         try {
-            accountService.transferAmount(fromAccount, toUsername, amount);
+            accountService.transferAmount(fromAccount, toUsername, amount, transferToken);
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", fromAccount);
+            model.addAttribute("transferToken", newTransferToken());
             return "dashboard";
         }
 
         return "redirect:/dashboard";
+    }
+
+    private String newTransferToken() {
+        return UUID.randomUUID().toString();
     }
 
 }
