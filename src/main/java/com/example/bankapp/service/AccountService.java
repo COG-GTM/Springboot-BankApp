@@ -22,6 +22,8 @@ import java.util.List;
 @Service
 public class AccountService implements UserDetailsService {
 
+    private static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("1000000.00");
+
     @Autowired
     PasswordEncoder passwordEncoder;
 
@@ -48,7 +50,20 @@ public class AccountService implements UserDetailsService {
     }
 
 
+    private void validateAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Amount must be greater than zero");
+        }
+        if (amount.scale() > 2) {
+            throw new RuntimeException("Amount must not have more than two decimal places");
+        }
+        if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+            throw new RuntimeException("Amount exceeds the maximum allowed per transaction");
+        }
+    }
+
     public void deposit(Account account, BigDecimal amount) {
+        validateAmount(amount);
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
@@ -62,6 +77,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
+        validateAmount(amount);
         if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
@@ -101,12 +117,17 @@ public class AccountService implements UserDetailsService {
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
+        validateAmount(amount);
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
         Account toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+
+        if (toAccount.getUsername().equals(fromAccount.getUsername())) {
+            throw new RuntimeException("Cannot transfer to the same account");
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
