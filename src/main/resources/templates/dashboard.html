@@ -117,7 +117,12 @@
     <ul class="navbar-nav ml-auto">
         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
-        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+        <li class="nav-item">
+            <form method="post" action="/logout" class="form-inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <button type="submit" class="btn btn-link nav-link">Logout</button>
+            </form>
+        </li>
     </ul>
 </nav>
 
@@ -142,6 +147,7 @@
             </button>
             <div class="collapse mt-3" id="depositForm">
                 <form method="post" action="/deposit" class="form-container">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <div class="form-group">
                         <label>Amount:</label>
                         <input type="number" class="form-control" name="amount" required />
@@ -158,6 +164,7 @@
             </button>
             <div class="collapse mt-3" id="withdrawForm">
                 <form method="post" action="/withdraw" class="form-container">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <div class="form-group">
                         <label>Amount:</label>
                         <input type="number" class="form-control" name="amount" required />
@@ -174,6 +181,7 @@
             </button>
             <div class="collapse mt-3" id="transferForm">
                 <form method="post" action="/transfer" class="form-container">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <div class="form-group">
                         <label>Recipient Username:</label>
                         <input type="text" class="form-control" name="toUsername" required />
