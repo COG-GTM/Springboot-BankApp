@@ -1,0 +1,77 @@
+{
+  "repo": "COG-GTM/Springboot-BankApp",
+  "findings": [
+    {
+      "path": "src/main/java/com/example/bankapp/service/AccountService.java",
+      "line": 103,
+      "severity": "critical",
+      "title": "Negative transfer amount allows stealing funds from any account",
+      "description": "Transfers, deposits and withdrawals never check that the amount is positive, and the insufficient-funds guard compares the balance against the amount, so any negative value passes it. Any registered user can post a transfer of a negative amount to another customer's username: the sender is credited and the named victim is debited, draining funds from an arbitrary account. Accounts can be self-created through the public registration page, so the attack needs nothing more than a sign-up and a single request. The fix is to reject any amount that is null or not greater than zero before touching balances, in the service and on the request parameters.",
+      "remediated": false
+    },
+    {
+      "path": "src/main/java/com/example/bankapp/service/AccountService.java",
+      "line": 64,
+      "severity": "critical",
+      "title": "Negative transfer amount allows stealing funds from any account",
+      "description": "Transfers, deposits and withdrawals never check that the amount is positive, and the insufficient-funds guard compares the balance against the amount, so any negative value passes it. Withdrawing a negative amount simply increases the caller's own balance, and transferring a negative amount to another customer's username credits the attacker while debiting the victim. Accounts can be self-created through the public registration page, so the attack needs nothing more than a sign-up and a single request. The fix is to reject any amount that is null or not greater than zero before touching balances, in the service and on the request parameters.",
+      "remediated": false
+    },
+    {
+      "path": "src/main/java/com/example/bankapp/controller/BankController.java",
+      "line": 82,
+      "severity": "critical",
+      "title": "Negative transfer amount allows stealing funds from any account",
+      "description": "The transfer endpoint binds the amount straight from the submitted form with no constraint on its sign, so a negative value reaches the account service unchecked. There the insufficient-funds guard passes for any negative amount, crediting the sender and debiting the named recipient, which lets a self-registered user pull money out of any other account. The same missing constraint applies to the deposit and withdraw endpoints. The fix is to constrain the amount to positive values at the controller and validate it again in the service before balances change.",
+      "remediated": false
+    },
+    {
+      "path": "src/main/java/com/example/bankapp/config/SecurityConfig.java",
+      "line": 28,
+      "severity": "medium",
+      "title": "CSRF protection disabled on session-authenticated money-moving forms",
+      "description": "The security configuration turns CSRF protection off entirely while the application authenticates users with a session cookie and server-rendered forms. Without an anti-forgery token, a logged-in customer who loads an attacker's page can have a deposit, withdrawal, transfer or registration submitted on their behalf, because the browser attaches the session cookie to the forged request. Modern browsers' default cookie policy blocks much of this, so the practical risk is reduced, but it remains a missing control in a banking application. The fix is to re-enable CSRF protection and render the token in each form.",
+      "remediated": false
+    },
+    {
+      "path": "src/main/java/com/example/bankapp/controller/BankController.java",
+      "line": 50,
+      "severity": "medium",
+      "title": "CSRF protection disabled on session-authenticated money-moving forms",
+      "description": "The deposit, withdraw and transfer endpoints change the balance of whoever is logged in and are protected only by the session cookie, since CSRF protection is disabled application-wide. A victim who visits an attacker-controlled page while signed in can therefore have money moved out of their account by an automatically submitted cross-site form. Modern browsers' default cookie policy blocks much of this, so the practical risk is reduced, but the server-side check is absent. The fix is to re-enable CSRF protection so these state-changing requests require a valid token.",
+      "remediated": false
+    },
+    {
+      "path": "docker-compose.yml",
+      "line": 6,
+      "severity": "medium",
+      "title": "Hardcoded MySQL credentials committed to source",
+      "description": "A committed database password is stored in plaintext as the MySQL root password in the Compose file. The same credential is repeated in the application properties, the Kubernetes secret manifest (base64 encoding, which is not encryption) and the Helm values file, so anyone who can read the repository obtains database root access. Wherever a database provisioned with this password is reachable, that means full data access. The fix is to remove the password from all committed files, inject it from a secrets manager at deploy time, and rotate the exposed value.",
+      "remediated": false
+    },
+    {
+      "path": "docker-compose.yml",
+      "line": 23,
+      "severity": "medium",
+      "title": "Hardcoded MySQL credentials committed to source",
+      "description": "The application service in the Compose file carries the same committed database password in plaintext as its datasource credential, alongside the root user name. Because the identical value also appears in the application properties, the Kubernetes secret manifest and the Helm values file, repository read access is enough to obtain database root access wherever such a database is reachable. The fix is to remove the password from all committed files, supply it from a secrets manager at deploy time, and rotate the exposed value.",
+      "remediated": false
+    },
+    {
+      "path": "pom.xml",
+      "line": 54,
+      "severity": "medium",
+      "title": "Vulnerable mysql-connector-java 8.0.33 (CVE-2023-22102)",
+      "description": "The build pins the MySQL JDBC driver at version 8.0.33, which is affected by a high-severity vulnerability (CVE-2023-22102) that can lead to takeover of the connector. Exploitation requires the application to talk to a malicious or intercepted MySQL server, and the Compose datasource disables TLS, which makes interception easier; the fixed release ships only under the renamed coordinate. The fix is to migrate to com.mysql:mysql-connector-j 8.2.0 or later and enforce TLS on connections to the database.",
+      "remediated": false
+    },
+    {
+      "path": "pom.xml",
+      "line": 5,
+      "severity": "low",
+      "title": "Outdated Spring Boot 3.3.3 (Spring Framework 6.1.12 with known CVEs)",
+      "description": "The project builds on Spring Boot 3.3.3, which pulls in Spring Framework 6.1.12 and its known path-traversal and data-binding vulnerabilities. The application does not use the affected features (functional routing for static resources, or data binder field exclusions), so there is no clear exploit path today; this is dependency hygiene rather than an active exposure. The fix is to upgrade to Spring Boot 3.3.5 or later, which brings in a patched framework version, and to re-run dependency scanning afterwards.",
+      "remediated": false
+    }
+  ]
+}
