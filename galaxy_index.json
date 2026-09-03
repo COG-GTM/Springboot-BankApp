@@ -1,0 +1,805 @@
+{
+  "repo": "COG-GTM/Springboot-BankApp",
+  "generated_at": "2026-09-03T15:10:00Z",
+  "nodes": [
+    {
+      "id": "auth-session",
+      "name": "Authentication & Session",
+      "parent": null,
+      "description": "Form-login authentication for the bank app: Spring Security wiring, BCrypt password hashing, and the UserDetailsService that resolves an Account into an authenticated principal. Every route except /register is closed until a session exists.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/config/SecurityConfig.java"},
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "84-101"},
+        {"path": "src/main/resources/templates/login.html"}
+      ]
+    },
+    {
+      "id": "auth-session.filter-chain",
+      "name": "Security Filter Chain",
+      "parent": "auth-session",
+      "description": "Declares the HttpSecurity rules: CSRF disabled, /register public, everything else authenticated, custom /login page with /dashboard as the fixed success target, and same-origin frame options.",
+      "files": [{"path": "src/main/java/com/example/bankapp/config/SecurityConfig.java", "lines": "27-53"}]
+    },
+    {
+      "id": "auth-session.user-details",
+      "name": "User Details Resolution",
+      "parent": "auth-session",
+      "description": "AccountService implements UserDetailsService; loadUserByUsername rebuilds an Account principal from the persisted row and attaches a single hardcoded USER authority.",
+      "files": [{"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "84-101"}]
+    },
+    {
+      "id": "auth-session.password-hashing",
+      "name": "Password Hashing",
+      "parent": "auth-session",
+      "description": "BCryptPasswordEncoder bean shared by the AuthenticationManagerBuilder for verification and by registration for encoding new passwords; plaintext passwords are never stored.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/config/SecurityConfig.java", "lines": "22-25"},
+        {"path": "src/main/java/com/example/bankapp/config/SecurityConfig.java", "lines": "55-59"},
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "25-26"}
+      ]
+    },
+    {
+      "id": "auth-session.registration",
+      "name": "Account Registration",
+      "parent": "auth-session",
+      "description": "Creates a new Account with a BCrypt-hashed password and a zero opening balance, rejecting duplicate usernames with a RuntimeException surfaced back onto the register form.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "38-48"},
+        {"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "29-43"},
+        {"path": "src/main/resources/templates/register.html"}
+      ]
+    },
+    {
+      "id": "auth-session.logout",
+      "name": "Logout & Session Invalidation",
+      "parent": "auth-session",
+      "description": "Logout handler bound to /logout that invalidates the HTTP session, clears the SecurityContext, and redirects to /login?logout; linked from the navbar of every authenticated page.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/config/SecurityConfig.java", "lines": "41-47"},
+        {"path": "src/main/resources/templates/dashboard.html", "lines": "116-121"},
+        {"path": "src/main/resources/templates/transactions.html", "lines": "95-100"}
+      ]
+    },
+    {
+      "id": "money-movement",
+      "name": "Money Movement",
+      "parent": null,
+      "description": "The core banking behaviour: deposits, withdrawals, and account-to-account transfers. All balance mutations go through AccountService and each one writes a matching Transaction ledger row.",
+      "files": [{"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "51-135"}]
+    },
+    {
+      "id": "money-movement.deposit",
+      "name": "Deposit",
+      "parent": "money-movement",
+      "description": "Adds the requested BigDecimal to the account balance, saves the account, then records a \"Deposit\" transaction. No upper bound or amount validation is applied.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "51-62"},
+        {"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "50-56"}
+      ]
+    },
+    {
+      "id": "money-movement.withdraw",
+      "name": "Withdrawal",
+      "parent": "money-movement",
+      "description": "Subtracts funds after an insufficient-funds guard, saves the account, and records a \"Withdrawal\" transaction; failures bubble up as RuntimeException and re-render the dashboard with an error.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "64-78"},
+        {"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "58-72"}
+      ]
+    },
+    {
+      "id": "money-movement.transfer",
+      "name": "Transfer Execution",
+      "parent": "money-movement",
+      "description": "Debits the sender, credits the recipient looked up by username, and writes two mirrored ledger rows (\"Transfer Out to X\" / \"Transfer In from Y\"). The method is not annotated @Transactional, so the four saves are not atomic.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "103-135"},
+        {"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "82-96"}
+      ]
+    },
+    {
+      "id": "money-movement.balance-guards",
+      "name": "Balance Guards & Error Surfacing",
+      "parent": "money-movement",
+      "description": "Insufficient-funds and unknown-recipient checks expressed as BigDecimal comparisons plus RuntimeException throws, caught in the controller and rendered into the dashboard's error paragraph.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "64-67"},
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "103-109"},
+        {"path": "src/main/resources/templates/dashboard.html", "lines": "188-193"}
+      ]
+    },
+    {
+      "id": "domain-model",
+      "name": "Domain Model",
+      "parent": null,
+      "description": "The two JPA entities that make up the banking domain — Account (also the security principal) and Transaction (the append-only ledger row) — plus the one-to-many association between them.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/model/Account.java"},
+        {"path": "src/main/java/com/example/bankapp/model/Transaction.java"}
+      ]
+    },
+    {
+      "id": "domain-model.account-entity",
+      "name": "Account Entity",
+      "parent": "domain-model",
+      "description": "@Entity with identity-generated id, username, BCrypt password, BigDecimal balance, and a @Transient authorities collection — it doubles as the Spring Security UserDetails implementation.",
+      "files": [{"path": "src/main/java/com/example/bankapp/model/Account.java", "lines": "11-46"}]
+    },
+    {
+      "id": "domain-model.transaction-entity",
+      "name": "Transaction Entity",
+      "parent": "domain-model",
+      "description": "Ledger row holding amount, a free-text type string (\"Deposit\", \"Withdrawal\", \"Transfer Out to …\"), a LocalDateTime timestamp, and a @ManyToOne back-reference to the owning account.",
+      "files": [{"path": "src/main/java/com/example/bankapp/model/Transaction.java", "lines": "7-30"}]
+    },
+    {
+      "id": "domain-model.associations",
+      "name": "Entity Associations",
+      "parent": "domain-model",
+      "description": "Account owns a @OneToMany(mappedBy = \"account\") list of transactions while Transaction carries the account_id join column, making transactions the owning side of the relationship.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/model/Account.java", "lines": "21-22"},
+        {"path": "src/main/java/com/example/bankapp/model/Transaction.java", "lines": "17-19"}
+      ]
+    },
+    {
+      "id": "persistence",
+      "name": "Account & Transaction Persistence",
+      "parent": null,
+      "description": "Spring Data JPA repositories over MySQL, with Hibernate generating and updating the schema at startup. All reads and writes in the app funnel through these two interfaces.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/repository/AccountRepository.java"},
+        {"path": "src/main/java/com/example/bankapp/repository/TransactionRepository.java"},
+        {"path": "src/main/resources/application.properties", "lines": "8-11"}
+      ]
+    },
+    {
+      "id": "persistence.account-repository",
+      "name": "Account Repository",
+      "parent": "persistence",
+      "description": "JpaRepository<Account, Long> with the derived finder findByUsername, which backs both authentication and every username-addressed operation such as transfer recipient lookup.",
+      "files": [{"path": "src/main/java/com/example/bankapp/repository/AccountRepository.java", "lines": "8-10"}]
+    },
+    {
+      "id": "persistence.transaction-repository",
+      "name": "Transaction Repository",
+      "parent": "persistence",
+      "description": "JpaRepository<Transaction, Long> exposing findByAccountId, the single query that materialises a user's statement.",
+      "files": [{"path": "src/main/java/com/example/bankapp/repository/TransactionRepository.java", "lines": "8-10"}]
+    },
+    {
+      "id": "persistence.schema-management",
+      "name": "Schema Management",
+      "parent": "persistence",
+      "description": "Schema is derived from the entities by Hibernate (ddl-auto=update, MySQL8Dialect, show-sql on) rather than by migrations; the bundled SQL script placeholder is the only checked-in DDL artefact.",
+      "files": [
+        {"path": "src/main/resources/application.properties", "lines": "8-11"},
+        {"path": "src/main/resources/static/mysql/SQLScript.txt"}
+      ]
+    },
+    {
+      "id": "persistence.datasource",
+      "name": "MySQL Datasource",
+      "parent": "persistence",
+      "description": "JDBC coordinates for the bankappdb MySQL instance, including the credentials baked into application.properties and the runtime MySQL Connector/J dependency declared in the POM.",
+      "files": [
+        {"path": "src/main/resources/application.properties", "lines": "2-6"},
+        {"path": "pom.xml", "lines": "54-59"}
+      ]
+    },
+    {
+      "id": "transaction-history",
+      "name": "Transaction History",
+      "parent": null,
+      "description": "The read-only statement path: fetch every ledger row for the signed-in account and render it as a credit/debit coloured table.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "80-82"},
+        {"path": "src/main/resources/templates/transactions.html"}
+      ]
+    },
+    {
+      "id": "transaction-history.query",
+      "name": "History Query",
+      "parent": "transaction-history",
+      "description": "getTransactionHistory resolves the account id and delegates to TransactionRepository.findByAccountId; there is no paging, sorting, or date filtering.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "80-82"},
+        {"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "74-80"}
+      ]
+    },
+    {
+      "id": "transaction-history.ledger-labels",
+      "name": "Ledger Labelling",
+      "parent": "transaction-history",
+      "description": "Transaction type strings are composed at write time (\"Transfer Out to <user>\") and re-parsed at render time to decide credit vs debit styling — the sign of a movement is inferred from text, not stored.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "119-134"},
+        {"path": "src/main/resources/templates/transactions.html", "lines": "116-123"}
+      ]
+    },
+    {
+      "id": "transaction-history.statement-view",
+      "name": "Statement View",
+      "parent": "transaction-history",
+      "description": "Thymeleaf table iterating ${transactions}, colouring amounts green for deposits and inbound transfers and red otherwise, with a link back to the dashboard.",
+      "files": [{"path": "src/main/resources/templates/transactions.html", "lines": "102-131"}]
+    },
+    {
+      "id": "web-routing",
+      "name": "Web Request Routing",
+      "parent": null,
+      "description": "BankController is the single Spring MVC entry point: eight handlers mapping the browser's GET pages and POST form submissions onto AccountService calls, with the current user pulled from the SecurityContext on every request.",
+      "files": [{"path": "src/main/java/com/example/bankapp/controller/BankController.java"}]
+    },
+    {
+      "id": "web-routing.dashboard-route",
+      "name": "Dashboard Route",
+      "parent": "web-routing",
+      "description": "GET /dashboard resolves the principal's account and puts it on the model as ${account} for the balance panel and the three money-movement forms.",
+      "files": [{"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "21-27"}]
+    },
+    {
+      "id": "web-routing.money-routes",
+      "name": "Money Movement Routes",
+      "parent": "web-routing",
+      "description": "POST /deposit, /withdraw, and /transfer accept BigDecimal amounts as request params and redirect back to /dashboard on success, re-rendering the dashboard with an error attribute on failure.",
+      "files": [{"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "50-96"}]
+    },
+    {
+      "id": "web-routing.auth-routes",
+      "name": "Login & Registration Routes",
+      "parent": "web-routing",
+      "description": "GET /login and GET /register serve the two unauthenticated pages; POST /register creates the account and redirects to the login page. POST /login is handled by Spring Security's filter, not the controller.",
+      "files": [{"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "29-48"}]
+    },
+    {
+      "id": "web-routing.history-route",
+      "name": "Transaction History Route",
+      "parent": "web-routing",
+      "description": "GET /transactions loads the caller's account and exposes the ledger list as ${transactions} for the statement template.",
+      "files": [{"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "74-80"}]
+    },
+    {
+      "id": "web-routing.principal-lookup",
+      "name": "Principal Lookup",
+      "parent": "web-routing",
+      "description": "Every authenticated handler repeats the same SecurityContextHolder.getContext().getAuthentication().getName() lookup followed by findAccountByUsername — the app's de facto current-user resolution.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/controller/BankController.java", "lines": "21-27"},
+        {"path": "src/main/java/com/example/bankapp/service/AccountService.java", "lines": "34-36"}
+      ]
+    },
+    {
+      "id": "web-view-layer",
+      "name": "Web View Layer",
+      "parent": null,
+      "description": "Four server-rendered Thymeleaf pages styled as a Wells Fargo retail-banking UI with Bootstrap 4 from a CDN and inline CSS; there is no JavaScript build or SPA.",
+      "files": [
+        {"path": "src/main/resources/templates/dashboard.html"},
+        {"path": "src/main/resources/templates/login.html"},
+        {"path": "src/main/resources/templates/register.html"},
+        {"path": "src/main/resources/templates/transactions.html"}
+      ]
+    },
+    {
+      "id": "web-view-layer.dashboard",
+      "name": "Dashboard Page",
+      "parent": "web-view-layer",
+      "description": "Shows the welcome banner, current balance and account number, and hosts the three POST forms for deposit, withdrawal, and transfer.",
+      "files": [{"path": "src/main/resources/templates/dashboard.html", "lines": "112-193"}]
+    },
+    {
+      "id": "web-view-layer.login-page",
+      "name": "Login Page",
+      "parent": "web-view-layer",
+      "description": "Public form posting to /login, with a th:if block that renders the bad-credentials alert when ${param.error} is present and a link across to registration.",
+      "files": [{"path": "src/main/resources/templates/login.html", "lines": "99-127"}]
+    },
+    {
+      "id": "web-view-layer.register-page",
+      "name": "Registration Page",
+      "parent": "web-view-layer",
+      "description": "Public sign-up form posting username and password to /register and rendering the duplicate-username error returned by the service.",
+      "files": [{"path": "src/main/resources/templates/register.html", "lines": "99-127"}]
+    },
+    {
+      "id": "web-view-layer.branding",
+      "name": "Branding & Static Assets",
+      "parent": "web-view-layer",
+      "description": "Shared navbar, footer, and the self-hosted Wells Fargo logo served from src/main/resources/static that give all four pages a consistent retail-bank identity.",
+      "files": [
+        {"path": "src/main/resources/static/images/wells-fargo-logo.png"},
+        {"path": "src/main/resources/templates/dashboard.html", "lines": "1-40"},
+        {"path": "src/main/resources/templates/login.html", "lines": "1-40"}
+      ]
+    },
+    {
+      "id": "web-view-layer.template-engine",
+      "name": "Template Engine Wiring",
+      "parent": "web-view-layer",
+      "description": "Thymeleaf plus the Spring Security 6 dialect are pulled in as starters so controller view names resolve to templates/*.html and security expressions are available in markup.",
+      "files": [{"path": "pom.xml", "lines": "41-52"}]
+    },
+    {
+      "id": "app-bootstrap",
+      "name": "Application Bootstrap & Configuration",
+      "parent": null,
+      "description": "Spring Boot 3.3.3 entrypoint plus the externalisable configuration that binds the app to its MySQL datasource and Hibernate settings at startup.",
+      "files": [
+        {"path": "src/main/java/com/example/bankapp/BankappApplication.java"},
+        {"path": "src/main/resources/application.properties"}
+      ]
+    },
+    {
+      "id": "app-bootstrap.main-class",
+      "name": "Spring Boot Entrypoint",
+      "parent": "app-bootstrap",
+      "description": "@SpringBootApplication class whose main() boots the embedded Tomcat on port 8080; it is also the ENTRYPOINT target of the runtime container image.",
+      "files": [{"path": "src/main/java/com/example/bankapp/BankappApplication.java", "lines": "6-13"}]
+    },
+    {
+      "id": "app-bootstrap.runtime-properties",
+      "name": "Runtime Properties",
+      "parent": "app-bootstrap",
+      "description": "application.properties hardcodes the local datasource URL, root user, and password; deployments override them with SPRING_DATASOURCE_* environment variables instead of editing the file.",
+      "files": [{"path": "src/main/resources/application.properties", "lines": "1-11"}]
+    },
+    {
+      "id": "app-bootstrap.test-harness",
+      "name": "Test Harness",
+      "parent": "app-bootstrap",
+      "description": "A single @SpringBootTest contextLoads smoke test; because no H2/test profile exists it needs a reachable MySQL to pass, which is why CI builds the image with -DskipTests.",
+      "files": [
+        {"path": "src/test/java/com/example/bankapp/BankappApplicationTests.java"},
+        {"path": "pom.xml", "lines": "60-69"}
+      ]
+    },
+    {
+      "id": "build-tooling",
+      "name": "Build & Dependency Management",
+      "parent": null,
+      "description": "Maven build inheriting spring-boot-starter-parent 3.3.3, driven through the checked-in Maven Wrapper so builds are reproducible without a local Maven install.",
+      "files": [
+        {"path": "pom.xml"},
+        {"path": "mvnw"},
+        {"path": "mvnw.cmd"},
+        {"path": ".mvn/wrapper/maven-wrapper.properties"}
+      ]
+    },
+    {
+      "id": "build-tooling.pom",
+      "name": "POM & Dependencies",
+      "parent": "build-tooling",
+      "description": "Declares the data-jpa, security, thymeleaf, and web starters, MySQL Connector/J, and the test starters; note java.version is 17 while maven-compiler-plugin is pinned to source/target 1.8.",
+      "files": [
+        {"path": "pom.xml", "lines": "29-70"},
+        {"path": "pom.xml", "lines": "72-88"}
+      ]
+    },
+    {
+      "id": "build-tooling.maven-wrapper",
+      "name": "Maven Wrapper",
+      "parent": "build-tooling",
+      "description": "POSIX and Windows wrapper scripts plus the properties file that pins Apache Maven 3.9.7, used by both local development and the Docker build stage.",
+      "files": [
+        {"path": "mvnw"},
+        {"path": "mvnw.cmd"},
+        {"path": ".mvn/wrapper/maven-wrapper.properties", "lines": "17-19"}
+      ]
+    },
+    {
+      "id": "build-tooling.workspace-hygiene",
+      "name": "Workspace Hygiene",
+      "parent": "build-tooling",
+      "description": "gitignore rules excluding target/, IDE metadata (IntelliJ, STS, NetBeans, VS Code) and build output so only sources and deployment manifests are tracked.",
+      "files": [{"path": ".gitignore"}]
+    },
+    {
+      "id": "container-packaging",
+      "name": "Container & Local Orchestration",
+      "parent": null,
+      "description": "Two-stage Docker build producing a slim JRE image, and a Compose stack that runs that image next to MySQL for a one-command local environment.",
+      "files": [
+        {"path": "Dockerfile"},
+        {"path": "docker-compose.yml"},
+        {"path": ".env"}
+      ]
+    },
+    {
+      "id": "container-packaging.image-build",
+      "name": "Multi-stage Image Build",
+      "parent": "container-packaging",
+      "description": "Stage 1 builds the fat jar with maven:3.8.3-openjdk-17 and -DskipTests; stage 2 copies only the jar into openjdk:17-alpine, exposes 8080, and runs it via java -jar.",
+      "files": [{"path": "Dockerfile", "lines": "1-37"}]
+    },
+    {
+      "id": "container-packaging.compose-stack",
+      "name": "Compose Stack",
+      "parent": "container-packaging",
+      "description": "Brings up mysql (with a named volume and mysqladmin healthcheck) and the app container, which waits on service_healthy and reaches the DB over the bankapp bridge network using BankDB and allowPublicKeyRetrieval.",
+      "files": [{"path": "docker-compose.yml", "lines": "1-46"}]
+    },
+    {
+      "id": "container-packaging.image-coordinates",
+      "name": "Image Coordinates",
+      "parent": "container-packaging",
+      "description": "The .env file supplies DUSER/IMAGE, which Compose interpolates into ${DUSER}/${IMAGE} to select which published Docker Hub image the local stack runs.",
+      "files": [
+        {"path": ".env"},
+        {"path": "docker-compose.yml", "lines": "20-22"}
+      ]
+    },
+    {
+      "id": "kubernetes-deployment",
+      "name": "Kubernetes Deployment Manifests",
+      "parent": null,
+      "description": "Raw manifests for running the app on EKS: a two-replica app Deployment, a single-replica MySQL with hostPath-backed storage, services, autoscaling, and a TLS ingress fronted by cert-manager.",
+      "files": [
+        {"path": "kubernetes/bankapp-deployment.yml"},
+        {"path": "kubernetes/mysql-deployment.yml"},
+        {"path": "kubernetes/bankapp-namespace.yaml"}
+      ]
+    },
+    {
+      "id": "kubernetes-deployment.app-workload",
+      "name": "Application Workload",
+      "parent": "kubernetes-deployment",
+      "description": "bankapp-deploy runs 2 replicas of trainwithshubham/bankapp-eks:v2 with CPU/memory requests and limits; the health probes are present but commented out.",
+      "files": [{"path": "kubernetes/bankapp-deployment.yml", "lines": "1-63"}]
+    },
+    {
+      "id": "kubernetes-deployment.database-workload",
+      "name": "Database Workload",
+      "parent": "kubernetes-deployment",
+      "description": "MySQL 8.0 Deployment mounting the mysql-pvc claim at /var/lib/mysql, with root password from the secret and database name from the ConfigMap.",
+      "files": [
+        {"path": "kubernetes/mysql-deployment.yml"},
+        {"path": "kubernetes/mysql-service.yaml"}
+      ]
+    },
+    {
+      "id": "kubernetes-deployment.networking",
+      "name": "Cluster Networking",
+      "parent": "kubernetes-deployment",
+      "description": "ClusterIP services for the app (8080) and MySQL (3306) inside bankapp-namespace; the MySQL service DNS name is what the ConfigMap's JDBC URL points at.",
+      "files": [
+        {"path": "kubernetes/bankapp-service.yaml"},
+        {"path": "kubernetes/mysql-service.yaml"},
+        {"path": "kubernetes/bankapp-namespace.yaml"}
+      ]
+    },
+    {
+      "id": "kubernetes-deployment.storage",
+      "name": "Persistent Storage",
+      "parent": "kubernetes-deployment",
+      "description": "A 10Gi hostPath PersistentVolume with Retain reclaim policy and the matching ReadWriteOnce claim that keeps MySQL data across pod restarts.",
+      "files": [
+        {"path": "kubernetes/persistent-volume.yaml"},
+        {"path": "kubernetes/persistent-volume-claim.yaml"}
+      ]
+    },
+    {
+      "id": "kubernetes-deployment.autoscaling",
+      "name": "Horizontal Autoscaling",
+      "parent": "kubernetes-deployment",
+      "description": "HorizontalPodAutoscaler scaling bankapp-deploy between 1 and 5 replicas at 40% average CPU utilisation.",
+      "files": [{"path": "kubernetes/bankapp-hpa.yml"}]
+    },
+    {
+      "id": "kubernetes-deployment.ingress-tls",
+      "name": "Ingress & TLS Termination",
+      "parent": "kubernetes-deployment",
+      "description": "NGINX ingress for megaproject.trainwithshubham.com forcing HTTPS, plus the Let's Encrypt ClusterIssuer that cert-manager uses to mint bankapp-tls-secret via HTTP-01.",
+      "files": [
+        {"path": "kubernetes/bankapp-ingress.yml"},
+        {"path": "kubernetes/letsencrypt-clusterissuer.yaml"}
+      ]
+    },
+    {
+      "id": "kubernetes-deployment.config-secrets",
+      "name": "Cluster Config & Secrets",
+      "parent": "kubernetes-deployment",
+      "description": "ConfigMap holding MYSQL_DATABASE and the cluster-internal SPRING_DATASOURCE_URL, and a base64 Secret with the MySQL root and datasource passwords checked into the repo.",
+      "files": [
+        {"path": "kubernetes/configmap.yaml"},
+        {"path": "kubernetes/secrets.yaml"}
+      ]
+    },
+    {
+      "id": "helm-packaging",
+      "name": "Helm Chart Packaging",
+      "parent": null,
+      "description": "A parameterised Helm chart that renders the same topology as the raw manifests, but with MySQL as a StatefulSet behind a headless service and every image, port, and resource value driven from values.yaml.",
+      "files": [
+        {"path": "helm/bankapp/Chart.yaml"},
+        {"path": "helm/bankapp/values.yaml"}
+      ]
+    },
+    {
+      "id": "helm-packaging.chart-values",
+      "name": "Chart Values",
+      "parent": "helm-packaging",
+      "description": "Single source of truth for namespace, image coordinates, NodePort 30080, resource requests/limits, HPA bounds, and the MySQL credentials that the secret template base64-encodes.",
+      "files": [
+        {"path": "helm/bankapp/values.yaml"},
+        {"path": "helm/bankapp/Chart.yaml"}
+      ]
+    },
+    {
+      "id": "helm-packaging.app-templates",
+      "name": "Application Templates",
+      "parent": "helm-packaging",
+      "description": "Templated Deployment with a busybox initContainer that blocks on the MySQL headless service, actuator liveness/readiness probes, and the NodePort service that exposes the app on 30080.",
+      "files": [
+        {"path": "helm/bankapp/templates/deployment.yml"},
+        {"path": "helm/bankapp/templates/service.yml"},
+        {"path": "helm/bankapp/templates/namespace.yml"}
+      ]
+    },
+    {
+      "id": "helm-packaging.database-templates",
+      "name": "Database Templates",
+      "parent": "helm-packaging",
+      "description": "MySQL StatefulSet with a stable pod identity, its headless service, and the manual-storageClass PV/PVC pair the statefulset mounts.",
+      "files": [
+        {"path": "helm/bankapp/templates/mysqlStatefulSet.yml"},
+        {"path": "helm/bankapp/templates/mysqlService.yml"},
+        {"path": "helm/bankapp/templates/persistentVolume.yml"},
+        {"path": "helm/bankapp/templates/persistentVolumeClaim.yml"}
+      ]
+    },
+    {
+      "id": "helm-packaging.scaling-templates",
+      "name": "Scaling Templates",
+      "parent": "helm-packaging",
+      "description": "Both a HorizontalPodAutoscaler driven by values.hpa and a VerticalPodAutoscaler in Auto update mode targeting the same Deployment.",
+      "files": [
+        {"path": "helm/bankapp/templates/hpa.yaml"},
+        {"path": "helm/bankapp/templates/vpa.yaml"}
+      ]
+    },
+    {
+      "id": "helm-packaging.config-templates",
+      "name": "Config & Secret Templates",
+      "parent": "helm-packaging",
+      "description": "ConfigMap that assembles the fully-qualified StatefulSet JDBC URL from values, and a Secret template that b64enc-encodes the MySQL passwords at render time.",
+      "files": [
+        {"path": "helm/bankapp/templates/configMap.yml"},
+        {"path": "helm/bankapp/templates/secrets.yml"}
+      ]
+    },
+    {
+      "id": "helm-packaging.release-ux",
+      "name": "Release UX",
+      "parent": "helm-packaging",
+      "description": "Post-install NOTES telling the operator which NodePort URL to open, the optional ingress template, and the chart README with install steps.",
+      "files": [
+        {"path": "helm/bankapp/templates/NOTES.txt"},
+        {"path": "helm/bankapp/templates/ingress.yml"},
+        {"path": "helm/README.md"}
+      ]
+    },
+    {
+      "id": "cicd-pipeline",
+      "name": "CI/CD Pipeline",
+      "parent": null,
+      "description": "Two Jenkins declarative pipelines — a CI job that scans, analyses, builds, and pushes the image, and a downstream GitOps CD job that rewrites the Kubernetes image tag and pushes it back to Git.",
+      "files": [
+        {"path": "Jenkinsfile"},
+        {"path": "GitOps/Jenkinsfile"}
+      ]
+    },
+    {
+      "id": "cicd-pipeline.ci-job",
+      "name": "CI Build Job",
+      "parent": "cicd-pipeline",
+      "description": "Cleans the workspace, checks out the DevOps branch, runs the security and quality gates, builds and pushes the tagged image, then triggers the BankApp-CD job with the same DOCKER_TAG.",
+      "files": [{"path": "Jenkinsfile", "lines": "1-86"}]
+    },
+    {
+      "id": "cicd-pipeline.gitops-job",
+      "name": "GitOps Deploy Job",
+      "parent": "cicd-pipeline",
+      "description": "Receives DOCKER_TAG, seds the new image tag into the Kubernetes deployment manifest, and commits and pushes the change so an ArgoCD sync rolls it out.",
+      "files": [{"path": "GitOps/Jenkinsfile", "lines": "26-67"}]
+    },
+    {
+      "id": "cicd-pipeline.shared-library",
+      "name": "Jenkins Shared Library",
+      "parent": "cicd-pipeline",
+      "description": "The vars/ global-variable steps loaded via @Library('Shared'); each groovy file defines one reusable call() step consumed by the two Jenkinsfiles.",
+      "files": [
+        {"path": "vars/README.md"},
+        {"path": "vars/greet.groovy"},
+        {"path": "vars/code_checkout.groovy"},
+        {"path": "vars/codeCheckout.groovy"}
+      ]
+    },
+    {
+      "id": "cicd-pipeline.docker-steps",
+      "name": "Docker Pipeline Steps",
+      "parent": "cicd-pipeline",
+      "description": "Shared steps that build, tag, push (with the dockerhub credentials binding), and clean up images — note the duplicated pairs docker_build/buildImage and docker_push/pushImage.",
+      "files": [
+        {"path": "vars/docker_build.groovy"},
+        {"path": "vars/buildImage.groovy"},
+        {"path": "vars/docker_push.groovy"},
+        {"path": "vars/pushImage.groovy"},
+        {"path": "vars/docker_cleanup.groovy"}
+      ]
+    },
+    {
+      "id": "cicd-pipeline.deploy-steps",
+      "name": "Compose Deploy Steps",
+      "parent": "cicd-pipeline",
+      "description": "deploy() validates the Compose file, tears the stack down gracefully, brings it back up, and polls docker compose ps until every service reports healthy; docker_compose() is the blunt down/up variant.",
+      "files": [
+        {"path": "vars/deploy.groovy"},
+        {"path": "vars/docker_compose.groovy"}
+      ]
+    },
+    {
+      "id": "cicd-pipeline.security-gates",
+      "name": "Security & Quality Gates",
+      "parent": "cicd-pipeline",
+      "description": "Trivy filesystem scan, OWASP Dependency-Check with report publishing, and SonarQube analysis plus a non-blocking quality gate wait — the DevSecOps checkpoints of the CI job.",
+      "files": [
+        {"path": "vars/trivy_scan.groovy"},
+        {"path": "vars/owasp_dependency.groovy"},
+        {"path": "vars/sonarqube_analysis.groovy"},
+        {"path": "vars/sonarqube_code_quality.groovy"}
+      ]
+    },
+    {
+      "id": "cicd-pipeline.notifications",
+      "name": "Build Notifications",
+      "parent": "cicd-pipeline",
+      "description": "The CD job's post-always emailext block sends an HTML summary with job name, build number, and build URL, attaching the log on every outcome.",
+      "files": [{"path": "GitOps/Jenkinsfile", "lines": "69-94"}]
+    },
+    {
+      "id": "operations-docs",
+      "name": "Operations Documentation",
+      "parent": null,
+      "description": "The runbooks that make this repo a DevSecOps teaching project: EKS/ArgoCD walkthroughs, Jenkins pipeline setup, nginx TLS termination, and ingress configuration, illustrated with screenshots.",
+      "files": [
+        {"path": "README.md"},
+        {"path": "README-K8S.md"}
+      ]
+    },
+    {
+      "id": "operations-docs.deployment-runbooks",
+      "name": "Deployment Runbooks",
+      "parent": "operations-docs",
+      "description": "End-to-end AWS EKS deployment guide and its Kubernetes-only variant, covering prerequisites, cluster creation, and Prometheus/Grafana monitoring via Helm.",
+      "files": [
+        {"path": "README.md", "lines": "1-30"},
+        {"path": "README-K8S.md", "lines": "1-26"}
+      ]
+    },
+    {
+      "id": "operations-docs.pipeline-guide",
+      "name": "CI/CD Setup Guide",
+      "parent": "operations-docs",
+      "description": "Describes the CICD workflow and how to wire up the Jenkins jobs, credentials, and shared library that the two Jenkinsfiles assume.",
+      "files": [
+        {"path": "cicd.md"},
+        {"path": "images/pipeline.png"},
+        {"path": "images/credentials.png"},
+        {"path": "images/shared_library.png"}
+      ]
+    },
+    {
+      "id": "operations-docs.edge-tls-guide",
+      "name": "Edge & TLS Guides",
+      "parent": "operations-docs",
+      "description": "How to put nginx in front of the app on EC2 with domain mapping and SSL, and how to install and use the NGINX ingress controller in-cluster.",
+      "files": [
+        {"path": "nginx.md"},
+        {"path": "Ingress.md"},
+        {"path": "images/login_https.png"}
+      ]
+    },
+    {
+      "id": "operations-docs.argocd-guide",
+      "name": "ArgoCD & Cluster Guide",
+      "parent": "operations-docs",
+      "description": "Step-by-step EKS + ArgoCD setup that closes the GitOps loop: the CD job pushes a manifest change and ArgoCD syncs it to the cluster.",
+      "files": [{"path": "kubernetes/README.md"}]
+    },
+    {
+      "id": "operations-docs.screenshots",
+      "name": "Documentation Screenshots",
+      "parent": "operations-docs",
+      "description": "Reference captures of the application UI and Jenkins agent/flow used throughout the runbooks.",
+      "files": [
+        {"path": "images/login.png"},
+        {"path": "images/transactions.png"},
+        {"path": "images/flow.png"},
+        {"path": "images/agent.png"},
+        {"path": "images/test"}
+      ]
+    }
+  ],
+  "relations": [
+    {"from": "web-view-layer.login-page", "to": "auth-session.filter-chain", "kind": "routes-to"},
+    {"from": "auth-session.filter-chain", "to": "auth-session.user-details", "kind": "calls"},
+    {"from": "auth-session.filter-chain", "to": "auth-session.password-hashing", "kind": "depends-on"},
+    {"from": "auth-session.user-details", "to": "persistence.account-repository", "kind": "persists-through"},
+    {"from": "auth-session.user-details", "to": "domain-model.account-entity", "kind": "depends-on"},
+    {"from": "auth-session.registration", "to": "auth-session.password-hashing", "kind": "calls"},
+    {"from": "auth-session.registration", "to": "persistence.account-repository", "kind": "persists-through"},
+    {"from": "web-view-layer.register-page", "to": "web-routing.auth-routes", "kind": "routes-to"},
+    {"from": "web-routing.auth-routes", "to": "auth-session.registration", "kind": "calls"},
+    {"from": "auth-session.logout", "to": "web-view-layer.login-page", "kind": "routes-to"},
+    {"from": "web-routing.dashboard-route", "to": "web-routing.principal-lookup", "kind": "calls"},
+    {"from": "web-routing.principal-lookup", "to": "persistence.account-repository", "kind": "persists-through"},
+    {"from": "web-routing.dashboard-route", "to": "web-view-layer.dashboard", "kind": "routes-to"},
+    {"from": "web-view-layer.dashboard", "to": "web-routing.money-routes", "kind": "routes-to"},
+    {"from": "web-routing.money-routes", "to": "money-movement.deposit", "kind": "calls"},
+    {"from": "web-routing.money-routes", "to": "money-movement.withdraw", "kind": "calls"},
+    {"from": "web-routing.money-routes", "to": "money-movement.transfer", "kind": "calls"},
+    {"from": "web-routing.money-routes", "to": "money-movement.balance-guards", "kind": "depends-on"},
+    {"from": "money-movement.deposit", "to": "persistence.transaction-repository", "kind": "persists-through"},
+    {"from": "money-movement.withdraw", "to": "persistence.transaction-repository", "kind": "persists-through"},
+    {"from": "money-movement.transfer", "to": "persistence.account-repository", "kind": "persists-through"},
+    {"from": "money-movement.transfer", "to": "persistence.transaction-repository", "kind": "persists-through"},
+    {"from": "money-movement.transfer", "to": "transaction-history.ledger-labels", "kind": "depends-on"},
+    {"from": "money-movement.balance-guards", "to": "web-view-layer.dashboard", "kind": "routes-to"},
+    {"from": "money-movement", "to": "domain-model.transaction-entity", "kind": "imports"},
+    {"from": "web-view-layer.dashboard", "to": "web-routing.history-route", "kind": "routes-to"},
+    {"from": "web-routing.history-route", "to": "transaction-history.query", "kind": "calls"},
+    {"from": "transaction-history.query", "to": "persistence.transaction-repository", "kind": "persists-through"},
+    {"from": "transaction-history.query", "to": "transaction-history.statement-view", "kind": "routes-to"},
+    {"from": "transaction-history.statement-view", "to": "transaction-history.ledger-labels", "kind": "depends-on"},
+    {"from": "persistence.account-repository", "to": "domain-model.account-entity", "kind": "imports"},
+    {"from": "persistence.transaction-repository", "to": "domain-model.transaction-entity", "kind": "imports"},
+    {"from": "persistence.schema-management", "to": "domain-model.associations", "kind": "depends-on"},
+    {"from": "persistence.account-repository", "to": "persistence.datasource", "kind": "depends-on"},
+    {"from": "persistence.datasource", "to": "app-bootstrap.runtime-properties", "kind": "depends-on"},
+    {"from": "app-bootstrap.main-class", "to": "web-routing", "kind": "depends-on"},
+    {"from": "app-bootstrap.main-class", "to": "auth-session.filter-chain", "kind": "depends-on"},
+    {"from": "app-bootstrap.test-harness", "to": "persistence.datasource", "kind": "depends-on"},
+    {"from": "web-view-layer.template-engine", "to": "web-view-layer.dashboard", "kind": "depends-on"},
+    {"from": "build-tooling.pom", "to": "web-view-layer.template-engine", "kind": "depends-on"},
+    {"from": "build-tooling.pom", "to": "persistence.datasource", "kind": "depends-on"},
+    {"from": "build-tooling.maven-wrapper", "to": "build-tooling.pom", "kind": "depends-on"},
+    {"from": "container-packaging.image-build", "to": "build-tooling.pom", "kind": "depends-on"},
+    {"from": "container-packaging.image-build", "to": "app-bootstrap.main-class", "kind": "depends-on"},
+    {"from": "container-packaging.compose-stack", "to": "container-packaging.image-coordinates", "kind": "depends-on"},
+    {"from": "container-packaging.compose-stack", "to": "app-bootstrap.runtime-properties", "kind": "depends-on"},
+    {"from": "cicd-pipeline.ci-job", "to": "cicd-pipeline.security-gates", "kind": "calls"},
+    {"from": "cicd-pipeline.ci-job", "to": "cicd-pipeline.docker-steps", "kind": "calls"},
+    {"from": "cicd-pipeline.ci-job", "to": "cicd-pipeline.shared-library", "kind": "imports"},
+    {"from": "cicd-pipeline.docker-steps", "to": "container-packaging.image-build", "kind": "depends-on"},
+    {"from": "cicd-pipeline.deploy-steps", "to": "container-packaging.compose-stack", "kind": "depends-on"},
+    {"from": "cicd-pipeline.security-gates", "to": "build-tooling.pom", "kind": "depends-on"},
+    {"from": "cicd-pipeline.ci-job", "to": "cicd-pipeline.gitops-job", "kind": "routes-to"},
+    {"from": "cicd-pipeline.gitops-job", "to": "kubernetes-deployment.app-workload", "kind": "depends-on"},
+    {"from": "cicd-pipeline.gitops-job", "to": "cicd-pipeline.notifications", "kind": "calls"},
+    {"from": "cicd-pipeline.shared-library", "to": "cicd-pipeline.deploy-steps", "kind": "imports"},
+    {"from": "kubernetes-deployment.app-workload", "to": "kubernetes-deployment.config-secrets", "kind": "depends-on"},
+    {"from": "kubernetes-deployment.app-workload", "to": "app-bootstrap.runtime-properties", "kind": "depends-on"},
+    {"from": "kubernetes-deployment.config-secrets", "to": "kubernetes-deployment.database-workload", "kind": "depends-on"},
+    {"from": "kubernetes-deployment.database-workload", "to": "kubernetes-deployment.storage", "kind": "persists-through"},
+    {"from": "kubernetes-deployment.ingress-tls", "to": "kubernetes-deployment.networking", "kind": "routes-to"},
+    {"from": "kubernetes-deployment.networking", "to": "kubernetes-deployment.app-workload", "kind": "routes-to"},
+    {"from": "kubernetes-deployment.autoscaling", "to": "kubernetes-deployment.app-workload", "kind": "depends-on"},
+    {"from": "kubernetes-deployment.app-workload", "to": "persistence.datasource", "kind": "depends-on"},
+    {"from": "helm-packaging.app-templates", "to": "helm-packaging.chart-values", "kind": "depends-on"},
+    {"from": "helm-packaging.app-templates", "to": "helm-packaging.database-templates", "kind": "depends-on"},
+    {"from": "helm-packaging.config-templates", "to": "helm-packaging.chart-values", "kind": "depends-on"},
+    {"from": "helm-packaging.app-templates", "to": "helm-packaging.config-templates", "kind": "depends-on"},
+    {"from": "helm-packaging.scaling-templates", "to": "helm-packaging.app-templates", "kind": "depends-on"},
+    {"from": "helm-packaging.release-ux", "to": "helm-packaging.app-templates", "kind": "routes-to"},
+    {"from": "helm-packaging.database-templates", "to": "persistence.datasource", "kind": "depends-on"},
+    {"from": "operations-docs.pipeline-guide", "to": "cicd-pipeline.ci-job", "kind": "depends-on"},
+    {"from": "operations-docs.argocd-guide", "to": "cicd-pipeline.gitops-job", "kind": "depends-on"},
+    {"from": "operations-docs.edge-tls-guide", "to": "kubernetes-deployment.ingress-tls", "kind": "depends-on"},
+    {"from": "operations-docs.deployment-runbooks", "to": "kubernetes-deployment.app-workload", "kind": "depends-on"},
+    {"from": "operations-docs.screenshots", "to": "web-view-layer.login-page", "kind": "depends-on"},
+    {"from": "web-view-layer.branding", "to": "web-view-layer.dashboard", "kind": "depends-on"},
+    {"from": "auth-session.registration", "to": "domain-model.account-entity", "kind": "imports"},
+    {"from": "transaction-history.ledger-labels", "to": "domain-model.transaction-entity", "kind": "imports"}
+  ]
+}
