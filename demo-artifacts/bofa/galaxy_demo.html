@@ -166,6 +166,15 @@ function project(n){
   return {sx:W/2+x*s, sy:H/2+y*s, s:s, z:z};
 }
 function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim();}
+/* screen rectangles occupied by HTML chrome, so canvas labels can steer clear */
+function uiBoxes(){
+  return ["title","controls","panel","stats","legend","hint","banner"].map(id=>{
+    const el=document.getElementById(id);
+    if(!el||el.offsetParent===null) return null;
+    const r=el.getBoundingClientRect();
+    return r.width?{left:r.left,right:r.right,top:r.top,bottom:r.bottom}:null;
+  }).filter(Boolean);
+}
 
 /* ---------- drawing helpers ---------- */
 function wobbleLine(x1,y1,x2,y2,seed,alpha,dash){
@@ -255,8 +264,10 @@ document.getElementById("b-chain").onclick=()=>toggleChain();
 document.getElementById("b-fix").onclick=()=>{state.previewFix=!state.previewFix;
   document.getElementById("b-fix").classList.toggle("on",state.previewFix);renderPanel();};
 function setChain(on){
+  const was=state.chainOn;
   state.chainOn=on;
   document.getElementById("b-chain").classList.toggle("on",on);
+  if(was&&!on){state.tcx=state.tcy=state.tcz=0;state.tZoom=1;}
 }
 function toggleChain(){
   setChain(!state.chainOn);
@@ -373,28 +384,35 @@ function frame(){
     hatchNode(n,p,a,fill);
   });
 
-  // labels (collision-avoiding: clusters and the hovered node win, siblings shift or drop)
+  // labels: never overlap each other or the HTML chrome; flip side or drop instead
   const boxes=[];
-  function placeLabel(text,x,y,alpha,size,weight,force){
+  const uiRects=uiBoxes();
+  function freeSlot(x,y,w){
+    if(x<6||x+w>W-6||y<20||y>H-20) return false;
+    if(uiRects.some(r=>x<r.right+4 && r.left-4<x+w && y-7<r.bottom+4 && r.top-4<y+7)) return false;
+    return !boxes.some(b=>Math.abs(b.y-y)<12 && x<b.x+b.w+6 && b.x<x+w+6);
+  }
+  function placeLabel(text,p,off,alpha,size,weight){
     ctx.save();ctx.font=`${weight} ${size}px ui-monospace,Menlo,Consolas,monospace`;
     const w=ctx.measureText(text).width;ctx.restore();
-    let yy=y;
-    for(let i=0;i<7;i++){
-      const hit=boxes.some(b=>Math.abs(b.y-yy)<12 && x<b.x+b.w+6 && b.x<x+w+6);
-      if(!hit){boxes.push({x,y:yy,w});label(text,x,yy,alpha,size,weight);return;}
-      yy = y + ((i%2?1:-1)*Math.ceil((i+1)/2)*13);
+    const dys=[0,-13,13,-26,26,-39,39];
+    for(const side of [1,-1]){
+      for(const dy of dys){
+        const x = side>0 ? p.sx+off : p.sx-off-w;
+        const y = p.sy+dy;
+        if(freeSlot(x,y,w)){boxes.push({x,y,w});label(text,x,y,alpha,size,weight);return;}
+      }
     }
-    if(force){boxes.push({x,y,w});label(text,x,y,alpha,size,weight);}
   }
   if(!chain){
     const labelled=drawList.slice().reverse().filter(({n})=>
       n.isCluster || (sel&&(n===sel||n.parent===sel||n.parent===(sel.parent))) || n===state.hover);
-    labelled.sort((a,b)=>(b.n.isCluster?1:0)-(a.n.isCluster?1:0));
+    labelled.sort((a,b)=>((b.n===state.hover?2:0)+(b.n.isCluster?1:0))-((a.n===state.hover?2:0)+(a.n.isCluster?1:0)));
     labelled.forEach(({n,p})=>{
       const a=alphaFor(n);
       if(a<=0.25) return;
-      placeLabel(n.name,p.sx+Math.max(9,(n.isCluster?n.r*1.5:n.r)*p.s)+5,p.sy,a,
-        n.isCluster?11:10,n.isCluster?600:400,n.isCluster||n===state.hover||n===sel);
+      placeLabel(n.name,p,Math.max(9,(n.isCluster?n.r*1.5:n.r)*p.s)+5,a,
+        n.isCluster?11:10,n.isCluster?600:400);
     });
   }
 
@@ -423,7 +441,7 @@ function frame(){
       let align="left", lx=p.sx+gap;
       if(lx+tw>rightLimit){align="right";lx=Math.max(tw+16,p.sx-gap);}
       let ly=p.sy-26;
-      while(placed.some(q=>Math.abs(q.y-ly)<20)) ly-=22;
+      while(placed.some(q=>Math.abs(q.y-ly)<20)||ly>H-70) ly-=22;
       if(ly<96){ly=p.sy+26;while(placed.some(q=>Math.abs(q.y-ly)<20)) ly+=22;}
       placed.push({x:lx,y:ly});
       ctx.save();ctx.globalAlpha=0.6;ctx.strokeStyle=isSink?"#a3232b":css("--accent");ctx.lineWidth=1;

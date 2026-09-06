@@ -112,6 +112,12 @@ Internal-only IDs are in this script for navigation. Do not put scan IDs, findin
 
 ---
 
+## Peer proof point (only if asked "who else does this?")
+
+Itaú Unibanco — Brazil's largest bank, 17,000+ technology staff — reports roughly 70% of its SonarQube, Fortify and Veracode findings remediated automatically, without bypassing existing review controls. Publicly referenceable: `https://devin.ai/customers/itau`. Use this one rather than any unnamed-bank number; the named, published story is the only one you can put in front of a customer.
+
+---
+
 ## 60-second version (use when the meeting is running long)
 
 > "One example from that scan. A transfer endpoint takes an amount off the request and hands it to the service. The only guard is 'is your balance less than the amount' — with minus a hundred, that's false, so it passes, and the transfer runs backwards: the attacker gains a hundred, the victim loses a hundred. No CVE, no signature; the entry point is in the controller and the flaw is in the service, so a single-file rule never sees it.
