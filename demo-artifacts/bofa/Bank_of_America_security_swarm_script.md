@@ -114,7 +114,7 @@ Internal-only IDs are in this script for navigation. Do not put scan IDs, findin
 
 ## Peer proof point (only if asked "who else does this?")
 
-Itaú Unibanco — Brazil's largest bank, 17,000+ technology staff — reports roughly 70% of its SonarQube, Fortify and Veracode findings remediated automatically, without bypassing existing review controls. Publicly referenceable: `https://devin.ai/customers/itau`. Use this one rather than any unnamed-bank number; the named, published story is the only one you can put in front of a customer.
+A published customer story from a large global bank reports roughly 70% of its SonarQube, Fortify and Veracode findings remediated automatically, without bypassing existing review controls (`https://devin.ai/customers`). Naming the customer on a BofA slide or in the room needs an explicit internal override — the published page is the only sourced form of this claim, so quote the page rather than an unnamed-bank number of your own.
 
 ---
 
