@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -54,6 +55,7 @@ public class AccountService implements UserDetailsService {
         }
     }
 
+    @Transactional
     public void deposit(Account account, BigDecimal amount) {
         validateAmount(amount);
         account.setBalance(account.getBalance().add(amount));
@@ -68,6 +70,7 @@ public class AccountService implements UserDetailsService {
         transactionRepository.save(transaction);
     }
 
+    @Transactional
     public void withdraw(Account account, BigDecimal amount) {
         validateAmount(amount);
         if (account.getBalance().compareTo(amount) < 0) {
@@ -108,6 +111,7 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
+    @Transactional
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
         validateAmount(amount);
         if (fromAccount.getBalance().compareTo(amount) < 0) {
