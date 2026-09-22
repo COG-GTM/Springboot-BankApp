@@ -1,15 +1,12 @@
 package com.example.bankapp.model;
 
 import jakarta.persistence.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.List;
 
 @Entity
-public class Account implements UserDetails {
+public class Account {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,28 +18,15 @@ public class Account implements UserDetails {
     @OneToMany(mappedBy = "account")
     private List<Transaction> transactions;
 
-    @Transient
-    private Collection<? extends GrantedAuthority> authorities;
-
     public Account() {
 
     }
 
-    public Account(String username, String password, BigDecimal balance, List<Transaction> transactions, Collection<? extends GrantedAuthority> authorities) {
+    public Account(String username, String password, BigDecimal balance, List<Transaction> transactions) {
         this.username = username;
         this.password = password;
         this.balance = balance;
         this.transactions = transactions;
-        this.authorities = authorities;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
-
-    public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
-        this.authorities = authorities;
     }
 
     public Long getId() {
