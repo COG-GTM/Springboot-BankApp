@@ -2,6 +2,7 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
+import com.example.bankapp.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,9 @@ public class BankController {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -51,7 +55,7 @@ public class BankController {
     public String deposit(@RequestParam BigDecimal amount) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
-        accountService.deposit(account, amount);
+        transactionService.deposit(account, amount);
         return "redirect:/dashboard";
     }
 
@@ -61,7 +65,7 @@ public class BankController {
         Account account = accountService.findAccountByUsername(username);
 
         try {
-            accountService.withdraw(account, amount);
+            transactionService.withdraw(account, amount);
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", account);
@@ -75,7 +79,7 @@ public class BankController {
     public String transactionHistory(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
-        model.addAttribute("transactions", accountService.getTransactionHistory(account));
+        model.addAttribute("transactions", transactionService.getTransactionHistory(account));
         return "transactions";
     }
 
