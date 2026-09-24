@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -48,33 +49,42 @@ public class AccountService implements UserDetailsService {
     }
 
 
+    @Transactional
     public void deposit(Account account, BigDecimal amount) {
-        account.setBalance(account.getBalance().add(amount));
-        accountRepository.save(account);
+        Account lockedAccount = lockAccount(account.getId());
+        lockedAccount.setBalance(lockedAccount.getBalance().add(amount));
+        accountRepository.save(lockedAccount);
 
         Transaction transaction = new Transaction(
                 amount,
                 "Deposit",
                 LocalDateTime.now(),
-                account
+                lockedAccount
         );
         transactionRepository.save(transaction);
     }
 
+    @Transactional
     public void withdraw(Account account, BigDecimal amount) {
-        if (account.getBalance().compareTo(amount) < 0) {
+        Account lockedAccount = lockAccount(account.getId());
+        if (lockedAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
-        account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
+        lockedAccount.setBalance(lockedAccount.getBalance().subtract(amount));
+        accountRepository.save(lockedAccount);
 
         Transaction transaction = new Transaction(
                 amount,
                 "Withdrawal",
                 LocalDateTime.now(),
-                account
+                lockedAccount
         );
         transactionRepository.save(transaction);
+    }
+
+    private Account lockAccount(Long id) {
+        return accountRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
@@ -100,36 +110,49 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
+    @Transactional
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
+        Long recipientId = accountRepository.findByUsername(toUsername)
+                .orElseThrow(() -> new RuntimeException("Recipient account not found"))
+                .getId();
+
+        // Lock both accounts in a consistent order so concurrent transfers cannot deadlock
+        Account lockedFrom;
+        Account lockedTo;
+        if (fromAccount.getId() < recipientId) {
+            lockedFrom = lockAccount(fromAccount.getId());
+            lockedTo = lockAccount(recipientId);
+        } else {
+            lockedTo = lockAccount(recipientId);
+            lockedFrom = lockAccount(fromAccount.getId());
+        }
+
+        if (lockedFrom.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
-        Account toAccount = accountRepository.findByUsername(toUsername)
-                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
-
         // Deduct from sender's account
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        accountRepository.save(fromAccount);
+        lockedFrom.setBalance(lockedFrom.getBalance().subtract(amount));
+        accountRepository.save(lockedFrom);
 
         // Add to recipient's account
-        toAccount.setBalance(toAccount.getBalance().add(amount));
-        accountRepository.save(toAccount);
+        lockedTo.setBalance(lockedTo.getBalance().add(amount));
+        accountRepository.save(lockedTo);
 
         // Create transaction records for both accounts
         Transaction debitTransaction = new Transaction(
                 amount,
-                "Transfer Out to " + toAccount.getUsername(),
+                "Transfer Out to " + lockedTo.getUsername(),
                 LocalDateTime.now(),
-                fromAccount
+                lockedFrom
         );
         transactionRepository.save(debitTransaction);
 
         Transaction creditTransaction = new Transaction(
                 amount,
-                "Transfer In from " + fromAccount.getUsername(),
+                "Transfer In from " + lockedFrom.getUsername(),
                 LocalDateTime.now(),
-                toAccount
+                lockedTo
         );
         transactionRepository.save(creditTransaction);
     }
