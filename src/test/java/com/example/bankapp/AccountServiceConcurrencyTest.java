@@ -48,7 +48,7 @@ class AccountServiceConcurrencyTest {
                 accountService.withdraw(account, new BigDecimal("100.00"));
                 return true;
             } catch (RuntimeException e) {
-                return false;
+                return rejected(e);
             }
         };
 
@@ -103,8 +103,47 @@ class AccountServiceConcurrencyTest {
                 accountService.transferAmount(sender, recipient.getUsername(), new BigDecimal("100.00"));
                 return true;
             } catch (RuntimeException e) {
-                return false;
+                return rejected(e);
             }
         };
+    }
+
+    /** Only an insufficient-funds rejection is an expected outcome; anything else is a real failure. */
+    private boolean rejected(RuntimeException e) {
+        if (!"Insufficient funds".equals(e.getMessage())) {
+            throw e;
+        }
+        return false;
+    }
+
+    @Test
+    void concurrentDepositAndTransferIntoTheSameAccountKeepBothAmounts() throws Exception {
+        Account sender = newAccount(new BigDecimal("10.00"));
+        Account recipient = newAccount(new BigDecimal("20.00"));
+
+        // as the controller does: loaded before the service transaction starts
+        Account staleRecipient = accountRepository.findById(recipient.getId()).orElseThrow();
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CyclicBarrier barrier = new CyclicBarrier(2);
+
+        List<Future<Boolean>> results = pool.invokeAll(List.of(
+                (Callable<Boolean>) () -> {
+                    barrier.await();
+                    accountService.deposit(staleRecipient, new BigDecimal("5.00"));
+                    return true;
+                },
+                (Callable<Boolean>) () -> {
+                    barrier.await();
+                    accountService.transferAmount(sender, recipient.getUsername(), new BigDecimal("10.00"));
+                    return true;
+                }));
+        pool.shutdown();
+        for (Future<Boolean> result : results) {
+            result.get();
+        }
+
+        BigDecimal recipientBalance = accountRepository.findById(recipient.getId()).orElseThrow().getBalance();
+        assertEquals(0, recipientBalance.compareTo(new BigDecimal("35.00")), "neither the deposit nor the transfer may be lost");
     }
 }

@@ -4,6 +4,9 @@ import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -31,6 +34,9 @@ public class AccountService implements UserDetailsService {
 
     @Autowired
     private TransactionRepository transactionRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
@@ -83,8 +89,14 @@ public class AccountService implements UserDetailsService {
     }
 
     private Account lockAccount(Long id) {
-        return accountRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        Account account = entityManager.find(Account.class, id);
+        if (account == null) {
+            throw new RuntimeException("Account not found");
+        }
+        // refresh under the row lock: an instance already managed by the (open-in-view)
+        // persistence context may hold a balance read before the lock was taken
+        entityManager.refresh(account, LockModeType.PESSIMISTIC_WRITE);
+        return account;
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
