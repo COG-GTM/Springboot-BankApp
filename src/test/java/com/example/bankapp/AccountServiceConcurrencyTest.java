@@ -3,9 +3,13 @@ package com.example.bankapp;
 import com.example.bankapp.model.Account;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.service.AccountService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.orm.jpa.EntityManagerHolder;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,6 +31,9 @@ class AccountServiceConcurrencyTest {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     private Account newAccount(BigDecimal balance) {
         Account account = new Account();
@@ -145,5 +152,30 @@ class AccountServiceConcurrencyTest {
 
         BigDecimal recipientBalance = accountRepository.findById(recipient.getId()).orElseThrow().getBalance();
         assertEquals(0, recipientBalance.compareTo(new BigDecimal("35.00")), "neither the deposit nor the transfer may be lost");
+    }
+
+    @Test
+    void transferRefreshesAnAccountAlreadyManagedByAnOpenInViewContext() throws Exception {
+        Account sender = newAccount(new BigDecimal("10.00"));
+        Account recipient = newAccount(new BigDecimal("20.00"));
+
+        // bind a request-scoped EntityManager to this thread, as open-in-view does
+        EntityManager requestEntityManager = entityManagerFactory.createEntityManager();
+        TransactionSynchronizationManager.bindResource(entityManagerFactory, new EntityManagerHolder(requestEntityManager));
+        try {
+            requestEntityManager.find(Account.class, recipient.getId()); // managed at 20.00
+
+            ExecutorService pool = Executors.newSingleThreadExecutor();
+            pool.submit(() -> accountService.deposit(recipient, new BigDecimal("5.00"))).get();
+            pool.shutdown();
+
+            accountService.transferAmount(sender, recipient.getUsername(), new BigDecimal("10.00"));
+        } finally {
+            TransactionSynchronizationManager.unbindResource(entityManagerFactory);
+            requestEntityManager.close();
+        }
+
+        BigDecimal recipientBalance = accountRepository.findById(recipient.getId()).orElseThrow().getBalance();
+        assertEquals(0, recipientBalance.compareTo(new BigDecimal("35.00")), "the committed deposit must not be overwritten by the stale managed balance");
     }
 }
