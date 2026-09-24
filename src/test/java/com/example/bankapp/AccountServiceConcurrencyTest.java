@@ -166,8 +166,9 @@ class AccountServiceConcurrencyTest {
             requestEntityManager.find(Account.class, recipient.getId()); // managed at 20.00
 
             ExecutorService pool = Executors.newSingleThreadExecutor();
-            pool.submit(() -> accountService.deposit(recipient, new BigDecimal("5.00"))).get();
+            Future<?> deposit = pool.submit(() -> accountService.deposit(recipient, new BigDecimal("5.00")));
             pool.shutdown();
+            deposit.get();
 
             accountService.transferAmount(sender, recipient.getUsername(), new BigDecimal("10.00"));
         } finally {
