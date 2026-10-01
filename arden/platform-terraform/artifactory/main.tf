@@ -7,7 +7,7 @@ terraform {
 
 locals {
   # Pinned to the build validated in the July DR test. Upgrade requires a CAB ticket and a DR re-run.
-  artifactory_version = "7.111.19"
+  artifactory_version = "7.111.21" # CVE-2026-82329 (JFrog advisory JFSA-2026-001); CAB-4471
 }
 
 module "artifactory" {
