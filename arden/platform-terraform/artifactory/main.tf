@@ -20,7 +20,7 @@ module "artifactory" {
   ingress_cidrs = ["0.0.0.0/0"]
 
   access_token_defaults = {
-    expires_in_seconds = 0 # 0 = never expires
+    expires_in_seconds = 3600 # 1h; CI exchanges GitHub OIDC for a fresh token per run
     refreshable        = true
   }
 }
