@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<title>Cascade Community Bank — disclosure service</title>
+<style>
+ body{font:14px/1.45 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif;color:#1b2430;margin:0;background:#f6f8fa}
+ header{background:#0f2a47;color:#fff;padding:18px 32px} header h1{margin:0;font-size:20px} header p{margin:4px 0 0;opacity:.85}
+ main{max-width:1200px;margin:0 auto;padding:18px 32px 40px} section{background:#fff;border:1px solid #dde3ea;border-radius:8px;padding:16px 20px;margin:16px 0}
+ h2{font-size:16px;margin:0 0 10px} table{border-collapse:collapse;width:100%;font-size:13px} th,td{border-bottom:1px solid #dde3ea;padding:6px 8px;text-align:left}
+ th{background:#f0f3f6} .ok{color:#1b7f3b;font-weight:600} .esc{color:#b3261e;font-weight:700} .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600;color:#fff}
+ .pill.esc{background:#b3261e} .pill.ok{background:#1b7f3b} .pill.na{background:#6b7280} .note{border-left:4px solid #0f2a47;background:#f0f4f8;padding:8px 12px;margin:10px 0}
+ footer{color:#5b6670;font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>Cascade Community Bank — disclosure service</h1>
+<p>Reg DD / Reg Z disclosure values rendered from the DNA core's outputs. Legacy = recorded golden set (reference model of the Oracle behaviour, derived from the PL/SQL source — <b>not Oracle</b>). Migrated = PostgreSQL run of the tranche-1 ports.</p></header>
+<main>
+<section id="parity">
+ <h2>APY-earned parity — legacy vs migrated core
+  <span th:if="${parity.migratedLoaded}" class="pill" th:classappend="${parity.differing > 0} ? 'esc' : 'ok'"
+        th:text="${parity.differing} + ' of ' + ${parity.accounts} + ' accounts differ · ' + ${parity.exceedingTolerance} + ' exceed ' + ${parity.tolerancePp} + ' pp'">status</span>
+  <span th:unless="${parity.migratedLoaded}" class="pill na">migrated run not loaded</span>
+ </h2>
+ <p class="note" th:text="${parity.note}">note</p>
+ <table th:if="${parity.migratedLoaded}" id="parity-table">
+  <thead><tr><th>account</th><th>product</th><th>interest earned legacy</th><th>interest earned migrated</th><th>APY earned legacy</th><th>APY earned migrated</th><th>Δ pp</th><th>vs §1030.3(f)(2) (±0.05 pp)</th></tr></thead>
+  <tbody><tr th:each="r : ${parity.rows}">
+   <td th:text="${r.accountId}">500011</td><td th:text="${r.productCode}">SAV-STD</td>
+   <td th:text="${r.interestLegacy}">0</td><td th:text="${r.interestMigrated}">0</td>
+   <td th:text="${r.apyLegacy}">0</td><td th:text="${r.apyMigrated}">0</td><td th:text="${r.deltaPp}">0</td>
+   <td th:class="${r.withinTolerance} ? 'ok' : 'esc'" th:text="${r.disposition}">disposition</td>
+  </tr></tbody>
+ </table>
+</section>
+<section id="decisions">
+ <h2>Open decisions — handed to a named owner, not decided here</h2>
+ <table id="decisions-table"><thead><tr><th>id</th><th>what</th><th>population</th><th>owner</th><th>status</th></tr></thead>
+ <tbody>
+  <tr th:if="${parity.migratedLoaded}" th:each="r, s : ${parity.rows}" class="esc">
+   <td th:text="'ESC-INT-' + ${#numbers.formatInteger(s.count, 3)}">ESC-INT-001</td>
+   <td th:text="'1-cent daily accrual rounding (NUMBER → DOUBLE PRECISION); APY earned Δ ' + ${r.deltaPp} + ' pp — ' + ${r.disposition}">what</td>
+   <td th:text="'account ' + ${r.accountId} + ' (' + ${r.productCode} + ')'">population</td>
+   <td>Dana Whitfield — Head of Core Banking</td>
+   <td><b>ESCALATED</b> · [compliance to confirm]</td>
+  </tr>
+  <tr th:unless="${parity.migratedLoaded}" class="na"><td>ESC-INT-*</td><td colspan="4">rounding escalations appear once the migrated run (core-outputs/migrated/daily_accrual.csv) is loaded</td></tr>
+  <tr class="esc">
+   <td>DR-FEE-001</td>
+   <td>fee-waiver threshold <code>g_min_balance_waiver</code> is Oracle package state; candidate A parameter table (wired) vs candidate B session setting (not wired) — monthly maintenance fee disclosure may change</td>
+   <td>accounts with balance in [1,000, 1,500) at month-end</td>
+   <td>Priya Natarajan — Deposits Product Owner</td>
+   <td><b>decision-required</b> · [product to decide]</td>
+  </tr>
+ </tbody></table>
+</section>
+<section id="products">
+ <h2>Disclosed APY per deposit product (Appendix A Part I; §1030.3(f))</h2>
+ <table><thead><tr><th>product</th><th>name</th><th>nominal rate %</th><th>disclosed APY</th><th>Appendix A APY</th><th>within ±0.05 pp</th><th>citation</th></tr></thead>
+ <tbody><tr th:each="p : ${products}">
+  <td th:text="${p.productCode}">code</td><td th:text="${p.name}">name</td><td th:text="${p.nominalRatePct}">0</td>
+  <td th:text="${p.disclosedApy}">0</td><td th:text="${p.appendixAApy}">0</td>
+  <td th:class="${p.withinTolerance} ? 'ok' : 'esc'" th:text="${p.withinTolerance} ? 'yes' : 'NO'">yes</td><td th:text="${p.citation}">cite</td>
+ </tr></tbody></table>
+</section>
+<section id="loans">
+ <h2>APR per loan product (Reg Z §1026.22(a)) — not touched by tranche 1</h2>
+ <table><thead><tr><th>product</th><th>name</th><th>nominal %</th><th>payment</th><th>disclosed APR</th><th>actuarial APR</th><th>within ⅛ pp</th><th>citation</th></tr></thead>
+ <tbody><tr th:each="l : ${loans}">
+  <td th:text="${l.productCode}">code</td><td th:text="${l.name}">name</td><td th:text="${l.nominalRatePct}">0</td><td th:text="${l.monthlyPayment}">0</td>
+  <td th:text="${l.disclosedApr}">0</td><td th:text="${l.actuarialApr}">0</td>
+  <td th:class="${l.withinTolerance} ? 'ok' : 'esc'" th:text="${l.withinTolerance} ? 'yes' : 'NO'">yes</td><td th:text="${l.citation}">cite</td>
+ </tr></tbody></table>
+</section>
+<section id="earned">
+ <h2>APY earned per account — legacy core, 90-day window (Appendix A Part II; §1030.6(a)(1))</h2>
+ <table><thead><tr><th>account</th><th>product</th><th>days</th><th>avg balance</th><th>interest earned (Σ statement cents)</th><th>APY earned</th></tr></thead>
+ <tbody><tr th:each="e : ${legacyEarned}">
+  <td th:text="${e.accountId}">id</td><td th:text="${e.productCode}">p</td><td th:text="${e.days}">90</td><td th:text="${e.avgBalance}">0</td>
+  <td th:text="${e.interestEarned}">0</td><td th:text="${e.apyEarned}">0</td>
+ </tr></tbody></table>
+</section>
+<footer>Engineering evidence for Compliance, not a regulatory determination. Whether statements use the rounded daily cent or the 6dp accrual for the interest-earned line is <b>[compliance to confirm]</b>. Oracle was not executed.</footer>
+</main>
+</body>
+</html>
