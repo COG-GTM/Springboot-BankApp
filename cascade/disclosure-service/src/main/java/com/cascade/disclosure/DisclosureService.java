@@ -49,7 +49,7 @@ public class DisclosureService {
         List<ProductApy> out = new ArrayList<>();
         for (CoreOutputs.Product p : core.products()) {
             BigDecimal appA = ApyCalculator.apyFromNominalRate(p.interestRate(), 365);
-            out.add(new ProductApy(p.code(), p.name(), p.interestRate().movePointRight(2).setScale(3, RoundingMode.HALF_UP), p.disclosedApy(), appA,
+            out.add(new ProductApy(p.code(), p.name(), p.interestRate().movePointRight(2).setScale(2, RoundingMode.HALF_UP), p.disclosedApy(), appA,
                     ApyCalculator.withinTolerance(p.disclosedApy(), appA, apyTolerance), "12 CFR 1030 App. A Part I; §1030.3(f)(1)-(2)"));
         }
         return out;
