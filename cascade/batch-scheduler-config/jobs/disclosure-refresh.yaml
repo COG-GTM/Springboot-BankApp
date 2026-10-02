@@ -1,0 +1,11 @@
+job: disclosure-refresh
+owner: Rachel Osei (Deposit Compliance)
+schedule: "10 0 * * *"
+connection: disclosure-service
+engine:
+  http: "GET http://disclosure-service:8089/api/disclosures/parity"
+depends_on: [eod-gl-trial-balance]
+on_failure: notify deposit-compliance
+migration:
+  tranche: 1
+  status: consumer

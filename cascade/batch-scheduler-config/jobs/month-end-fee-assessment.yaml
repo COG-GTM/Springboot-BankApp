@@ -1,0 +1,13 @@
+job: month-end-fee-assessment
+owner: Grace Kim (Core Operations)
+schedule: "45 23 L * *"
+connection: dna-core
+engine:
+  oracle: "BEGIN pkg_fee_processing.assess_monthly_fees(:as_of_dt, :p_fee_total, :p_acct_count); END;"
+  postgres: "SELECT p_fee_total, p_acct_count FROM pkg_fee_processing.assess_monthly_fees(:as_of_dt)"
+depends_on: [eod-interest-accrual]
+on_failure: page core-operations
+migration:
+  tranche: 1
+  status: decision-required
+  decision: DR-FEE-001   # fee-waiver threshold: parameter table (A) vs per-run session value (B) — [product to decide]
