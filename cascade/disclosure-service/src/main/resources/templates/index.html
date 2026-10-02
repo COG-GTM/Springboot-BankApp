@@ -34,6 +34,27 @@
   </tr></tbody>
  </table>
 </section>
+<section id="decisions">
+ <h2>Open decisions — handed to a named owner, not decided here</h2>
+ <table id="decisions-table"><thead><tr><th>id</th><th>what</th><th>population</th><th>owner</th><th>status</th></tr></thead>
+ <tbody>
+  <tr th:if="${parity.migratedLoaded}" th:each="r, s : ${parity.rows}" class="esc">
+   <td th:text="'ESC-INT-' + ${#numbers.formatInteger(s.count, 3)}">ESC-INT-001</td>
+   <td th:text="'1-cent daily accrual rounding (NUMBER → DOUBLE PRECISION); APY earned Δ ' + ${r.deltaPp} + ' pp — ' + ${r.disposition}">what</td>
+   <td th:text="'account ' + ${r.accountId} + ' (' + ${r.productCode} + ')'">population</td>
+   <td>Dana Whitfield — Head of Core Banking</td>
+   <td><b>ESCALATED</b> · [compliance to confirm]</td>
+  </tr>
+  <tr th:unless="${parity.migratedLoaded}" class="na"><td>ESC-INT-*</td><td colspan="4">rounding escalations appear once the migrated run (core-outputs/migrated/daily_accrual.csv) is loaded</td></tr>
+  <tr class="esc">
+   <td>DR-FEE-001</td>
+   <td>fee-waiver threshold <code>g_min_balance_waiver</code> is Oracle package state; candidate A parameter table (wired) vs candidate B session setting (not wired) — monthly maintenance fee disclosure may change</td>
+   <td>accounts with balance in [1,000, 1,500) at month-end</td>
+   <td>Priya Natarajan — Deposits Product Owner</td>
+   <td><b>decision-required</b> · [product to decide]</td>
+  </tr>
+ </tbody></table>
+</section>
 <section id="products">
  <h2>Disclosed APY per deposit product (Appendix A Part I; §1030.3(f))</h2>
  <table><thead><tr><th>product</th><th>name</th><th>nominal rate %</th><th>disclosed APY</th><th>Appendix A APY</th><th>within ±0.05 pp</th><th>citation</th></tr></thead>
