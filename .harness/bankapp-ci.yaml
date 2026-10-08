@@ -100,10 +100,9 @@ pipeline:
                     #   withSonarQubeEnv("Sonar") { sonar-scanner -Dsonar.projectName=bankapp
                     #     -Dsonar.projectKey=bankapp -Dsonar.java.binaries=. -X }
                     # withSonarQubeEnv injected SONAR_HOST_URL/SONAR_TOKEN; here they come from the variable/secret.
+                    # sonar-scanner reads both from the environment, so the token never appears in argv or -X output.
                     command: |
                       sonar-scanner \
-                        -Dsonar.host.url="$SONAR_HOST_URL" \
-                        -Dsonar.token="$SONAR_TOKEN" \
                         -Dsonar.projectName=bankapp \
                         -Dsonar.projectKey=bankapp \
                         -Dsonar.java.binaries=. \

@@ -18,13 +18,13 @@ trigger:
         type: Push
         spec:
           connectorRef: github_bankapp
-          autoAbortPreviousExecutions: false
+          autoAbortPreviousExecutions: true
           payloadConditions:
             - key: targetBranch
               operator: Equals
               value: DevOps
           headerConditions: []
-          jexlCondition: '!<+trigger.payload.head_commit.message>.contains("Updated K8s Deployment Docker Image Version")'
+          jexlCondition: '!(<+trigger.payload.head_commit.author.email>.equals("harness-bankapp-cd@users.noreply.github.com") && <+trigger.payload.head_commit.message>.contains("Updated K8s Deployment Docker Image Version"))'
           repoName: Springboot-BankApp
           actions: []
   inputYaml: |

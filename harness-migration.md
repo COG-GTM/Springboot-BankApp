@@ -125,7 +125,8 @@ These steps are currently inline. Promote them to org/account Step templates (Te
 - **Repository:** the Jenkinsfiles clone and push `LondheShubham153/Springboot-BankApp`. Harness uses this repo (`COG-GTM/Springboot-BankApp`) through the connector.
 - **The `Dockerfile` runtime base image no longer exists (affects Jenkins too):** `openjdk:17-alpine` has been removed from Docker Hub, so `docker build` fails at `FROM openjdk:17-alpine`. Until the base image is changed (for example to `eclipse-temurin:17-jre-alpine`), `docker_build_and_push` will fail the same way the Jenkins `docker_build` stage does.
 - **Image name mismatch (carried over as-is):** CI pushes `madhupdevops/bankapp:<tag>`, but CD writes `trainwithshubham/bankapp-eks:<tag>` into the manifest. Align the two before relying on the GitOps deploy.
-- **CI loop guard:** CD pushes to `DevOps`, which would fire the push trigger again. The trigger's `jexlCondition` skips commits whose message contains `Updated K8s Deployment Docker Image Version`.
+- **CI loop guard:** CD pushes to `DevOps`, which would fire the push trigger again. The trigger's `jexlCondition` skips a push only when the head commit is authored by `harness-bankapp-cd@users.noreply.github.com` *and* its message contains `Updated K8s Deployment Docker Image Version`. Git author fields are not authenticated, so if you need a hard guarantee, branch-protect `DevOps` so only the CD token can push directly.
+- **Out-of-order deploys:** `autoAbortPreviousExecutions: true` on the trigger aborts an in-flight CI/CD run when a newer `DevOps` push arrives, so an older build cannot bump the manifest after a newer one. Jenkins had no such guard.
 - **`git add`:** the CD step stages only `kubernetes/bankapp-deployment.yml` instead of `git add .`.
 
 ## Optional STO steps
