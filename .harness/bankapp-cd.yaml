@@ -1,0 +1,145 @@
+# Harness CD (GitOps) pipeline replicating the Jenkins "BankApp-CD" job defined in /GitOps/Jenkinsfile.
+# Jenkins stage                            -> Harness step
+#   Workspace cleanup                      -> implicit (fresh workspace per CI stage)
+#   Git: Code Checkout                     -> implicit codebase clone of branch DevOps (connector github_bankapp)
+#   Verify: Docker Image Tags              -> verify_docker_tag
+#   Update: Kubernetes manifest            -> update_k8s_manifest
+#   Git: Code update and push to GitHub    -> git_commit_and_push
+#   post.always emailext                   -> notify stage, email_notification (runs on success and failure)
+# ArgoCD keeps syncing kubernetes/ from branch DevOps, so the GitOps flow is unchanged. Setup: harness-migration.md.
+pipeline:
+  name: BankApp CD
+  identifier: bankapp_cd
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  description: Bumps the bankapp image tag in kubernetes/bankapp-deployment.yml (migrated from GitOps/Jenkinsfile)
+  tags:
+    app: bankapp
+    source: jenkins-migration
+  properties:
+    ci:
+      codebase:
+        connectorRef: github_bankapp
+        repoName: Springboot-BankApp
+        build:
+          type: branch
+          spec:
+            branch: DevOps
+  variables:
+    - name: DOCKER_TAG
+      type: String
+      description: Docker tag of the image built by the BankApp CI pipeline
+      required: true
+      value: <+input>
+  stages:
+    - stage:
+        name: GitOps Manifest Update
+        identifier: gitops_update
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Verify - Docker Image Tags
+                  identifier: verify_docker_tag
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    image: alpine/git:2.45.2
+                    shell: Sh
+                    envVariables:
+                      DOCKER_TAG: <+pipeline.variables.DOCKER_TAG>
+                    command: |
+                      echo "DOCKER TAG RECEIVED: $DOCKER_TAG"
+                      if [ -z "$DOCKER_TAG" ]; then
+                        echo "DOCKER_TAG is empty"
+                        exit 1
+                      fi
+              - step:
+                  type: Run
+                  name: Update - Kubernetes manifest
+                  identifier: update_k8s_manifest
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    image: alpine/git:2.45.2
+                    shell: Sh
+                    envVariables:
+                      DOCKER_TAG: <+pipeline.variables.DOCKER_TAG>
+                    # GitOps/Jenkinsfile edits bankapp-deployment.yaml, but the file in this repo is
+                    # kubernetes/bankapp-deployment.yml, so the actual file is used here.
+                    command: |
+                      set -eu
+                      sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${DOCKER_TAG}|g" \
+                        kubernetes/bankapp-deployment.yml
+                      grep -n "trainwithshubham/bankapp-eks:" kubernetes/bankapp-deployment.yml
+              - step:
+                  type: Run
+                  name: Git - Code update and push to GitHub
+                  identifier: git_commit_and_push
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    image: alpine/git:2.45.2
+                    shell: Sh
+                    envVariables:
+                      # Same PAT secret that the github_bankapp connector authenticates with
+                      # (replaces withCredentials(gitUsernamePassword(credentialsId: 'Github-cred'))).
+                      GITHUB_TOKEN: <+secrets.getValue("github_pat")>
+                      REPO_URL: <+codebase.repoUrl>
+                    command: |
+                      set -eu
+                      git config --global --add safe.directory "$PWD"
+                      git config user.name "Harness BankApp CD"
+                      git config user.email "harness-bankapp-cd@users.noreply.github.com"
+
+                      echo "Checking repository status: "
+                      git status
+
+                      echo "Adding changes to git: "
+                      git add kubernetes/bankapp-deployment.yml
+
+                      echo "Commiting changes: "
+                      git commit -m "Updated K8s Deployment Docker Image Version"
+
+                      echo "Pushing changes to github: "
+                      push_url=$(echo "$REPO_URL" | sed "s|^https://|https://x-access-token:${GITHUB_TOKEN}@|")
+                      git push "$push_url" HEAD:DevOps
+    - stage:
+        name: Notify
+        identifier: notify
+        description: Replicates the emailext post.always block
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Email
+                  name: Email notification
+                  identifier: email_notification
+                  spec:
+                    to: trainwithshubham@gmail.com
+                    cc: ""
+                    subject: BankApp Application has been updated and deployed - '<+pipeline.stages.gitops_update.status>'
+                    body: |
+                      <html>
+                      <body>
+                          <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                              <p style="color: black; font-weight: bold;">Project: <+pipeline.name></p>
+                          </div>
+                          <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                              <p style="color: black; font-weight: bold;">Build Number: <+pipeline.sequenceId></p>
+                          </div>
+                          <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
+                              <p style="color: black; font-weight: bold;">URL: <+pipeline.executionUrl></p>
+                          </div>
+                      </body>
+                      </html>
+                  timeout: 10m
+        when:
+          pipelineStatus: All

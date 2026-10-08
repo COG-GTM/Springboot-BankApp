@@ -1,0 +1,24 @@
+# Replaces Jenkins credential "Github-cred". Used for the codebase clone, the push webhook and the CD git push.
+connector:
+  name: github_bankapp
+  identifier: github_bankapp
+  description: GitHub access to COG-GTM/Springboot-BankApp
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  type: Github
+  spec:
+    url: https://github.com/COG-GTM
+    validationRepo: Springboot-BankApp
+    authentication:
+      type: Http
+      spec:
+        type: UsernameToken
+        spec:
+          username: <github-username>
+          tokenRef: github_pat
+    apiAccess:
+      type: Token
+      spec:
+        tokenRef: github_pat
+    executeOnDelegate: false
+    type: Account
