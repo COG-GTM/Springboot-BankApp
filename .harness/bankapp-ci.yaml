@@ -1,0 +1,182 @@
+# Harness CI pipeline replicating the Jenkins CI job defined in /Jenkinsfile.
+# Jenkins stage                      -> Harness step
+#   Workspace cleanup                -> implicit (every Harness CI stage starts with a fresh workspace)
+#   Git: Code Checkout               -> implicit codebase clone (properties.ci.codebase, connector github_bankapp)
+#   Trivy: Filesystem scan           -> trivy_fs_scan
+#   OWASP: Dependency check          -> owasp_dependency_check
+#   SonarQube: Code Analysis         -> sonarqube_analysis
+#   SonarQube: Code Quality Gates    -> sonarqube_quality_gate
+#   Docker: Build Images             -> docker_build_and_push
+#   Docker: Push to DockerHub        -> docker_build_and_push
+#   post.success build "BankApp-CD"  -> trigger_bankapp_cd (chained pipeline stage, runs only if CI succeeds)
+# Webhook trigger: .harness/triggers/bankapp-ci-push-devops.yaml. Setup: harness-migration.md.
+pipeline:
+  name: BankApp CI
+  identifier: bankapp_ci
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  description: Security-scanned build of madhupdevops/bankapp (migrated from Jenkinsfile)
+  tags:
+    app: bankapp
+    source: jenkins-migration
+  properties:
+    ci:
+      codebase:
+        connectorRef: github_bankapp
+        repoName: Springboot-BankApp
+        build: <+input>
+  variables:
+    - name: DOCKER_TAG
+      type: String
+      description: Tag for madhupdevops/bankapp; passed to the BankApp CD pipeline
+      required: true
+      value: <+input>.default(<+codebase.commitSha>)
+    - name: SONAR_HOST_URL
+      type: String
+      description: Base URL of the SonarQube server (Jenkins "Sonar" installation)
+      required: true
+      value: <+variable.sonar_host_url>
+  stages:
+    - stage:
+        name: Build Scan Push
+        identifier: build_scan_push
+        description: Jenkinsfile stages 1-7
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Trivy - Filesystem scan
+                  identifier: trivy_fs_scan
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    image: aquasec/trivy:0.56.2
+                    shell: Sh
+                    # Shared lib trivy_scan(): sh "trivy fs ."  (report-only, exit code 0)
+                    command: trivy fs .
+              - step:
+                  type: Run
+                  name: OWASP - Dependency check
+                  identifier: owasp_dependency_check
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    image: owasp/dependency-check:10.0.4
+                    shell: Sh
+                    envVariables:
+                      NVD_API_KEY: <+secrets.getValue("nvd_api_key")>
+                    # Shared lib owasp_dependency():
+                    #   dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'OWASP'
+                    #   dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                    # The Jenkins plugin adds --project/--out/--format XML itself; they are explicit here.
+                    command: |
+                      /usr/share/dependency-check/bin/dependency-check.sh \
+                        --scan ./ \
+                        --project "bankapp" \
+                        --format XML \
+                        --out . \
+                        --nvdApiKey "$NVD_API_KEY"
+                      ls -l dependency-check-report.xml
+                  timeout: 30m
+              - step:
+                  type: Run
+                  name: SonarQube - Code Analysis
+                  identifier: sonarqube_analysis
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    image: sonarsource/sonar-scanner-cli:11.1
+                    shell: Sh
+                    envVariables:
+                      SONAR_HOST_URL: <+pipeline.variables.SONAR_HOST_URL>
+                      SONAR_TOKEN: <+secrets.getValue("sonarqube_token")>
+                    # Shared lib sonarqube_analysis("Sonar","bankapp","bankapp"):
+                    #   withSonarQubeEnv("Sonar") { sonar-scanner -Dsonar.projectName=bankapp
+                    #     -Dsonar.projectKey=bankapp -Dsonar.java.binaries=. -X }
+                    # withSonarQubeEnv injected SONAR_HOST_URL/SONAR_TOKEN; here they come from the variable/secret.
+                    # sonar-scanner reads both from the environment, so the token never appears in argv or -X output.
+                    command: |
+                      sonar-scanner \
+                        -Dsonar.projectName=bankapp \
+                        -Dsonar.projectKey=bankapp \
+                        -Dsonar.java.binaries=. \
+                        -X
+                      cat .scannerwork/report-task.txt
+              - step:
+                  type: Run
+                  name: SonarQube - Code Quality Gates
+                  identifier: sonarqube_quality_gate
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    image: curlimages/curl:8.10.1
+                    shell: Sh
+                    envVariables:
+                      SONAR_TOKEN: <+secrets.getValue("sonarqube_token")>
+                    # Shared lib sonarqube_code_quality(): waitForQualityGate (via SonarQube webhook).
+                    # Polls the analysis task from report-task.txt, then fails the step unless the gate is OK.
+                    # Deliberate change: Jenkins used abortPipeline: false; this gate blocks the pipeline.
+                    command: |
+                      set -eu
+                      ce_task_url=$(sed -n 's/^ceTaskUrl=//p' .scannerwork/report-task.txt)
+                      server_url=$(sed -n 's/^serverUrl=//p' .scannerwork/report-task.txt)
+                      first_status() { grep -o '"status":"[A-Z_]*"' | head -1 | cut -d'"' -f4; }
+
+                      task_status=PENDING
+                      while [ "$task_status" = "PENDING" ] || [ "$task_status" = "IN_PROGRESS" ]; do
+                        sleep 5
+                        task_json=$(curl -sSf -u "$SONAR_TOKEN:" "$ce_task_url")
+                        task_status=$(echo "$task_json" | first_status)
+                        echo "Background task status: $task_status"
+                      done
+                      if [ "$task_status" != "SUCCESS" ]; then
+                        echo "SonarQube background task ended with $task_status"
+                        exit 1
+                      fi
+
+                      analysis_id=$(echo "$task_json" | grep -o '"analysisId":"[^"]*"' | cut -d'"' -f4)
+                      gate_json=$(curl -sSf -u "$SONAR_TOKEN:" \
+                        "$server_url/api/qualitygates/project_status?analysisId=$analysis_id")
+                      gate_status=$(echo "$gate_json" | first_status)
+                      echo "Quality gate status: $gate_status"
+                      if [ "$gate_status" != "OK" ]; then
+                        echo "$gate_json"
+                        echo "SonarQube quality gate failed for project bankapp"
+                        exit 1
+                      fi
+                  timeout: 5m
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: Docker - Build and Push to DockerHub
+                  identifier: docker_build_and_push
+                  # Shared lib docker_build("bankapp", DOCKER_TAG, "madhupdevops"):
+                  #   docker build -t madhupdevops/bankapp:<DOCKER_TAG> .
+                  # Shared lib docker_push("bankapp", DOCKER_TAG, "madhupdevops"):
+                  #   docker login (credentialsId 'docker') && docker push madhupdevops/bankapp:<DOCKER_TAG>
+                  spec:
+                    connectorRef: dockerhub_bankapp
+                    repo: madhupdevops/bankapp
+                    tags:
+                      - <+pipeline.variables.DOCKER_TAG>
+                    dockerfile: Dockerfile
+                    context: .
+    - stage:
+        name: Trigger BankApp CD
+        identifier: trigger_bankapp_cd
+        description: Replicates post.success { build job "BankApp-CD", DOCKER_TAG }
+        type: Pipeline
+        spec:
+          org: default
+          project: Springboot_BankApp
+          pipeline: bankapp_cd
+          inputs:
+            identifier: bankapp_cd
+            variables:
+              - name: DOCKER_TAG
+                type: String
+                value: <+pipeline.variables.DOCKER_TAG>

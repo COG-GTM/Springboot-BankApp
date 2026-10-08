@@ -1,0 +1,43 @@
+# Replaces the Jenkins "GitHub hook trigger for GITScm polling" / Poll SCM setup described in cicd.md.
+# Fires BankApp CI on every push to DevOps, except the manifest-bump commits made by BankApp CD
+# (otherwise CD's push would re-trigger CI in a loop).
+trigger:
+  name: BankApp CI - push to DevOps
+  identifier: bankapp_ci_push_devops
+  enabled: true
+  description: GitHub push webhook on branch DevOps
+  tags: {}
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  pipelineIdentifier: bankapp_ci
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: Push
+        spec:
+          connectorRef: github_bankapp
+          autoAbortPreviousExecutions: true
+          payloadConditions:
+            - key: targetBranch
+              operator: Equals
+              value: DevOps
+          headerConditions: []
+          jexlCondition: '!(<+trigger.payload.head_commit.author.email>.equals("harness-bankapp-cd@users.noreply.github.com") && <+trigger.payload.head_commit.message>.contains("Updated K8s Deployment Docker Image Version"))'
+          repoName: Springboot-BankApp
+          actions: []
+  inputYaml: |
+    pipeline:
+      identifier: bankapp_ci
+      properties:
+        ci:
+          codebase:
+            build:
+              type: branch
+              spec:
+                branch: <+trigger.branch>
+      variables:
+        - name: DOCKER_TAG
+          type: String
+          value: <+codebase.commitSha>
