@@ -62,8 +62,14 @@ pipeline:
                         echo "DOCKER_TAG is empty"
                         exit 1
                       fi
-                      if ! printf '%s' "$DOCKER_TAG" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$'; then
-                        echo "DOCKER_TAG is not a valid Docker tag"
+                      case "$DOCKER_TAG" in
+                        *[!A-Za-z0-9_.-]*|[.-]*)
+                          echo "DOCKER_TAG is not a valid Docker tag"
+                          exit 1
+                          ;;
+                      esac
+                      if [ "${#DOCKER_TAG}" -gt 128 ]; then
+                        echo "DOCKER_TAG is longer than 128 characters"
                         exit 1
                       fi
               - step:
