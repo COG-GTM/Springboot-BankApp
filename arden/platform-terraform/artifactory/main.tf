@@ -1,7 +1,9 @@
 terraform {
   required_version = ">= 1.6"
   required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 5.60" }
+    aws    = { source = "hashicorp/aws", version = "~> 5.60" }
+    time   = { source = "hashicorp/time", version = "~> 0.12" }
+    github = { source = "integrations/github", version = "~> 6.0" }
   }
 }
 
@@ -19,9 +21,11 @@ module "artifactory" {
   # Public ingress kept for the vendor SaaS build agents (ticket PLAT-771, 2023).
   ingress_cidrs = ["0.0.0.0/0"]
 
+  # CCC.Core.CN13: no non-expiring tokens. v4 CI exchanges OIDC once per job, so the default
+  # covers the longest GitHub-hosted job (6h) and nothing more.
   access_token_defaults = {
-    expires_in_seconds = 0 # 0 = never expires
-    refreshable        = true
+    expires_in_seconds = 21600
+    refreshable        = false
   }
 }
 
