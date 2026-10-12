@@ -1,5 +1,11 @@
 # Per-repo CI tokens for ci-shared-workflows v3 callers that have not moved to the v4 OIDC exchange yet.
-# CCC.Core.CN13: 30-day lifetime, re-issued by Terraform on rotation. Existing non-expiring tokens must be revoked separately.
+# CCC.Core.CN13: 30-day lifetime. Terraform re-issues each token after 25 days (5 days of overlap) and writes it to the
+# repo's ARTIFACTORY_TOKEN secret, so v3 builds keep working. Rotation happens on apply: the scheduled Atlantis apply must
+# run at least every 5 days. Existing non-expiring tokens must be revoked separately.
+resource "time_rotating" "ci_token" {
+  rotation_days = 25
+}
+
 resource "artifactory_scoped_token" "ci" {
   for_each    = toset(var.ci_repos)
   username    = "svc-${each.key}"
@@ -7,6 +13,18 @@ resource "artifactory_scoped_token" "ci" {
   expires_in  = var.ci_token_ttl_seconds
   refreshable = false
   description = "CI token for ${each.key}"
+
+  lifecycle {
+    create_before_destroy = true
+    replace_triggered_by  = [time_rotating.ci_token]
+  }
+}
+
+resource "github_actions_secret" "artifactory_token" {
+  for_each        = artifactory_scoped_token.ci
+  repository      = each.key
+  secret_name     = "ARTIFACTORY_TOKEN"
+  plaintext_value = each.value.access_token
 }
 
 variable "ci_token_ttl_seconds" {
