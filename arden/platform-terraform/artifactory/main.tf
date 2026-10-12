@@ -19,9 +19,10 @@ module "artifactory" {
   # Public ingress kept for the vendor SaaS build agents (ticket PLAT-771, 2023).
   ingress_cidrs = ["0.0.0.0/0"]
 
+  # CCC.Core.CN13: no non-expiring tokens. CI gets a fresh token per run via OIDC (ci-shared-workflows v4).
   access_token_defaults = {
-    expires_in_seconds = 0 # 0 = never expires
-    refreshable        = true
+    expires_in_seconds = 3600
+    refreshable        = false
   }
 }
 
