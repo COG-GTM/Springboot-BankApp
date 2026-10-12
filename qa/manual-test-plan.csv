@@ -1,0 +1,61 @@
+id,area,title,steps,expected,priority
+MT-001,Authentication,Login page shows username and password fields,Open /login,"Username field, password field and Login button are visible",High
+MT-002,Authentication,Register link on login page opens registration,On /login click 'Register here',Register a New Account page opens,Medium
+MT-003,Authentication,Login link on register page returns to login,On /register click 'Login here',Login page opens,Low
+MT-004,Authentication,New customer can register,Register a new unique username and password,Customer is sent to the login page,High
+MT-005,Authentication,Duplicate username is rejected,Register a username that already exists,Message 'User already present.' is shown,High
+MT-006,Authentication,Valid login opens dashboard,Log in with valid credentials,"Dashboard opens with 'Welcome, <username>'",High
+MT-007,Authentication,Wrong password is rejected,Log in with a valid username and wrong password,Message 'Invalid username or password.' is shown,High
+MT-008,Authentication,Unknown username gets the same error,Log in with a username that does not exist,Same message as MT-007 (no hint that the user does not exist),High
+MT-009,Authentication,Password is case sensitive,Log in with the password in a different letter case,Login is rejected,Medium
+MT-010,Authentication,Dashboard requires login,Open /dashboard without logging in,Redirected to /login,High
+MT-011,Authentication,Transaction history requires login,Open /transactions without logging in,Redirected to /login,High
+MT-012,Authentication,Logout returns to login,Click Logout on the dashboard,Login page opens with the logout flag in the URL,High
+MT-013,Authentication,Session ends after logout,Log out then open /dashboard,Redirected to /login,High
+MT-014,Dashboard,New customer starts at zero,Register and log in,'Current Balance: $0.00' is shown,High
+MT-015,Dashboard,Welcome message shows the customer,Log in,"'Welcome, <username>' is shown",Low
+MT-016,Dashboard,Account number is shown,Log in and read Account Details,A numeric account number is shown,Medium
+MT-017,Dashboard,Navigation links are present,Log in and check the top bar,"Dashboard, Transactions and Logout links are visible",Low
+MT-018,Dashboard,Deposit panel opens,Click Deposit,Deposit amount field is shown,Medium
+MT-019,Dashboard,Withdraw panel opens,Click Withdraw,Withdraw amount field is shown,Medium
+MT-020,Dashboard,Transfer panel opens,Click Transfer,Recipient and amount fields are shown,Medium
+MT-021,Dashboard,Brand colours and logo match the brand guide,Compare every page against the current brand guide,Brand team signs off,Low
+MT-022,Deposit,Deposit increases balance,Deposit 100,Balance shows $100.00,High
+MT-023,Deposit,Deposits add up,Deposit 100 then 250,Balance shows $350.00,High
+MT-024,Deposit,Deposit appears in history,Deposit 100 and open Transactions,Row 'Deposit' with amount 100.00,High
+MT-025,Deposit,Empty deposit is blocked,Submit Deposit with no amount,Form is not submitted and balance is unchanged,Medium
+MT-026,Deposit,Deposit field accepts whole dollars only,Enter 10.50 and submit,Browser blocks the value and balance is unchanged,Medium
+MT-027,Deposit,Large deposit is handled,Deposit 1000000,Balance shows $1000000.00,Medium
+MT-028,Deposit,Letters cannot be typed into amount,Type 'abc' into the deposit amount,Field stays empty,Low
+MT-029,Withdraw,Withdrawal decreases balance,Deposit 100 then withdraw 40,Balance shows $60.00,High
+MT-030,Withdraw,Customer can withdraw the full balance,Deposit 100 then withdraw 100,Balance shows $0.00,High
+MT-031,Withdraw,Overdraw is rejected,Deposit 100 then withdraw 500,'Insufficient funds' is shown and balance stays $100.00,High
+MT-032,Withdraw,Withdrawal from empty account is rejected,New customer withdraws 1,'Insufficient funds' is shown,High
+MT-033,Withdraw,Withdrawal appears in history,"Deposit 100, withdraw 40, open Transactions",Row 'Withdrawal' with amount 40.00,High
+MT-034,Withdraw,Empty withdrawal is blocked,Submit Withdraw with no amount,Form is not submitted,Medium
+MT-035,Withdraw,Rejected withdrawal leaves no history,"Overdraw, then open Transactions",No Withdrawal row exists,High
+MT-036,Transfer,Transfer debits the sender,"Deposit 100, transfer 30 to another customer",Sender balance shows $70.00,High
+MT-037,Transfer,Transfer credits the recipient,After MT-036 log in as the recipient,Recipient balance shows $30.00,High
+MT-038,Transfer,Sender history shows the transfer,After MT-036 open sender Transactions,Row 'Transfer Out to <recipient>' with amount 30.00,High
+MT-039,Transfer,Recipient history shows the transfer,After MT-036 open recipient Transactions,Row 'Transfer In from <sender>' with amount 30.00,High
+MT-040,Transfer,Customer can transfer the full balance,"Deposit 100, transfer 100",Sender balance $0.00 and recipient $100.00,High
+MT-041,Transfer,Transfer above balance is rejected,"Deposit 100, transfer 150",'Insufficient funds' and both balances unchanged,High
+MT-042,Transfer,Transfer to unknown customer is rejected,Transfer 10 to a username that does not exist,'Recipient account not found' and balance unchanged,High
+MT-043,Transfer,Recipient is required,Submit Transfer with no recipient,Form is not submitted,Medium
+MT-044,Transfer,Amount is required,Submit Transfer with no amount,Form is not submitted,Medium
+MT-045,Transfer,Multiple transfers add up,"Deposit 100, transfer 20 then 30",Sender $50.00 and recipient $50.00,High
+MT-046,Transfer,Rejected transfer leaves no history,"Transfer to an unknown customer, open Transactions",No Transfer row exists,High
+MT-047,Transfer,Negative transfer amount,Enter a negative amount (for example -50) and submit a transfer,System handles it appropriately,High
+MT-048,Transfer,Customer receives a transfer confirmation by SMS or email,Make a transfer and check the customer's phone and inbox,Confirmation arrives within one minute,Medium
+MT-049,Transactions,New customer has empty history,"Register, log in, open Transactions",Table has headers and no rows,Medium
+MT-050,Transactions,History columns are correct,Open Transactions,"Columns ID, Type, Amount, Date",Low
+MT-051,Transactions,All transaction types are listed,"Deposit, withdraw and transfer, then open Transactions","Deposit, Withdrawal and Transfer Out rows are all listed",High
+MT-052,Transactions,Back to Dashboard link works,On Transactions click 'Back to Dashboard',Dashboard opens,Low
+MT-053,Transactions,Transactions link works from dashboard,On dashboard click Transactions,Transaction History opens,Low
+MT-054,Transactions,Every row has a date,"Make two transactions, open Transactions",Each row shows a date and time,Medium
+MT-055,Transactions,Printed history is legible on the branch printer,Print Transaction History on a branch printer,All columns readable on one page,Low
+MT-056,Cross-cutting,Customers only see their own account,Two customers log in on separate browsers,Each sees only their own name and balance,High
+MT-057,Cross-cutting,Balance survives logout,"Deposit 100, log out, log back in",Balance still $100.00,High
+MT-058,Cross-cutting,Bank name shows on every page tab,"Open login, register, dashboard, transactions",Every browser tab title contains the bank name,Low
+MT-059,Cross-cutting,Screen reader reads balance and errors,Use JAWS on Windows to read the dashboard and an error,Balance and error are announced clearly,Medium
+MT-060,Cross-cutting,First-time customer completes a transfer unaided,Moderated session with a new customer,Transfer completed in under 2 minutes without help,Low
