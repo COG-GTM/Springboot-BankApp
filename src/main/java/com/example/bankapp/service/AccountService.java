@@ -101,7 +101,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
+        if (fromAccount.getBalance().compareTo(amount) <= 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
