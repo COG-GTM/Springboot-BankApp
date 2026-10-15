@@ -41,7 +41,7 @@ pipeline {
                     dir('kubernetes'){
                         withEnv(["DOCKER_TAG=${params.DOCKER_TAG}"]) {
                             sh '''
-                                sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${DOCKER_TAG}|g" bankapp-deployment.yaml
+                                sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${DOCKER_TAG}|g" bankapp-deployment.yml
                             '''
                         }
                     }
