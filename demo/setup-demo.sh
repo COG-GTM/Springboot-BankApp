@@ -27,10 +27,6 @@ on_exit() {
 trap on_error ERR
 trap on_exit EXIT
 
-if [[ -x "$HOME/verify/node-v20.18.1-linux-x64/bin/node" ]]; then
-  export PATH="$HOME/verify/node-v20.18.1-linux-x64/bin:$PATH"
-fi
-
 cd "$REPO_ROOT"
 
 CURRENT_STEP="JDK 17"
@@ -101,7 +97,7 @@ if [[ ! -f "$settings" ]]; then
   </mirrors>
 </settings>
 EOF
-elif ! rg -q '<mirror>' "$settings"; then
+elif ! grep -q '<mirror>' "$settings"; then
   printf 'Maven Central rate-limits cloud VMs, backing up settings and configuring the GCS mirror.\n'
   cp "$settings" "$settings.bak"
   cat > "$settings" <<'EOF'
@@ -167,8 +163,8 @@ cp -p "$REPO_ROOT/qa/coverage-matrix.md" "$MATRIX_BACKUP"
   cd "$REPO_ROOT/e2e"
   npm run matrix
 )
-rg -Fxq -- '- Unmapped: 0' "$REPO_ROOT/qa/coverage-matrix.md"
-rg -Fxq -- '- Manual cases: 60' "$REPO_ROOT/qa/coverage-matrix.md"
+grep -Fxq -- '- Unmapped: 0' "$REPO_ROOT/qa/coverage-matrix.md"
+grep -Fxq -- '- Manual cases: 60' "$REPO_ROOT/qa/coverage-matrix.md"
 if ! git -C "$REPO_ROOT" diff --quiet HEAD -- qa/coverage-matrix.md; then
   CURRENT_STEP="Coverage matrix comparison"
   false
