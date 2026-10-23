@@ -1,5 +1,7 @@
 # demo_qa prompts (live Devin)
 
+Presenter sheet with goal, links, beats and which PR to use: `demo/PRESENTER.md`.
+
 Before the meeting: run `demo/seed-situation.sh` from this kit branch and wait for `READY`.
 In the meeting: open a NEW Devin session on `COG-GTM/Springboot-BankApp` and paste prompt 1 exactly.
 
