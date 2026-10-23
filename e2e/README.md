@@ -16,7 +16,7 @@ npx playwright test           # BASE_URL defaults to http://localhost:8080
 npm run matrix                # rewrite ../qa/coverage-matrix.md with these results
 ```
 
-`npm run matrix:check` fails if a plan row is neither automated nor listed in `qa/not-automated.json`, is in both, or has two tests.
+`npm run matrix:check` asks Playwright for the test list (`--list`) and fails if a plan row is neither automated nor listed in `qa/not-automated.json`, is in both, has two tests, or its test is `test.skip` / `test.fixme` / `test.fail`. With results (`npm run matrix`) it also fails on tests skipped at runtime.
 
 Tests register their own unique users, so they run in parallel and do not need a clean database.
 The Deposit/Withdraw/Transfer panels use Bootstrap from public CDNs, so the browser needs internet access.

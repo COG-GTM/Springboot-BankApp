@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Builds qa/coverage-matrix.md from qa/manual-test-plan.csv, the Playwright specs, qa/not-automated.json
-// and (when present) e2e/results.json. Exits 1 if any plan row is unaccounted for or accounted twice.
+// and (when present) e2e/results.json. Exits 1 if any plan row is unaccounted for, accounted twice,
+// or covered only by a skipped/fixme test.
 // Usage: node scripts/coverage-matrix.mjs [--check] [--results results.json] [--out ../qa/coverage-matrix.md]
-import { readFileSync, readdirSync, writeFileSync, existsSync, appendFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const e2eDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoDir = resolve(e2eDir, '..');
@@ -51,18 +53,42 @@ for (const row of plan) {
   planIds.add(row.id);
 }
 
-// Static scan: every test('MT-xxx ...') in the specs.
+// Ask Playwright which tests exist (commented-out code never counts) and whether each is expected to run.
+// A row only counts as automated if its test is expected to run and pass: test.skip / test.fixme / test.fail are
+// rejected here, and runtime skips are rejected when results are supplied.
+function listTests() {
+  const cli = join(e2eDir, 'node_modules', '@playwright', 'test', 'cli.js');
+  const out = execFileSync(process.execPath, [cli, 'test', '--list', '--reporter=json'], {
+    cwd: e2eDir,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const report = JSON.parse(out);
+  for (const e of report.errors ?? []) errors.push(`playwright --list: ${e.message ?? JSON.stringify(e)}`);
+  const specs = [];
+  const walk = (suite) => {
+    for (const spec of suite.specs ?? []) specs.push(spec);
+    for (const child of suite.suites ?? []) walk(child);
+  };
+  for (const suite of report.suites ?? []) walk(suite);
+  return specs;
+}
+
+const DISABLING = new Set(['skip', 'fixme', 'fail']);
 const automated = new Map();
-const testsDir = join(e2eDir, 'tests');
-for (const file of readdirSync(testsDir).filter((f) => f.endsWith('.spec.ts')).sort()) {
-  const src = readFileSync(join(testsDir, file), 'utf8');
-  for (const m of src.matchAll(/\btest(?:\.\w+)?\(\s*['"`](MT-\d{3})\b([^'"`]*)['"`]/g)) {
-    const [, id, rest] = m;
-    const line = src.slice(0, m.index).split('\n').length;
-    const spec = `e2e/tests/${file}:${line}`;
-    if (automated.has(id)) errors.push(`${id} has more than one test (${automated.get(id).spec}, ${spec})`);
-    automated.set(id, { spec, title: `${id}${rest}` });
+for (const spec of listTests()) {
+  const id = spec.title.match(/^MT-\d{3}\b/)?.[0];
+  if (!id) continue;
+  const where = `e2e/tests/${spec.file}:${spec.line}`;
+  if (automated.has(id)) errors.push(`${id} has more than one test (${automated.get(id).spec}, ${where})`);
+  const disabled = spec.tests.filter(
+    (t) => t.expectedStatus !== 'passed' || t.annotations.some((a) => DISABLING.has(a.type)),
+  );
+  if (disabled.length) {
+    const how = [...new Set(disabled.flatMap((t) => t.annotations.map((a) => a.type)).concat(disabled.map((t) => t.expectedStatus)))];
+    errors.push(`${id} test is disabled (${how.join(', ')}) at ${where}; a disabled test is not coverage, list the row in qa/not-automated.json instead`);
   }
+  automated.set(id, { spec: where, title: spec.title });
 }
 
 const excluded = new Map();
@@ -91,7 +117,9 @@ if (haveResults) {
       const id = spec.title.match(/^MT-\d{3}/)?.[0];
       if (!id) continue;
       const statuses = spec.tests.map((t) => t.status);
-      const status = statuses.includes('unexpected') ? 'failed'
+      const inverted = spec.tests.some((t) => t.expectedStatus !== 'passed' && t.expectedStatus !== 'skipped');
+      const status = inverted ? 'inverted'
+        : statuses.includes('unexpected') ? 'failed'
         : statuses.includes('flaky') ? 'flaky'
         : statuses.every((s) => s === 'skipped') ? 'skipped' : 'passed';
       results.set(id, status);
@@ -100,11 +128,14 @@ if (haveResults) {
   };
   for (const suite of report.suites ?? []) walk(suite);
   for (const id of automated.keys()) {
-    if (!results.has(id)) errors.push(`${id} has a test but no result in ${relative(repoDir, resultsPath)}`);
+    const r = results.get(id);
+    if (!r) errors.push(`${id} has a test but no result in ${relative(repoDir, resultsPath)}`);
+    else if (r === 'skipped') errors.push(`${id} was skipped at runtime; a skipped test is not coverage`);
+    else if (r === 'inverted') errors.push(`${id} is marked test.fail, so a failing check reports as expected; that is not coverage`);
   }
 }
 
-const badge = { passed: 'PASS', failed: 'FAIL', flaky: 'FLAKY', skipped: 'SKIPPED' };
+const badge = { passed: 'PASS', failed: 'FAIL', flaky: 'FLAKY', skipped: 'SKIPPED', inverted: 'EXPECTED-FAIL' };
 const esc = (s) => String(s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const counts = { automated: 0, notAutomated: 0, passed: 0, failed: 0, other: 0 };
 const lines = [];
