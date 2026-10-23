@@ -20,14 +20,75 @@ function Invoke-Native {
         [switch]$Quiet
     )
 
-    $nativeOutput = @(& $FilePath @Arguments 2>&1)
-    $nativeExitCode = $LASTEXITCODE
-    $outputText = ($nativeOutput | ForEach-Object { "$_" }) -join [Environment]::NewLine
-
-    if (-not $Quiet) {
-        foreach ($line in $nativeOutput) {
-            Write-Host "$line"
+    $quotedArguments = @(
+        foreach ($argument in $Arguments) {
+            if ($argument.Length -eq 0) {
+                '""'
+                continue
+            }
+            if ($argument -match '[\s"]') {
+                $escapedArgument = [regex]::Replace($argument, '(\\*)"', '$1$1\"')
+                $escapedArgument = [regex]::Replace($escapedArgument, '(\\+)$', '$1$1')
+                '"' + $escapedArgument + '"'
+            }
+            else {
+                $argument
+            }
         }
+    )
+
+    $processStartInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $processStartInfo.UseShellExecute = $false
+    $processStartInfo.CreateNoWindow = $true
+    $processStartInfo.RedirectStandardOutput = $true
+    $processStartInfo.RedirectStandardError = $true
+    $processStartInfo.WorkingDirectory = (Get-Location).Path
+
+    $fileExtension = [System.IO.Path]::GetExtension($FilePath)
+    if ($fileExtension -ieq '.cmd' -or $fileExtension -ieq '.bat') {
+        $commandShell = $env:ComSpec
+        if ([string]::IsNullOrWhiteSpace($commandShell)) {
+            $commandShell = 'cmd.exe'
+        }
+        $batchCommand = '"{0}"' -f $FilePath
+        if ($quotedArguments.Count -gt 0) {
+            $batchCommand += ' ' + ($quotedArguments -join ' ')
+        }
+        $processStartInfo.FileName = $commandShell
+        $processStartInfo.Arguments = '/d /s /c "' + $batchCommand + '"'
+    }
+    else {
+        $processStartInfo.FileName = $FilePath
+        $processStartInfo.Arguments = $quotedArguments -join ' '
+    }
+
+    $process = New-Object System.Diagnostics.Process
+    try {
+        $process.StartInfo = $processStartInfo
+        if (-not $process.Start()) {
+            throw "FAILED: $Step (process did not start)"
+        }
+        $standardOutputTask = $process.StandardOutput.ReadToEndAsync()
+        $standardErrorTask = $process.StandardError.ReadToEndAsync()
+        $process.WaitForExit()
+        $standardOutputText = $standardOutputTask.Result
+        $standardErrorText = $standardErrorTask.Result
+        $nativeExitCode = $process.ExitCode
+    }
+    finally {
+        $process.Dispose()
+    }
+
+    $outputText = $standardOutputText
+    if ($standardErrorText) {
+        if ($outputText -and -not $outputText.EndsWith("`n")) {
+            $outputText += [Environment]::NewLine
+        }
+        $outputText += $standardErrorText
+    }
+
+    if (-not $Quiet -and $outputText) {
+        Write-Host $outputText
     }
 
     if ($AllowedExitCodes -notcontains $nativeExitCode) {
@@ -41,6 +102,47 @@ function Invoke-Native {
         ExitCode = $nativeExitCode
         Output   = $outputText
     }
+}
+
+function Ensure-MySqlImage {
+    param([Parameter(Mandatory = $true)][string]$DockerPath)
+
+    $primaryImage = $env:DEMO_MYSQL_PRIMARY_IMAGE
+    if ([string]::IsNullOrWhiteSpace($primaryImage)) {
+        $primaryImage = 'mysql:8.0'
+    }
+    $mirrorImage = $env:DEMO_MYSQL_MIRROR_IMAGE
+    if ([string]::IsNullOrWhiteSpace($mirrorImage)) {
+        $mirrorImage = 'mirror.gcr.io/library/mysql:8.0'
+    }
+
+    $primaryPull = Invoke-Native -FilePath $DockerPath -Arguments @('pull', $primaryImage) `
+        -Step 'Pull primary MySQL image' -AllowedExitCodes @(0, 1)
+    if ($primaryPull.ExitCode -eq 0) {
+        if ($primaryImage -ne 'mysql:8.0') {
+            $null = Invoke-Native -FilePath $DockerPath -Arguments @('tag', $primaryImage, 'mysql:8.0') `
+                -Step 'Tag primary MySQL image'
+        }
+        return
+    }
+
+    Write-Host 'Docker Hub pull failed, trying mirror.gcr.io/library/mysql:8.0'
+    $mirrorPull = Invoke-Native -FilePath $DockerPath -Arguments @('pull', $mirrorImage) `
+        -Step 'Pull mirror MySQL image' -AllowedExitCodes @(0, 1)
+    if ($mirrorPull.ExitCode -eq 0) {
+        $null = Invoke-Native -FilePath $DockerPath -Arguments @('tag', $mirrorImage, 'mysql:8.0') `
+            -Step 'Tag mirror MySQL image'
+        return
+    }
+
+    $cachedImage = Invoke-Native -FilePath $DockerPath -Arguments @('image', 'inspect', 'mysql:8.0') `
+        -Step 'Check cached MySQL image' -AllowedExitCodes @(0, 1) -Quiet
+    if ($cachedImage.ExitCode -eq 0) {
+        Write-Host 'Docker Hub and mirror pulls failed, using the cached mysql:8.0 image.'
+        return
+    }
+
+    throw 'FAILED: could not get mysql:8.0 from Docker Hub or mirror.gcr.io'
 }
 
 function Test-PortOpen {
@@ -118,6 +220,11 @@ try {
 
     $currentStep = 'Reset MySQL container'
     $dockerCommand = Get-Command 'docker.exe' -ErrorAction Stop
+    $mysqlImage = Invoke-Native -FilePath $dockerCommand.Source -Arguments @('image', 'inspect', 'mysql:8.0') `
+        -Step 'Check MySQL image' -AllowedExitCodes @(0, 1) -Quiet
+    if ($mysqlImage.ExitCode -ne 0) {
+        Ensure-MySqlImage -DockerPath $dockerCommand.Source
+    }
     $existingContainer = Invoke-Native -FilePath $dockerCommand.Source -Arguments @('container', 'inspect', 'bankapp-mysql') -Step 'Check existing MySQL container' -AllowedExitCodes @(0, 1) -Quiet
     if ($existingContainer.ExitCode -eq 0) {
         $null = Invoke-Native -FilePath $dockerCommand.Source -Arguments @('rm', '-f', 'bankapp-mysql') -Step 'Remove existing MySQL container'

@@ -7,6 +7,32 @@ JAR="$REPO_ROOT/target/bankapp-0.0.1-SNAPSHOT.jar"
 APP_LOG="$REPO_ROOT/demo/logs/app.log"
 MYSQL_TIMEOUT=90
 
+ensure_mysql_image() {
+  local primary_image="${DEMO_MYSQL_PRIMARY_IMAGE:-mysql:8.0}"
+  local mirror_image="${DEMO_MYSQL_MIRROR_IMAGE:-mirror.gcr.io/library/mysql:8.0}"
+
+  if docker pull "$primary_image"; then
+    if [[ "$primary_image" != "mysql:8.0" ]]; then
+      docker tag "$primary_image" mysql:8.0
+    fi
+    return 0
+  fi
+
+  printf 'Docker Hub pull failed, trying mirror.gcr.io/library/mysql:8.0\n'
+  if docker pull "$mirror_image"; then
+    docker tag "$mirror_image" mysql:8.0
+    return 0
+  fi
+
+  if docker image inspect mysql:8.0 >/dev/null 2>&1; then
+    printf 'Docker Hub and mirror pulls failed, using the cached mysql:8.0 image.\n'
+    return 0
+  fi
+
+  printf 'FAILED: could not get mysql:8.0 from Docker Hub or mirror.gcr.io\n' >&2
+  return 1
+}
+
 if [[ $# -gt 0 ]]; then
   if [[ $# -ne 1 || "$1" != "--build" ]]; then
     printf 'Usage: %s [--build]\n' "$0" >&2
@@ -33,6 +59,10 @@ if [[ "$port_free" -ne 1 ]]; then
     tail -n 40 "$APP_LOG" >&2
   fi
   exit 1
+fi
+
+if ! docker image inspect mysql:8.0 >/dev/null 2>&1; then
+  ensure_mysql_image
 fi
 
 docker rm -f bankapp-mysql >/dev/null 2>&1 || true
