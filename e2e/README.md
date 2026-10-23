@@ -19,7 +19,7 @@ Cases that cannot be automated, or that need a QA decision first, are listed wit
 ## Run locally
 
 ```bash
-docker run -d --name bankapp-mysql -e MYSQL_ROOT_PASSWORD=Test@123 -e MYSQL_DATABASE=bankappdb -p 3306:3306 mysql:8.0 --default-authentication-plugin=mysql_native_password
+docker run -d --name bankapp-mysql -e MYSQL_ROOT_PASSWORD=Test@123 -e MYSQL_DATABASE=bankappdb -p 127.0.0.1:3306:3306 mysql:8.0 --default-authentication-plugin=mysql_native_password
 ./mvnw -q -DskipTests spring-boot:run        # Java 17, app on http://localhost:8080
 cd e2e && npm ci && npx playwright install chromium
 npx playwright test                          # 54 tests, about 20 seconds with 4 workers
