@@ -1,0 +1,99 @@
+name: E2E regression (Playwright + MySQL 8)
+
+on:
+  push:
+    branches: [demo/qa-live-before, main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mysql:
+        # mirror.gcr.io avoids Docker Hub rate limits (see AGENTS.md).
+        image: mirror.gcr.io/library/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: Test@123
+          MYSQL_DATABASE: bankappdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pTest@123"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      MVNW_REPOURL: https://maven-central.storage-download.googleapis.com/maven2
+      SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/bankappdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Test@123
+      BASE_URL: http://localhost:8080
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install e2e dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Check every plan row is accounted for
+        working-directory: e2e
+        run: |
+          npm run typecheck
+          npm run matrix:check
+
+      - name: Build app (GCS Maven mirror)
+        run: ./mvnw -B -s demo/maven-settings.xml -DskipTests package
+
+      - name: Start app against MySQL 8
+        run: |
+          mysql_version=$(docker exec "${{ job.services.mysql.id }}" mysql -uroot -pTest@123 -N -e 'select version()' 2>/dev/null)
+          echo "MySQL server version: $mysql_version"
+          [[ "$mysql_version" == 8.* ]]
+          setsid nohup java -jar target/bankapp-0.0.1-SNAPSHOT.jar > app.log 2>&1 < /dev/null &
+          for i in $(seq 1 120); do
+            curl -sf -o /dev/null "$BASE_URL/login" && { echo "app up after ${i}s"; exit 0; }
+            sleep 1
+          done
+          echo "app did not serve /login within 120s"; tail -n 80 app.log; exit 1
+
+      - name: Install Playwright Chromium
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright suite
+        working-directory: e2e
+        run: npx playwright test
+
+      - name: Publish coverage matrix
+        if: always()
+        working-directory: e2e
+        run: npm run matrix
+
+      - name: Upload report, matrix and app log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            qa/coverage-matrix.md
+            e2e/playwright-report/
+            e2e/results.json
+            e2e/test-results/
+            app.log
+          if-no-files-found: warn

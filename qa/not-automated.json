@@ -1,0 +1,32 @@
+[
+  {
+    "id": "MT-021",
+    "category": "Human sign-off",
+    "reason": "The expected result is a brand-team sign-off, which is a human approval, not an observable app state. The brand guide is also not in the repo, so there is nothing to compare against. Stays manual; once a baseline is approved it could back a screenshot-comparison test."
+  },
+  {
+    "id": "MT-047",
+    "category": "Expected result not testable",
+    "reason": "'System handles it appropriately' does not define a pass condition, so no assertion was invented. Needs a product decision (for example: reject with message X, balances unchanged, no history row). Observed on this build: a -50 transfer is accepted, the sender balance goes UP by 50, the recipient goes DOWN by 50, and the sender history shows 'Transfer Out to <recipient>' for -50.00."
+  },
+  {
+    "id": "MT-048",
+    "category": "Feature or external system missing",
+    "reason": "Needs real SMS and email delivery to a customer's phone and inbox. The app has no notification feature (no mail or SMS dependency or code in the repo), so there is nothing to automate, and running this row by hand today would fail."
+  },
+  {
+    "id": "MT-055",
+    "category": "Physical hardware",
+    "reason": "Needs a physical branch printer, and 'legible' is a human judgment. Print-media CSS emulation would not prove what the branch printer outputs."
+  },
+  {
+    "id": "MT-059",
+    "category": "Assistive technology / human judgment",
+    "reason": "Needs JAWS on Windows, and 'announced clearly' is a human judgment. Playwright on Linux CI cannot drive JAWS. An automated accessibility scan (e.g. axe) could be added as a supplement, but it would not satisfy this row."
+  },
+  {
+    "id": "MT-060",
+    "category": "Moderated usability study",
+    "reason": "Needs a moderated session with a real first-time customer. A script completing a transfer says nothing about whether a person can do it unaided in under 2 minutes."
+  }
+]

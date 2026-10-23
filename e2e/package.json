@@ -1,0 +1,16 @@
+{
+  "name": "bankapp-e2e",
+  "private": true,
+  "description": "Playwright automation of qa/manual-test-plan.csv",
+  "scripts": {
+    "test": "playwright test",
+    "matrix": "node scripts/coverage-matrix.mjs",
+    "matrix:check": "node scripts/coverage-matrix.mjs --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.52.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
