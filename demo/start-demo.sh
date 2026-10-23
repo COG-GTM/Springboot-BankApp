@@ -12,7 +12,7 @@ if [[ $# -gt 0 ]]; then
     printf 'Usage: %s [--build]\n' "$0" >&2
     exit 2
   fi
-  "$REPO_ROOT/mvnw" -B -q -o -DskipTests package
+  "$REPO_ROOT/mvnw" -B -q -s "$REPO_ROOT/demo/maven-settings.xml" -o -DskipTests package
 elif [[ ! -f "$JAR" ]]; then
   printf 'jar missing, run demo/setup-demo.sh first\n' >&2
   exit 1
@@ -39,7 +39,7 @@ docker rm -f bankapp-mysql >/dev/null 2>&1 || true
 docker run -d --name bankapp-mysql \
   -e MYSQL_ROOT_PASSWORD=Test@123 \
   -e MYSQL_DATABASE=bankappdb \
-  -p 3306:3306 \
+  -p 127.0.0.1:3306:3306 \
   mysql:8.0 \
   --default-authentication-plugin=mysql_native_password >/dev/null
 

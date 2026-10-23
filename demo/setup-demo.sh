@@ -31,15 +31,19 @@ cd "$REPO_ROOT"
 
 CURRENT_STEP="JDK 17"
 printf '==> %s\n' "$CURRENT_STEP"
-java_major=0
-if command -v java >/dev/null 2>&1; then
-  java_major="$(java -version 2>&1 | sed -n '1s/.*version "\([0-9]*\).*/\1/p')"
-  java_major="${java_major:-0}"
-fi
+jdk_major() {
+  local tool major
+  for tool in java javac; do
+    command -v "$tool" >/dev/null 2>&1 || { echo 0; return; }
+  done
+  major="$(javac -version 2>&1 | sed -n 's/^javac \([0-9]*\).*/\1/p')"
+  echo "${major:-0}"
+}
+java_major="$(jdk_major)"
 if (( java_major < 17 )); then
   sudo apt-get install -y openjdk-17-jdk-headless
 fi
-java_major="$(java -version 2>&1 | sed -n '1s/.*version "\([0-9]*\).*/\1/p')"
+java_major="$(jdk_major)"
 if (( java_major < 17 )); then
   CURRENT_STEP="JDK 17 verification"
   false
@@ -81,47 +85,18 @@ fi
 
 CURRENT_STEP="Maven mirror"
 printf '==> %s\n' "$CURRENT_STEP"
-mkdir -p "$HOME/.m2"
-settings="$HOME/.m2/settings.xml"
-if [[ ! -f "$settings" ]]; then
-  printf 'Maven Central rate-limits cloud VMs, configuring the GCS mirror.\n'
-  cat > "$settings" <<'EOF'
-<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
-  <mirrors>
-    <mirror>
-      <id>gcs-central</id>
-      <name>Google Cloud Storage Maven Central mirror</name>
-      <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
-      <mirrorOf>central</mirrorOf>
-    </mirror>
-  </mirrors>
-</settings>
-EOF
-elif ! grep -q '<mirror>' "$settings"; then
-  printf 'Maven Central rate-limits cloud VMs, backing up settings and configuring the GCS mirror.\n'
-  cp "$settings" "$settings.bak"
-  cat > "$settings" <<'EOF'
-<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
-  <mirrors>
-    <mirror>
-      <id>gcs-central</id>
-      <name>Google Cloud Storage Maven Central mirror</name>
-      <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
-      <mirrorOf>central</mirrorOf>
-    </mirror>
-  </mirrors>
-</settings>
-EOF
-fi
+# Demo-only settings file; the user's ~/.m2/settings.xml is never touched.
+MVN_SETTINGS="$REPO_ROOT/demo/maven-settings.xml"
+printf 'Maven Central rate-limits cloud VMs, using the GCS mirror via %s.\n' "$MVN_SETTINGS"
 export MVNW_REPOURL=https://maven-central.storage-download.googleapis.com/maven2
 
 CURRENT_STEP="Maven dependency pre-warm"
 printf '==> %s\n' "$CURRENT_STEP"
-./mvnw -B -q dependency:go-offline
+./mvnw -B -q -s "$MVN_SETTINGS" dependency:go-offline
 
 CURRENT_STEP="Maven package build"
 printf '==> %s\n' "$CURRENT_STEP"
-./mvnw -B -q -DskipTests package
+./mvnw -B -q -s "$MVN_SETTINGS" -DskipTests package
 if [[ ! -f target/bankapp-0.0.1-SNAPSHOT.jar ]]; then
   CURRENT_STEP="Maven package verification"
   false
@@ -129,7 +104,7 @@ fi
 
 CURRENT_STEP="Maven offline package build"
 printf '==> %s\n' "$CURRENT_STEP"
-./mvnw -B -q -o -DskipTests package
+./mvnw -B -q -s "$MVN_SETTINGS" -o -DskipTests package
 
 CURRENT_STEP="Playwright dependencies"
 printf '==> %s\n' "$CURRENT_STEP"
