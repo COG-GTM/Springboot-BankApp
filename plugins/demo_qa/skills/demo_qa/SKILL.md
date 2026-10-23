@@ -19,7 +19,7 @@ The presenter, not this setup, runs Devin live. Never pre-run the automation, ne
 - A PR against `demo/qa-live-before`: about 54 rows automated as Playwright tests, green in CI against MySQL 8, and a coverage matrix accounting for all 60 rows.
 - About 6 rows held manual, each with a reason (brand signoff, physical printer, JAWS, moderated session, missing notification feature).
 - Hard case: MT-047 ("System handles it appropriately"). Devin does not invent an expected result; Devin shows that a negative transfer moves money the wrong way and hands the row to QA.
-- Optional prompt 2: a one-character regression; CI flags exactly MT-040 (full-balance transfer).
+- Optional prompt 2: a one-character regression on a stacked PR; CI flags exactly MT-040 (full-balance transfer), 53 other rows stay green, and Devin asks whether to keep the rule or drop the change instead of editing the plan. Measured live: PR #336, CI red about 2.5 min after the PR opened.
 
 ## Fallback
 `git checkout devin/fs-testing-1791848695-manual-to-automated && demo/setup-demo.sh`, then PRs #328 and #329.

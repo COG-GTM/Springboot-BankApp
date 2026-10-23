@@ -10,7 +10,7 @@ Situation: the bank has a 60-row manual regression plan run by hand every releas
 | 0:05 to ~0:17 | While Devin works, open `qa/manual-test-plan.csv` and read MT-047 aloud: "System handles it appropriately." Ask the room what a tester would assert. Check back every few minutes. | Live session running |
 | ~0:17 | Live PR lands (measured 16 min 32 s from paste) against `demo/qa-live-before`. Open the coverage matrix: every one of 60 rows has a status. | Live |
 | ~0:18 | Wow moment: the `MT-047` row. "The plan only says the system handles a negative transfer appropriately. Devin tried it: a minus 50 transfer moves money the wrong way, the sender gains 50. Devin did not write a test that blesses that, and did not make up a new rule. Devin held the row and flagged the money bug for QA." | Live |
-| ~0:20 | Optional prompt 2 (CI runs on the PR, about 5 min): planted regression. CI goes red on exactly the full-balance case. If time is short, show PR #329 instead. | Live or pre-built |
+| ~0:20 to ~0:26 | Optional prompt 2 (about 5 min when CI is not flaky; CI itself takes about 2.5 min): planted regression on a stacked PR. CI goes red on exactly MT-040, the full-balance transfer, and the other 53 rows stay green. Hard case: Devin does not edit MT-040 to make CI pass. Devin asks whether to keep the new rule (and update MT-040) or drop the change. Answer "drop it". If time is short, show PR #336 (measured live run) instead. | Live or pre-built |
 
 Hard case: `MT-047`. Devin must hold and escalate, not invent an expected result.
 
