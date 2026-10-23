@@ -1,0 +1,6 @@
+{
+  "name": "demo_qa",
+  "version": "1.0.0",
+  "description": "FS Golden Demo Bank: set up the live QA situation (a 60-row manual regression plan with no automation) for a presenter to automate with Devin live.",
+  "author": { "name": "Cognition GTM" }
+}
