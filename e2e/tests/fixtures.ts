@@ -58,6 +58,9 @@ const panelId = { deposit: '#depositForm', withdraw: '#withdrawForm', transfer: 
 export type Panel = keyof typeof panelId;
 
 export async function openPanel(page: Page, panel: Panel) {
+  // The panels are Bootstrap collapses loaded from a CDN at the end of <body>; a click before the plugin is
+  // wired up does nothing, so wait for it (a login redirect can resolve toHaveURL before the scripts load).
+  await page.waitForFunction(() => typeof (window as any).jQuery?.fn?.collapse === 'function');
   await page.getByRole('button', { name: panelButton[panel], exact: true }).click();
   const form = page.locator(`${panelId[panel]} form`);
   await expect(form).toBeVisible();
