@@ -9,6 +9,8 @@ Every number below was measured on this repo. If a number on screen differs, say
 demo/setup-demo.sh      # fresh machine to presenter-ready, ends with "READY: ..."
 ```
 
+Windows setup: `.\demo\setup-demo.ps1`. Reset with `.\demo\start-demo.ps1`.
+
 Setup installs JDK 17, Node 20, Docker and the `mysql:8.0` image, configures a Maven mirror, pre-builds the app, installs Playwright Chromium, runs the full suite once as a smoke check and leaves an empty database.
 Open these tabs in advance, so CI is never triggered live:
 
