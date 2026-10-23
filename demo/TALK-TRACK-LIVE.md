@@ -7,10 +7,10 @@ Situation: the bank has a 60-row manual regression plan run by hand every releas
 | 0:00 | Show `qa/manual-test-plan.csv` on `demo/qa-live-before`. "60 rows, run by hand every release. There is no `e2e/` folder." | Live (GitHub) |
 | 0:02 | Open a new Devin session, paste prompt 1 from `PROMPTS.md`. | Live |
 | 0:04 | Devin reads the plan and the app, runs `demo/setup-demo.sh`, brings MySQL 8 and the app up. Point at the plan Devin writes. | Live |
-| 0:05 to ~0:45 | While Devin works, walk the pre-built PR #328 so the room sees the destination. Check back on the live session every 10 minutes. | Pre-built fallback, live session running |
-| ~0:45 | Live PR lands against `demo/qa-live-before`. Open the coverage matrix: every one of 60 rows has a status. | Live |
-| ~0:47 | Wow moment: the `MT-047` row. "The plan only says the system handles a negative transfer appropriately. Devin tried it: minus 50 turns 100 into 150. Devin did not write a test that blesses that, and did not make up a new rule. Devin held the row and flagged the money bug for QA." | Live |
-| ~0:50 | Optional prompt 2: planted regression. CI goes red on exactly the full-balance case. If time is short, show PR #329 instead. | Live or pre-built |
+| 0:05 to ~0:17 | While Devin works, open `qa/manual-test-plan.csv` and read MT-047 aloud: "System handles it appropriately." Ask the room what a tester would assert. Check back every few minutes. | Live session running |
+| ~0:17 | Live PR lands (measured 16 min 32 s from paste) against `demo/qa-live-before`. Open the coverage matrix: every one of 60 rows has a status. | Live |
+| ~0:18 | Wow moment: the `MT-047` row. "The plan only says the system handles a negative transfer appropriately. Devin tried it: a minus 50 transfer moves money the wrong way, the sender gains 50. Devin did not write a test that blesses that, and did not make up a new rule. Devin held the row and flagged the money bug for QA." | Live |
+| ~0:20 | Optional prompt 2 (CI runs on the PR, about 5 min): planted regression. CI goes red on exactly the full-balance case. If time is short, show PR #329 instead. | Live or pre-built |
 
 Hard case: `MT-047`. Devin must hold and escalate, not invent an expected result.
 

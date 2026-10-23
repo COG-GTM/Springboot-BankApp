@@ -3,7 +3,7 @@
 Before the meeting: run `demo/seed-situation.sh` from this kit branch and wait for `READY`.
 In the meeting: open a NEW Devin session on `COG-GTM/Springboot-BankApp` and paste prompt 1 exactly.
 
-## Prompt 1: manual plan to automated suite (live, ~35 to 50 min wall time)
+## Prompt 1: manual plan to automated suite (live, about 17 min wall time measured)
 
 ```
 Repo: COG-GTM/Springboot-BankApp, branch demo/qa-live-before. Branch off it and open your PR against demo/qa-live-before.
@@ -21,7 +21,7 @@ Exact counts can vary by a row or two between runs; the invariants are: all 60 r
 ## Prompt 2: planted regression (optional, run in the same session after prompt 1 finishes)
 
 ```
-On a branch, change AccountService so a customer cannot transfer their full balance (< 0 to <= 0) and open a PR against demo/qa-live-before.
+On a new branch off your PR branch, change AccountService so a customer cannot transfer their full balance (< 0 to <= 0), and open a PR against your PR branch. Tell me which plan rows CI flags.
 ```
 
 Expected back: CI on that PR fails on exactly the full-balance transfer case (`MT-040` in the plan), and Devin says so.
