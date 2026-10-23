@@ -9,7 +9,7 @@ Situation: the bank has a 60-row manual regression plan run by hand every releas
 | 0:04 | Devin reads the plan and the app, runs `demo/setup-demo.sh`, brings MySQL 8 and the app up. Point at the plan Devin writes. | Live |
 | 0:05 to ~0:45 | While Devin works, walk the pre-built PR #328 so the room sees the destination. Check back on the live session every 10 minutes. | Pre-built fallback, live session running |
 | ~0:45 | Live PR lands against `demo/qa-live-before`. Open the coverage matrix: every one of 60 rows has a status. | Live |
-| ~0:47 | Wow moment: the `MT-047` row. "The plan says a negative transfer of 50 turns 100 into 150. Devin did not write a test that blesses that, and did not make up a new rule. Devin held the row and flagged the money bug for QA." | Live |
+| ~0:47 | Wow moment: the `MT-047` row. "The plan only says the system handles a negative transfer appropriately. Devin tried it: minus 50 turns 100 into 150. Devin did not write a test that blesses that, and did not make up a new rule. Devin held the row and flagged the money bug for QA." | Live |
 | ~0:50 | Optional prompt 2: planted regression. CI goes red on exactly the full-balance case. If time is short, show PR #329 instead. | Live or pre-built |
 
 Hard case: `MT-047`. Devin must hold and escalate, not invent an expected result.

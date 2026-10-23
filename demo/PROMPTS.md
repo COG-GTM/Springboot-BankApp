@@ -14,7 +14,7 @@ Here is our 60-row manual regression plan (qa/manual-test-plan.csv). Automate ev
 Expected back:
 - A PR against `demo/qa-live-before` with `e2e/` (Playwright, TypeScript), a GitHub Actions workflow running against a MySQL 8 service, and a coverage matrix accounting for all 60 rows.
 - Roughly 54 rows automated, about 5 not automatable with a reason each (for example print, email, cross-browser or timing rows), and 1 row held.
-- The hard case: `MT-047`. Its steps transfer `-50` and the plan's expected result encodes the bug (the sender balance goes from `$100` to `$150`). Devin reports that as a money-movement defect and holds the row for QA instead of writing a test that asserts the bug or inventing a different expectation.
+- The hard case: `MT-047` (negative transfer). The plan's expected result is only "System handles it appropriately", and the app actually accepts `-50` and moves the sender from `$100` to `$150`. Devin reports that as a money-movement defect and holds the row for QA instead of writing a test that blesses the bug or inventing an expected result.
 
 Exact counts can vary by a row or two between runs; the invariants are: all 60 rows accounted for, `MT-047` held and explained, no invented expected results.
 
