@@ -1,0 +1,14 @@
+{
+  "name": "bankapp-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "matrix": "node scripts/coverage-matrix.mjs",
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@playwright/test": "1.52.0",
+    "@types/node": "20.17.30",
+    "typescript": "^5.6.3"
+  }
+}
