@@ -32,12 +32,14 @@ cd "$REPO_ROOT"
 CURRENT_STEP="JDK 17"
 printf '==> %s\n' "$CURRENT_STEP"
 jdk_major() {
-  local tool major
+  local tool java_v javac_v
   for tool in java javac; do
     command -v "$tool" >/dev/null 2>&1 || { echo 0; return; }
   done
-  major="$(javac -version 2>&1 | sed -n 's/^javac \([0-9]*\).*/\1/p')"
-  echo "${major:-0}"
+  java_v="$(java -version 2>&1 | sed -n '1s/.*version "\([0-9]*\).*/\1/p')"
+  javac_v="$(javac -version 2>&1 | sed -n 's/^javac \([0-9]*\).*/\1/p')"
+  java_v="${java_v:-0}"; javac_v="${javac_v:-0}"
+  echo $(( java_v < javac_v ? java_v : javac_v ))
 }
 java_major="$(jdk_major)"
 if (( java_major < 17 )); then
