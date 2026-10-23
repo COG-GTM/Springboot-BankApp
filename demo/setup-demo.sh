@@ -29,6 +29,32 @@ trap on_exit EXIT
 
 cd "$REPO_ROOT"
 
+ensure_mysql_image() {
+  local primary_image="${DEMO_MYSQL_PRIMARY_IMAGE:-mysql:8.0}"
+  local mirror_image="${DEMO_MYSQL_MIRROR_IMAGE:-mirror.gcr.io/library/mysql:8.0}"
+
+  if docker pull "$primary_image"; then
+    if [[ "$primary_image" != "mysql:8.0" ]]; then
+      docker tag "$primary_image" mysql:8.0
+    fi
+    return 0
+  fi
+
+  printf 'Docker Hub pull failed, trying mirror.gcr.io/library/mysql:8.0\n'
+  if docker pull "$mirror_image"; then
+    docker tag "$mirror_image" mysql:8.0
+    return 0
+  fi
+
+  if docker image inspect mysql:8.0 >/dev/null 2>&1; then
+    printf 'Docker Hub and mirror pulls failed, using the cached mysql:8.0 image.\n'
+    return 0
+  fi
+
+  printf 'FAILED: could not get mysql:8.0 from Docker Hub or mirror.gcr.io\n' >&2
+  return 1
+}
+
 CURRENT_STEP="JDK 17"
 printf '==> %s\n' "$CURRENT_STEP"
 jdk_major() {
@@ -77,13 +103,7 @@ if ! docker info >/dev/null 2>&1; then
   CURRENT_STEP="Docker daemon unavailable"
   false
 fi
-if ! docker pull mysql:8.0; then
-  if ! docker image inspect mysql:8.0 >/dev/null 2>&1; then
-    CURRENT_STEP="MySQL image pull"
-    false
-  fi
-  printf 'MySQL image pull failed, using the cached mysql:8.0 image.\n'
-fi
+ensure_mysql_image
 
 CURRENT_STEP="Maven mirror"
 printf '==> %s\n' "$CURRENT_STEP"

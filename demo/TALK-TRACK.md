@@ -43,12 +43,12 @@ npx playwright show-report
 Show: the terminal ending in `54 passed` (about 18 s locally), then `qa/coverage-matrix.md`, then the HTML report with one transfer test opened.
 Say: "60 rows in, 60 rows accounted for. 54 are now browser tests that pass in under 20 seconds. 5 can't be automated: brand review, a live notification integration, a physical printer, a JAWS screen reader with a human listener, and a usability study. Each one has a written reason. 1 is held for QA, and I'll come back to it. Nothing is unmapped. Every test title starts with its plan ID, so a failure points straight back at the row a tester wrote."
 
-## Beat 3: it runs on every pull request (1 min)
+## Beat 3: the suite runs on every pull request (1 min)
 
 Show: the PR #328 checks tab (green, already run). Do not re-run CI.
 Say: "The same suite runs in GitHub Actions against MySQL 8 on every pull request. This is Devin's PR: 54 passed, and the coverage matrix is published in the job summary."
 
-## Beat 4: it catches a planted bug (2 min)
+## Beat 4: the suite catches a planted bug (2 min)
 
 Show: PR #329 "Files changed": a single character in `AccountService.java`, `< 0` became `<= 0`. Then the PR #329 checks tab (red, already run).
 Say: "We planted a realistic one-character bug: a customer can no longer transfer their full balance. The suite flags exactly one test, MT-040, 'customer can transfer the full balance'. The other 53 still pass. The reviewer sees which manual row broke without reading any test code."
@@ -67,7 +67,7 @@ Show: the browser at http://localhost:8080. Log in as `demo_sender` / `Passw0rd!
 On screen: the balance goes from $100.00 to $150.00 with no error.
 Say: "Row MT-047 says 'enter a negative amount; the system handles it appropriately'. That isn't a testable expected result. While automating it, Devin found that the app accepts a negative transfer and the sender's balance goes up. That is a real money bug. Devin didn't invent an expected result and didn't write a test that locks in either behavior. The case is held for QA with the question written down: reject with a message, block it in the field, or both. We count it as a finding, not as coverage."
 
-## If asked "what else would it catch?"
+## If asked "what else would the suite catch?"
 
 "Any change that breaks one of the 54 automated plan rows: 13 authentication, 7 deposit, 7 withdraw, 11 transfer, 6 transaction history, 7 dashboard and 3 cross-cutting. Each failure names the plan row it guards."
 
