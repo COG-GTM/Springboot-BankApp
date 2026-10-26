@@ -1,0 +1,7 @@
+id,reason,evidence
+MT-021,"Expected result is a brand-team sign-off against a brand guide that is not in the repo; there is no machine-checkable pass criterion.","Observed: /images/wells-fargo-logo.png returns 302 to /login for logged-out visitors (SecurityConfig only permits /register), so the logo does not load on the login and register pages."
+MT-047,"Expected result 'System handles it appropriately' is not defined; a test would have to invent the rule (reject? which message? which balances?). Needs a product decision.","Observed: POST /transfer with amount=-50 from a $0.00 account is accepted; sender shows $50.00, recipient $-50.00, sender history row 'Transfer Out to <recipient>' -50.00. No server-side guard on amount sign in AccountService.transferAmount."
+MT-048,"Needs a real phone and inbox, and the app has no SMS or email capability (no mail/SMS dependency or notification code in src/ or pom.xml). Would fail manually today; automatable only after the feature exists with a test inbox/SMS sandbox.",
+MT-055,"Requires a physical branch printer; 'legible on one page' is a human judgement of printed output.",
+MT-059,"Requires JAWS on Windows; Playwright cannot drive JAWS and 'announced clearly' is a subjective listening check. An accessibility-tree check would not verify this row.","Observed in templates: dashboard <label> elements have no for/id association with their inputs, and the error <p class=""error""> has no role=alert or aria-live."
+MT-060,"Moderated usability session with a first-time human participant; not a functional check.",
