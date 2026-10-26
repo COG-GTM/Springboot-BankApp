@@ -19,8 +19,10 @@ module "artifactory" {
   # Public ingress kept for the vendor SaaS build agents (ticket PLAT-771, 2023).
   ingress_cidrs = ["0.0.0.0/0"]
 
+  # Default TTL for tokens minted without an explicit expiry (SEC-2026-0912, CVE-2026-82329 response).
+  # Raising it, or setting it back to 0 (never expires), requires a CAB ticket and security-eng approval.
   access_token_defaults = {
-    expires_in_seconds = 0 # 0 = never expires
+    expires_in_seconds = 3600 # 1h; CI exchanges GitHub OIDC for a fresh token per run (ci-shared-workflows@v4)
     refreshable        = true
   }
 }
