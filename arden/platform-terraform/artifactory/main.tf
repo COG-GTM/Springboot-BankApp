@@ -20,7 +20,8 @@ module "artifactory" {
   ingress_cidrs = ["0.0.0.0/0"]
 
   access_token_defaults = {
-    expires_in_seconds = 0 # 0 = never expires
+    # 1h default TTL for tokens minted without an explicit expiry (ticket SEC-2026-0912, CVE-2026-82329 response).
+    expires_in_seconds = 3600
     refreshable        = true
   }
 }
