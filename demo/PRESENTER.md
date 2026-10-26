@@ -6,7 +6,6 @@
 | What | Link |
 |---|---|
 | **Live session (already started with prompt 1)** | the session link your setup session sent you (the setup session starts it with prompt 1) |
-| Seed branch (BEFORE: plan, no `e2e/`, no CI) | https://github.com/COG-GTM/Springboot-BankApp/tree/demo/qa-live-before |
 | The 60-row plan | https://github.com/COG-GTM/Springboot-BankApp/blob/demo/qa-live-before/qa/manual-test-plan.csv |
 | MT-047, the hard case (line 48) | https://github.com/COG-GTM/Springboot-BankApp/blob/demo/qa-live-before/qa/manual-test-plan.csv#L48 |
 | BEFORE and AFTER videos (kit PR #335 description, does not close on reseed) | https://github.com/COG-GTM/Springboot-BankApp/pull/335 |
@@ -17,7 +16,7 @@
 ## Beats
 | Time | Beat | Use |
 |---|---|---|
-| 0:00 | "60 rows, run by hand every release. There is no `e2e/` folder." Open the plan. | Seed branch + plan link |
+| 0:00 | "60 rows, run by hand every release. There is no `e2e/` folder." Open the plan. | The 60-row plan |
 | 0:01 | Optional: show the app working before any automation, and the AFTER clip of the 54-test suite running. | BEFORE / AFTER videos on #335 |
 | 0:02 | Open the live session. Prompt 1 is already in it as the first message; show it to the room. | Live session |
 | 0:04 | Devin reads the plan and the app, brings up MySQL 8 and the app. Point at its plan. | Live session |
