@@ -15,33 +15,6 @@
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
   
-## Running tests locally:
-#
-### Requirements:
-- JDK 17 (the app uses Spring Boot 3.3). If your default `java` is older, point `JAVA_HOME` at a JDK 17 install, e.g. `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64`.
-- No MySQL or Docker is needed to run the tests.
-
-### Run the tests:
-```bash
-./mvnw test                                  # full suite
-./mvnw -Dtest=BankappApplicationTests test   # a single test class
-```
-- If the wrapper isn't executable on your checkout, run `chmod +x mvnw` first.
-- Results land in `target/surefire-reports`.
-
-### How it works:
-- Tests run under the `test` Spring profile, backed by an in-memory H2 database configured in `src/test/resources/application-test.properties`.
-- Any `@SpringBootTest` must be annotated with `@ActiveProfiles("test")`, otherwise it will try to connect to MySQL.
-- Prefer plain Mockito unit tests and `@WebMvcTest` slices over `@SpringBootTest`.
-
-### Troubleshooting:
-- If Maven Central (`repo.maven.apache.org`) returns HTTP 429, use a mirror on your machine only:
-  ```bash
-  export MVNW_REPOURL=https://maven-central.storage-download.googleapis.com/maven2
-  ```
-  and/or add a mirror of `central` to your personal `~/.m2/settings.xml`. Don't commit mirror config, `settings.xml` or changes to `.mvn/wrapper`.
-#
-
 ### Steps to deploy:
 
 ### Pre-requisites:
