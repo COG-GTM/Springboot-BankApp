@@ -5,6 +5,7 @@ import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,6 +30,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+/**
+ * Tests marked "documents current behavior" pin known production gaps (no positive-amount
+ * validation, self-transfer allowed); flip them when validation is added.
+ * Note: {@code transferAmount} is not {@code @Transactional}, so a failure between the two
+ * account saves would leave a partial transfer. Reported gap, not fixed or tested here.
+ */
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
 
@@ -120,6 +127,8 @@ class AccountServiceTest {
                 .hasMessage("Insufficient funds");
 
         assertThat(sender.getBalance()).isEqualByComparingTo("100.00");
+        verify(accountRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
         verifyNoInteractions(accountRepository, transactionRepository);
     }
 
@@ -169,6 +178,9 @@ class AccountServiceTest {
 
         assertThat(sender.getBalance()).isEqualByComparingTo("100.00");
         assertThat(recipient.getBalance()).isEqualByComparingTo("50.00");
+        verify(accountRepository, never()).findByUsername("bob");
+        verify(accountRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
         verifyNoInteractions(accountRepository, transactionRepository);
     }
 
@@ -184,5 +196,79 @@ class AccountServiceTest {
         verify(accountRepository).findByUsername("ghost");
         verify(accountRepository, never()).save(any(Account.class));
         verifyNoInteractions(transactionRepository);
+    }
+
+    @Test
+    @DisplayName("deposit of zero is accepted and recorded (documents current behavior; flip when validation is added)")
+    void deposit_zeroAmount_documentsCurrentBehavior() {
+        accountService.deposit(sender, BigDecimal.ZERO);
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("100.00");
+        verify(accountRepository).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("Deposit");
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("negative deposit decreases balance and is recorded as a Deposit (documents current behavior; flip when validation is added)")
+    void deposit_negativeAmount_documentsCurrentBehavior() {
+        accountService.deposit(sender, new BigDecimal("-30.00"));
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("70.00");
+        verify(accountRepository).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("Deposit");
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("-30.00");
+    }
+
+    @Test
+    @DisplayName("negative withdrawal increases balance and is recorded as a Withdrawal (documents current behavior; flip when validation is added)")
+    void withdraw_negativeAmount_documentsCurrentBehavior() {
+        accountService.withdraw(sender, new BigDecimal("-30.00"));
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("130.00");
+        verify(accountRepository).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("Withdrawal");
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("-30.00");
+    }
+
+    @Test
+    @DisplayName("negative transfer moves money from recipient to sender (documents current behavior; flip when validation is added)")
+    void transferAmount_negativeAmount_documentsCurrentBehavior() {
+        when(accountRepository.findByUsername("bob")).thenReturn(Optional.of(recipient));
+
+        accountService.transferAmount(sender, "bob", new BigDecimal("-20.00"));
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("120.00");
+        assertThat(recipient.getBalance()).isEqualByComparingTo("30.00");
+        verify(accountRepository).save(sender);
+        verify(accountRepository).save(recipient);
+        verify(transactionRepository, times(2)).save(any(Transaction.class));
+    }
+
+    @Test
+    @DisplayName("self-transfer is allowed, nets zero and records both rows (documents current behavior; flip when validation is added)")
+    void transferAmount_selfTransfer_documentsCurrentBehavior() {
+        BigDecimal amount = new BigDecimal("30.00");
+        when(accountRepository.findByUsername("alice")).thenReturn(Optional.of(sender));
+
+        accountService.transferAmount(sender, "alice", amount);
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("100.00");
+        verify(accountRepository).findByUsername("alice");
+        verify(accountRepository, times(2)).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository, times(2)).save(captor.capture());
+        List<Transaction> saved = captor.getAllValues();
+        assertThat(saved.get(0).getType()).isEqualTo("Transfer Out to alice");
+        assertThat(saved.get(0).getAccount()).isSameAs(sender);
+        assertThat(saved.get(1).getType()).isEqualTo("Transfer In from alice");
+        assertThat(saved.get(1).getAccount()).isSameAs(sender);
+        verifyNoMoreInteractions(accountRepository, transactionRepository);
     }
 }
