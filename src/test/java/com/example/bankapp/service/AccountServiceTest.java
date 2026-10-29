@@ -5,6 +5,7 @@ import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -87,6 +88,34 @@ class AccountServiceTest {
         verifyNoInteractions(passwordEncoder);
     }
 
+    // KNOWN GAP: no positive-amount validation. Flip to assertThatThrownBy(...) once validation lands.
+    @Test
+    @Tag("known-gap")
+    void deposit_negativeAmountCurrentlyReducesBalance() {
+        accountService.deposit(sender, new BigDecimal("-30.00"));
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("70.00");
+        verify(accountRepository).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("Deposit");
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("-30.00");
+    }
+
+    // KNOWN GAP: zero deposits are accepted and still write a Transaction row.
+    @Test
+    @Tag("known-gap")
+    void deposit_zeroAmountCurrentlyLeavesBalanceAndRecordsTransaction() {
+        accountService.deposit(sender, BigDecimal.ZERO);
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("100.00");
+        verify(accountRepository).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("Deposit");
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
     @Test
     void withdraw_decrementsBalanceAndSavesWithdrawalTransaction() {
         BigDecimal amount = new BigDecimal("40.00");
@@ -121,6 +150,30 @@ class AccountServiceTest {
 
         assertThat(sender.getBalance()).isEqualByComparingTo("100.00");
         verifyNoInteractions(accountRepository, transactionRepository);
+    }
+
+    @Test
+    void withdraw_overdraftNeverSavesAccountOrTransaction() {
+        assertThatThrownBy(() -> accountService.withdraw(sender, new BigDecimal("500.00")))
+                .isExactlyInstanceOf(RuntimeException.class)
+                .hasMessage("Insufficient funds");
+
+        verify(accountRepository, never()).save(any(Account.class));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+    }
+
+    // KNOWN GAP: no positive-amount validation. Flip to assertThatThrownBy(...) once validation lands.
+    @Test
+    @Tag("known-gap")
+    void withdraw_negativeAmountCurrentlyIncreasesBalance() {
+        accountService.withdraw(sender, new BigDecimal("-30.00"));
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("130.00");
+        verify(accountRepository).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo("Withdrawal");
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("-30.00");
     }
 
     @Test
@@ -184,5 +237,59 @@ class AccountServiceTest {
         verify(accountRepository).findByUsername("ghost");
         verify(accountRepository, never()).save(any(Account.class));
         verifyNoInteractions(transactionRepository);
+    }
+
+    // KNOWN GAP: self-transfer is not rejected; the same account is saved twice with net-zero change.
+    @Test
+    @Tag("known-gap")
+    void transferAmount_toSelfCurrentlySavesSameAccountTwiceWithNetZeroChange() {
+        when(accountRepository.findByUsername("alice")).thenReturn(Optional.of(sender));
+
+        accountService.transferAmount(sender, "alice", new BigDecimal("30.00"));
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("100.00");
+        verify(accountRepository, times(2)).save(sender);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(Transaction::getType)
+                .containsExactly("Transfer Out to alice", "Transfer In from alice");
+    }
+
+    // KNOWN GAP: negative transfers pull money from the recipient. Flip once validation lands.
+    @Test
+    @Tag("known-gap")
+    void transferAmount_negativeAmountCurrentlyMovesMoneyFromRecipientToSender() {
+        when(accountRepository.findByUsername("bob")).thenReturn(Optional.of(recipient));
+
+        accountService.transferAmount(sender, "bob", new BigDecimal("-20.00"));
+
+        assertThat(sender.getBalance()).isEqualByComparingTo("120.00");
+        assertThat(recipient.getBalance()).isEqualByComparingTo("30.00");
+    }
+
+    @Test
+    void findAccountByUsername_returnsAccountWhenPresent() {
+        when(accountRepository.findByUsername("alice")).thenReturn(Optional.of(sender));
+
+        assertThat(accountService.findAccountByUsername("alice")).isSameAs(sender);
+    }
+
+    @Test
+    void findAccountByUsername_throwsWhenMissing() {
+        when(accountRepository.findByUsername("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.findAccountByUsername("ghost"))
+                .isExactlyInstanceOf(RuntimeException.class)
+                .hasMessage("Account not found");
+    }
+
+    @Test
+    void getTransactionHistory_delegatesToRepositoryByAccountId() {
+        List<Transaction> history = List.of(new Transaction(), new Transaction());
+        when(transactionRepository.findByAccountId(1L)).thenReturn(history);
+
+        assertThat(accountService.getTransactionHistory(sender)).isSameAs(history);
+        verify(transactionRepository).findByAccountId(1L);
     }
 }
