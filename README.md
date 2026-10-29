@@ -15,24 +15,27 @@
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
   
-## Running tests locally:
+## Running Tests Locally:
 #
 ### Requirements:
 - JDK 17 (the app uses Spring Boot 3.3). If your default `java` is older, point `JAVA_HOME` at a JDK 17 install, e.g. `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64`.
-- No MySQL or Docker is needed to run the tests.
+- The bundled Maven wrapper (`./mvnw`, or `mvnw.cmd` on Windows). No local Maven install is needed.
+- No MySQL or Docker is needed to run the tests. MySQL is only needed to run the app itself (see `src/main/resources/application.properties`).
 
 ### Run the tests:
 ```bash
-./mvnw test                                  # full suite
-./mvnw -Dtest=BankappApplicationTests test   # a single test class
+./mvnw test                                                              # full suite
+./mvnw -Dtest=AccountServiceTest test                                    # a single test class
+./mvnw -Dtest=AccountServiceTest#deposit_increasesBalanceAndSavesAccount test  # a single test method
 ```
+- On Windows, use `mvnw.cmd` in place of `./mvnw`.
 - If the wrapper isn't executable on your checkout, run `chmod +x mvnw` first.
 - Results land in `target/surefire-reports`.
 
 ### How it works:
-- Tests run under the `test` Spring profile, backed by an in-memory H2 database configured in `src/test/resources/application-test.properties`.
-- Any `@SpringBootTest` must be annotated with `@ActiveProfiles("test")`, otherwise it will try to connect to MySQL.
-- Prefer plain Mockito unit tests and `@WebMvcTest` slices over `@SpringBootTest`.
+- Tests use JUnit 5, Mockito and MockMvc (from `spring-boot-starter-test` and `spring-security-test`). Unit tests mock the repositories, so they need no database.
+- The context-load test (`BankappApplicationTests`) runs with `@ActiveProfiles("test")`, which points the datasource at an in-memory H2 database configured in `src/test/resources/application-test.properties`. That's why `./mvnw test` works without MySQL.
+- Any new `@SpringBootTest` must also use `@ActiveProfiles("test")`, otherwise it will try to connect to MySQL. Prefer plain Mockito unit tests and `@WebMvcTest` slices.
 
 ### Troubleshooting:
 - If Maven Central (`repo.maven.apache.org`) returns HTTP 429, use a mirror on your machine only:
