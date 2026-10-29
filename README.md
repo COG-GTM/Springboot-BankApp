@@ -14,6 +14,48 @@
 - ArgoCD (CD)
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
+#
+## Running Tests:
+- Tests need JDK 17 (Spring Boot 3.3.3, `<java.version>17</java.version>` in `pom.xml`). No MySQL is needed; tests run against an in-memory H2 database.
+- Make sure `JAVA_HOME` points at a JDK 17, e.g. `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64`.
+
+### Run the tests:
+```bash
+# Full test suite
+./mvnw test
+
+# A single test class
+./mvnw -Dtest=AccountServiceTest test
+
+# A single test method
+./mvnw -Dtest=BankControllerTest#methodName test
+```
+- On Windows use `mvnw.cmd test`.
+- If Maven Central is rate-limited when the wrapper downloads Maven, point it at a mirror for that shell only:
+```bash
+MVNW_REPOURL=https://maven-central.storage-download.googleapis.com/maven2 ./mvnw test
+```
+
+### Test profile:
+- Tests use `@ActiveProfiles("test")`, which loads `src/test/resources/application-test.properties`:
+```properties
+spring.datasource.url=jdbc:h2:mem:bankappdb;DB_CLOSE_DELAY=-1
+spring.datasource.username=sa
+spring.datasource.password=
+spring.datasource.driver-class-name=org.h2.Driver
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+```
+
+### Test classes:
+- `BankappApplicationTests`: checks the Spring application context loads.
+- Transfer-flow tests:
+  - `service/AccountServiceTest`: Mockito unit tests for `AccountService.transferAmount`.
+  - `controller/BankControllerTest`: `@WebMvcTest` + `@Import(SecurityConfig.class)` tests for `POST /transfer`.
+
+### Test reports:
+- Surefire reports are written to `target/surefire-reports/`.
+
   
 ### Steps to deploy:
 
