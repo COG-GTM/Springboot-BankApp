@@ -15,6 +15,53 @@
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
   
+## Running Tests:
+#
+### Requirements:
+- JDK 17 (Spring Boot 3 needs it). If your default `java` is older, point `JAVA_HOME` at a JDK 17 install, e.g. `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64`.
+- No MySQL or Docker is needed: tests run against an in-memory H2 database.
+
+### Run the tests (from the repo root):
+```bash
+./mvnw test                                                      # full suite
+./mvnw -Dtest=BankappApplicationTests test                       # a single test class
+./mvnw -Dtest=BankappApplicationTests#contextLoads test          # a single test method (Class#method)
+```
+- If the wrapper isn't executable on your checkout, run `chmod +x mvnw` first.
+- Results land in `target/surefire-reports`.
+
+### Test dependencies:
+- `pom.xml` already includes these test-scoped dependencies, so nothing needs to be added:
+  - `spring-boot-starter-test` (JUnit 5, Mockito, AssertJ, MockMvc)
+  - `com.h2database:h2` (in-memory database for tests)
+  - `spring-security-test` (`@WithMockUser`, `csrf()` etc. for MockMvc)
+
+### Test profile:
+- `BankappApplicationTests` (a `contextLoads()` smoke test) is annotated with `@SpringBootTest` and `@ActiveProfiles("test")`, so it loads `src/test/resources/application-test.properties` instead of the MySQL settings in `application.properties`.
+- Any new `@SpringBootTest` must also use `@ActiveProfiles("test")`, otherwise it will try to connect to MySQL.
+- `src/test/resources/application-test.properties` contains the following. If it's missing on your checkout, create it with:
+```properties
+spring.datasource.url=jdbc:h2:mem:bankappdb;DB_CLOSE_DELAY=-1
+spring.datasource.username=sa
+spring.datasource.password=
+spring.datasource.driver-class-name=org.h2.Driver
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+```
+
+### Test layout:
+- `src/test/java/com/example/bankapp/BankappApplicationTests.java` - Spring context smoke test.
+- `src/test/java/com/example/bankapp/service/` - service unit tests (e.g. `AccountService` deposit, withdraw and transfer), using plain Mockito.
+- `src/test/java/com/example/bankapp/controller/` - web tests for `BankController`, using `@WebMvcTest` slices with MockMvc.
+
+### Troubleshooting:
+- If Maven Central (`repo.maven.apache.org`) returns HTTP 429 when the wrapper downloads Maven, use a mirror on your machine only:
+  ```bash
+  export MVNW_REPOURL=https://maven-central.storage-download.googleapis.com/maven2
+  ```
+  Don't commit mirror config or changes to `.mvn/wrapper`.
+#
+
 ### Steps to deploy:
 
 ### Pre-requisites:
