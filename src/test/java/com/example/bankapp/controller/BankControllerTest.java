@@ -14,16 +14,17 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -46,42 +47,39 @@ class BankControllerTest {
 
     @BeforeEach
     void setUp() {
-        alice = new Account();
+        alice = new Account("alice", "encoded", new BigDecimal("500.00"), new ArrayList<>(), List.of());
         alice.setId(1L);
-        alice.setUsername("alice");
-        alice.setBalance(new BigDecimal("100.00"));
+        when(accountService.findAccountByUsername("alice")).thenReturn(alice);
     }
 
     @Test
-    void deposit_callsServiceWithAuthenticatedAccountAndRedirects() throws Exception {
-        when(accountService.findAccountByUsername("alice")).thenReturn(alice);
-
-        mockMvc.perform(post("/deposit").param("amount", "25.00").with(user("alice")).with(csrf()))
+    @WithMockUser(username = "alice")
+    void depositRedirectsToDashboardAndDepositsIntoLoggedInUsersAccount() throws Exception {
+        mockMvc.perform(post("/deposit").param("amount", "100").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/dashboard"));
 
         verify(accountService).findAccountByUsername("alice");
-        verify(accountService).deposit(alice, new BigDecimal("25.00"));
+        verify(accountService).deposit(alice, new BigDecimal("100"));
     }
 
     @Test
-    void withdraw_successRedirectsToDashboard() throws Exception {
-        when(accountService.findAccountByUsername("alice")).thenReturn(alice);
-
-        mockMvc.perform(post("/withdraw").param("amount", "40.00").with(user("alice")).with(csrf()))
+    @WithMockUser(username = "alice")
+    void withdrawSuccessRedirectsToDashboard() throws Exception {
+        mockMvc.perform(post("/withdraw").param("amount", "50").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/dashboard"));
 
-        verify(accountService).withdraw(alice, new BigDecimal("40.00"));
+        verify(accountService).withdraw(alice, new BigDecimal("50"));
     }
 
     @Test
-    void withdraw_failureRendersDashboardWithErrorAndAccount() throws Exception {
-        when(accountService.findAccountByUsername("alice")).thenReturn(alice);
+    @WithMockUser(username = "alice")
+    void withdrawFailureRendersDashboardWithErrorAndAccount() throws Exception {
         doThrow(new RuntimeException("Insufficient funds"))
-                .when(accountService).withdraw(eq(alice), any(BigDecimal.class));
+                .when(accountService).withdraw(alice, new BigDecimal("1000"));
 
-        mockMvc.perform(post("/withdraw").param("amount", "500.00").with(user("alice")).with(csrf()))
+        mockMvc.perform(post("/withdraw").param("amount", "1000").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("dashboard"))
                 .andExpect(model().attribute("error", "Insufficient funds"))
@@ -89,30 +87,27 @@ class BankControllerTest {
     }
 
     @Test
-    void transfer_successRedirectsToDashboard() throws Exception {
-        when(accountService.findAccountByUsername("alice")).thenReturn(alice);
-
+    @WithMockUser(username = "alice")
+    void transferSuccessRedirectsToDashboardAndTransfersToRecipient() throws Exception {
         mockMvc.perform(post("/transfer")
                         .param("toUsername", "bob")
-                        .param("amount", "30.00")
-                        .with(user("alice"))
+                        .param("amount", "75")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/dashboard"));
 
-        verify(accountService).transferAmount(alice, "bob", new BigDecimal("30.00"));
+        verify(accountService).transferAmount(alice, "bob", new BigDecimal("75"));
     }
 
     @Test
-    void transfer_failureRendersDashboardWithErrorAndAccount() throws Exception {
-        when(accountService.findAccountByUsername("alice")).thenReturn(alice);
+    @WithMockUser(username = "alice")
+    void transferFailureRendersDashboardWithErrorAndAccount() throws Exception {
         doThrow(new RuntimeException("Recipient account not found"))
-                .when(accountService).transferAmount(eq(alice), eq("ghost"), any(BigDecimal.class));
+                .when(accountService).transferAmount(alice, "carol", new BigDecimal("75"));
 
         mockMvc.perform(post("/transfer")
-                        .param("toUsername", "ghost")
-                        .param("amount", "10.00")
-                        .with(user("alice"))
+                        .param("toUsername", "carol")
+                        .param("amount", "75")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("dashboard"))
@@ -121,11 +116,19 @@ class BankControllerTest {
     }
 
     @Test
+    void unauthenticatedDepositRedirectsToLoginAndIsNotProcessed() throws Exception {
+        mockMvc.perform(post("/deposit").param("amount", "100").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+
+        verify(accountService, never()).findAccountByUsername(anyString());
+        verify(accountService, never()).deposit(any(), any());
+    }
+
+    @Test
     @WithMockUser(username = "alice")
-    void transactions_rendersHistoryForAuthenticatedAccount() throws Exception {
-        Transaction deposit = new Transaction(new BigDecimal("25.00"), "Deposit", null, alice);
-        List<Transaction> history = List.of(deposit);
-        when(accountService.findAccountByUsername("alice")).thenReturn(alice);
+    void transactionsRendersHistoryForLoggedInUser() throws Exception {
+        List<Transaction> history = List.of(new Transaction(new BigDecimal("25.00"), "Deposit", null, alice));
         when(accountService.getTransactionHistory(alice)).thenReturn(history);
 
         mockMvc.perform(get("/transactions"))
@@ -135,8 +138,8 @@ class BankControllerTest {
     }
 
     @Test
-    void unauthenticatedDeposit_redirectsToLogin() throws Exception {
-        mockMvc.perform(post("/deposit").param("amount", "25.00").with(csrf()))
+    void unauthenticatedWithdrawRedirectsToLoginAndIsNotProcessed() throws Exception {
+        mockMvc.perform(post("/withdraw").param("amount", "50").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
 
@@ -144,17 +147,8 @@ class BankControllerTest {
     }
 
     @Test
-    void unauthenticatedWithdraw_redirectsToLogin() throws Exception {
-        mockMvc.perform(post("/withdraw").param("amount", "25.00").with(csrf()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
-
-        verifyNoInteractions(accountService);
-    }
-
-    @Test
-    void unauthenticatedTransfer_redirectsToLogin() throws Exception {
-        mockMvc.perform(post("/transfer").param("toUsername", "bob").param("amount", "25.00").with(csrf()))
+    void unauthenticatedTransferRedirectsToLoginAndIsNotProcessed() throws Exception {
+        mockMvc.perform(post("/transfer").param("toUsername", "bob").param("amount", "75").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
 
