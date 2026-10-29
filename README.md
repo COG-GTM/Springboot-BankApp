@@ -15,6 +15,35 @@
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
   
+## Running Tests Locally:
+- The test suite runs against an in-memory H2 database (`test` profile in `src/test/resources/application-test.properties`), so **no MySQL instance is needed** to run `./mvnw test`.
+- `mvnw` is committed as executable, so no `chmod +x mvnw` is needed after cloning.
+#
+### Pre-requisites:
+- JDK 17 (`JAVA_HOME` must point at a Java 17 install)
+
+### Run the whole suite:
+```bash
+./mvnw test
+```
+On Windows use `mvnw.cmd test`.
+
+### Run one test class or method:
+```bash
+./mvnw -Dtest=AccountServiceTest test
+./mvnw -Dtest=BankControllerTest#depositRedirectsToDashboard test
+```
+
+### What is covered:
+| Test class | Type | Covers |
+| --- | --- | --- |
+| `BankappApplicationTests` | `@SpringBootTest` on the H2 `test` profile | Application context starts |
+| `AccountServiceTest` | Mockito unit test | Registration, deposit, withdraw, transfer, transaction history, `loadUserByUsername` |
+| `BankControllerTest` | `@WebMvcTest` slice with `SecurityConfig` | Dashboard, deposit, withdraw, transfer, transactions, register and login endpoints, plus unauthenticated requests redirecting to `/login` |
+
+> [!Note]
+> Any new `@SpringBootTest` must be annotated with `@ActiveProfiles("test")`, otherwise it will try to connect to MySQL using `src/main/resources/application.properties`.
+#
 ### Steps to deploy:
 
 ### Pre-requisites:
