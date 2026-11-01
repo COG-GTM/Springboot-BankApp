@@ -81,6 +81,11 @@ public class AccountService implements UserDetailsService {
         return transactionRepository.findByAccountId(account.getId());
     }
 
+    public List<Transaction> getRecentTransactions(Account account) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+        return transactionRepository.findByAccountIdAndTimestampAfterOrderByTimestampDesc(account.getId(), cutoff);
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
