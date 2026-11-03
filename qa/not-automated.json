@@ -1,0 +1,26 @@
+{
+  "MT-021": {
+    "status": "not-automatable",
+    "reason": "Needs a human brand reviewer and the current brand guide; a pixel comparison would only prove the page did not change, not that it is on brand."
+  },
+  "MT-047": {
+    "status": "needs-clarification",
+    "reason": "Expected result is not defined. Today the transfer is accepted and the sender balance goes UP by 50. Devin did not invent an expected result: question sent to QA (reject with a message, block in the field, or both?)."
+  },
+  "MT-048": {
+    "status": "not-automatable",
+    "reason": "The app has no notification integration; checking a real phone or inbox needs live carrier and mail provider credentials that do not belong in a test pipeline. Flagged for a stubbed contract test once a notification service exists."
+  },
+  "MT-055": {
+    "status": "not-automatable",
+    "reason": "Needs physical branch printer hardware and a person to judge legibility."
+  },
+  "MT-059": {
+    "status": "not-automatable",
+    "reason": "Needs a licensed JAWS install and a human listener; automated accessibility scanners cannot judge how speech output sounds."
+  },
+  "MT-060": {
+    "status": "not-automatable",
+    "reason": "Usability study with real people; there is no pass or fail a machine can observe."
+  }
+}

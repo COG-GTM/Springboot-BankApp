@@ -40,8 +40,12 @@
 @SET __MVNW_ARG0_NAME__=
 @SET MVNW_USERNAME=
 @SET MVNW_PASSWORD=
-@IF NOT "%__MVNW_CMD__%"=="" (%__MVNW_CMD__% %*)
-@echo Cannot start maven from wrapper >&2 && exit /b 1
+@IF "%__MVNW_CMD__%"=="" GOTO :error
+@CALL %__MVNW_CMD__% %*
+@EXIT /B %ERRORLEVEL%
+:error
+@echo Cannot start maven from wrapper >&2
+@EXIT /B 1
 @GOTO :EOF
 : end batch / begin powershell #>
 
