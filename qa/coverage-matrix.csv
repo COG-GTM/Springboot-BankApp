@@ -1,0 +1,61 @@
+id,area,title,priority,status,automated_test,notes
+MT-001,Authentication,Login page shows username and password fields,High,automated,e2e/tests/auth.spec.ts :: MT-001 Login page shows username and password fields,
+MT-002,Authentication,Register link on login page opens registration,Medium,automated,e2e/tests/auth.spec.ts :: MT-002 Register link on login page opens registration,
+MT-003,Authentication,Login link on register page returns to login,Low,automated,e2e/tests/auth.spec.ts :: MT-003 Login link on register page returns to login,
+MT-004,Authentication,New customer can register,High,automated,e2e/tests/auth.spec.ts :: MT-004 New customer can register,
+MT-005,Authentication,Duplicate username is rejected,High,automated,e2e/tests/auth.spec.ts :: MT-005 Duplicate username is rejected,
+MT-006,Authentication,Valid login opens dashboard,High,automated,e2e/tests/auth.spec.ts :: MT-006 Valid login opens dashboard,
+MT-007,Authentication,Wrong password is rejected,High,automated,e2e/tests/auth.spec.ts :: MT-007 Wrong password is rejected,
+MT-008,Authentication,Unknown username gets the same error,High,automated,e2e/tests/auth.spec.ts :: MT-008 Unknown username gets the same error,Compares URL and message with the wrong-password case.
+MT-009,Authentication,Password is case sensitive,Medium,automated,e2e/tests/auth.spec.ts :: MT-009 Password is case sensitive,
+MT-010,Authentication,Dashboard requires login,High,automated,e2e/tests/auth.spec.ts :: MT-010 Dashboard requires login,
+MT-011,Authentication,Transaction history requires login,High,automated,e2e/tests/auth.spec.ts :: MT-011 Transaction history requires login,
+MT-012,Authentication,Logout returns to login,High,automated,e2e/tests/auth.spec.ts :: MT-012 Logout returns to login,Logout flag asserted as /login?logout.
+MT-013,Authentication,Session ends after logout,High,automated,e2e/tests/auth.spec.ts :: MT-013 Session ends after logout,
+MT-014,Dashboard,New customer starts at zero,High,automated,e2e/tests/dashboard.spec.ts :: MT-014 New customer starts at zero,
+MT-015,Dashboard,Welcome message shows the customer,Low,automated,e2e/tests/dashboard.spec.ts :: MT-015 Welcome message shows the customer,
+MT-016,Dashboard,Account number is shown,Medium,automated,e2e/tests/dashboard.spec.ts :: MT-016 Account number is shown,
+MT-017,Dashboard,Navigation links are present,Low,automated,e2e/tests/dashboard.spec.ts :: MT-017 Navigation links are present,
+MT-018,Dashboard,Deposit panel opens,Medium,automated,e2e/tests/dashboard.spec.ts :: MT-018 Deposit panel opens,
+MT-019,Dashboard,Withdraw panel opens,Medium,automated,e2e/tests/dashboard.spec.ts :: MT-019 Withdraw panel opens,
+MT-020,Dashboard,Transfer panel opens,Medium,automated,e2e/tests/dashboard.spec.ts :: MT-020 Transfer panel opens,
+MT-021,Dashboard,Brand colours and logo match the brand guide,Low,manual,,Expected result is a human sign-off by the brand team against a brand guide that is not in the repo; there is no machine-checkable pass criterion. Needs a brand reviewer.
+MT-022,Deposit,Deposit increases balance,High,automated,e2e/tests/deposit.spec.ts :: MT-022 Deposit increases balance,
+MT-023,Deposit,Deposits add up,High,automated,e2e/tests/deposit.spec.ts :: MT-023 Deposits add up,
+MT-024,Deposit,Deposit appears in history,High,automated,e2e/tests/deposit.spec.ts :: MT-024 Deposit appears in history,
+MT-025,Deposit,Empty deposit is blocked,Medium,automated,e2e/tests/deposit.spec.ts :: MT-025 Empty deposit is blocked,Proves no POST is sent (validity.valueMissing) and balance stays $0.00 after reload.
+MT-026,Deposit,Deposit field accepts whole dollars only,Medium,automated,e2e/tests/deposit.spec.ts :: MT-026 Deposit field accepts whole dollars only,Proves validity.stepMismatch and no POST; balance stays $0.00.
+MT-027,Deposit,Large deposit is handled,Medium,automated,e2e/tests/deposit.spec.ts :: MT-027 Large deposit is handled,
+MT-028,Deposit,Letters cannot be typed into amount,Low,automated,e2e/tests/deposit.spec.ts :: MT-028 Letters cannot be typed into amount,"Types a, b, c key by key; Chromium keeps the field empty."
+MT-029,Withdraw,Withdrawal decreases balance,High,automated,e2e/tests/withdraw.spec.ts :: MT-029 Withdrawal decreases balance,
+MT-030,Withdraw,Customer can withdraw the full balance,High,automated,e2e/tests/withdraw.spec.ts :: MT-030 Customer can withdraw the full balance,
+MT-031,Withdraw,Overdraw is rejected,High,automated,e2e/tests/withdraw.spec.ts :: MT-031 Overdraw is rejected,
+MT-032,Withdraw,Withdrawal from empty account is rejected,High,automated,e2e/tests/withdraw.spec.ts :: MT-032 Withdrawal from empty account is rejected,
+MT-033,Withdraw,Withdrawal appears in history,High,automated,e2e/tests/withdraw.spec.ts :: MT-033 Withdrawal appears in history,
+MT-034,Withdraw,Empty withdrawal is blocked,Medium,automated,e2e/tests/withdraw.spec.ts :: MT-034 Empty withdrawal is blocked,Proves no POST is sent (validity.valueMissing).
+MT-035,Withdraw,Rejected withdrawal leaves no history,High,automated,e2e/tests/withdraw.spec.ts :: MT-035 Rejected withdrawal leaves no history,"Plan says only ""Overdraw""; test uses the MT-031 setup (deposit 100, withdraw 500)."
+MT-036,Transfer,Transfer debits the sender,High,automated,e2e/tests/transfer.spec.ts :: MT-036 Transfer debits the sender,
+MT-037,Transfer,Transfer credits the recipient,High,automated,e2e/tests/transfer.spec.ts :: MT-037 Transfer credits the recipient,Self-contained: repeats the MT-036 setup instead of depending on it.
+MT-038,Transfer,Sender history shows the transfer,High,automated,e2e/tests/transfer.spec.ts :: MT-038 Sender history shows the transfer,Self-contained: repeats the MT-036 setup.
+MT-039,Transfer,Recipient history shows the transfer,High,automated,e2e/tests/transfer.spec.ts :: MT-039 Recipient history shows the transfer,Self-contained: repeats the MT-036 setup.
+MT-040,Transfer,Customer can transfer the full balance,High,automated,e2e/tests/transfer.spec.ts :: MT-040 Customer can transfer the full balance,
+MT-041,Transfer,Transfer above balance is rejected,High,automated,e2e/tests/transfer.spec.ts :: MT-041 Transfer above balance is rejected,
+MT-042,Transfer,Transfer to unknown customer is rejected,High,automated,e2e/tests/transfer.spec.ts :: MT-042 Transfer to unknown customer is rejected,"Plan precondition gap: the app checks funds before looking up the recipient, so a $0 sender gets ""Insufficient funds"". Test deposits 50 first."
+MT-043,Transfer,Recipient is required,Medium,automated,e2e/tests/transfer.spec.ts :: MT-043 Recipient is required,Proves no POST is sent (validity.valueMissing).
+MT-044,Transfer,Amount is required,Medium,automated,e2e/tests/transfer.spec.ts :: MT-044 Amount is required,Proves no POST is sent (validity.valueMissing).
+MT-045,Transfer,Multiple transfers add up,High,automated,e2e/tests/transfer.spec.ts :: MT-045 Multiple transfers add up,
+MT-046,Transfer,Rejected transfer leaves no history,High,automated,e2e/tests/transfer.spec.ts :: MT-046 Rejected transfer leaves no history,Sender deposits 50 first (see MT-042).
+MT-047,Transfer,Negative transfer amount,High,manual,,"Expected result ""System handles it appropriately"" is not testable and the plan defines no correct behaviour, so no expectation was invented. Observed in code: AccountService.transferAmount does not check the sign, so -50 moves 50 from the recipient to the sender. Needs a product decision on the expected result (for example: reject with a message)."
+MT-048,Transfer,Customer receives a transfer confirmation by SMS or email,Medium,manual,,"Needs a real phone and inbox; CI has neither. The app has no SMS or email code or dependency (pom.xml, src/main), so there is nothing to test yet. Needs product to confirm whether the feature exists."
+MT-049,Transactions,New customer has empty history,Medium,automated,e2e/tests/transactions.spec.ts :: MT-049 New customer has empty history,
+MT-050,Transactions,History columns are correct,Low,automated,e2e/tests/transactions.spec.ts :: MT-050 History columns are correct,
+MT-051,Transactions,All transaction types are listed,High,automated,e2e/tests/transactions.spec.ts :: MT-051 All transaction types are listed,
+MT-052,Transactions,Back to Dashboard link works,Low,automated,e2e/tests/transactions.spec.ts :: MT-052 Back to Dashboard link works,
+MT-053,Transactions,Transactions link works from dashboard,Low,automated,e2e/tests/transactions.spec.ts :: MT-053 Transactions link works from dashboard,
+MT-054,Transactions,Every row has a date,Medium,automated,e2e/tests/transactions.spec.ts :: MT-054 Every row has a date,
+MT-055,Transactions,Printed history is legible on the branch printer,Low,manual,,Needs a physical branch printer and a human to judge legibility.
+MT-056,Cross-cutting,Customers only see their own account,High,automated,e2e/tests/cross-cutting.spec.ts :: MT-056 Customers only see their own account,Two isolated browser contexts at the same time.
+MT-057,Cross-cutting,Balance survives logout,High,automated,e2e/tests/cross-cutting.spec.ts :: MT-057 Balance survives logout,
+MT-058,Cross-cutting,Bank name shows on every page tab,Low,automated,e2e/tests/cross-cutting.spec.ts :: MT-058 Bank name shows on every page tab,"Bank name taken as ""Wells Fargo"" from the app branding."
+MT-059,Cross-cutting,Screen reader reads balance and errors,Medium,manual,,"Needs JAWS on Windows and a human listener judging ""announced clearly""; an automated a11y scan in Chromium is not equivalent."
+MT-060,Cross-cutting,First-time customer completes a transfer unaided,Low,manual,,"Moderated usability session with a real first-time customer; timing and ""without help"" are observed by a human."
