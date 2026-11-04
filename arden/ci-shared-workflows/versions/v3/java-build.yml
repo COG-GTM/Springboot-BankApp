@@ -1,0 +1,18 @@
+# v3 — reads a long-lived ARTIFACTORY_TOKEN repo secret. Deprecated after CVE-2026-82329 token sweep.
+name: java-build
+on:
+  workflow_call:
+    inputs:
+      java-version: { type: string, default: "17" }
+    secrets:
+      ARTIFACTORY_TOKEN: { required: true }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "${{ inputs.java-version }}", cache: maven }
+      - run: mvn -B -s ci/settings.xml verify
+        env:
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
