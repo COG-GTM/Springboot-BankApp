@@ -24,9 +24,9 @@ spec:
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
-            secretKeyRef:                      ### CRITICAL
-              name: mysql-secret                  ### CRITICAL
-              key: MYSQL_ROOT_PASSWORD    ### CRITICAL
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: MYSQL_ROOT_PASSWORD
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
