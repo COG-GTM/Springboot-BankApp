@@ -15,6 +15,29 @@
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
   
+## Database credentials
+
+No database credential is stored in this repository. The application reads them from the
+environment at startup and refuses to start if the password is missing:
+
+| Variable | Purpose |
+|---|---|
+| `SPRING_DATASOURCE_URL` | JDBC URL (defaults to a local MySQL) |
+| `SPRING_DATASOURCE_USERNAME` | Application DB account, defaults to `bankapp` |
+| `SPRING_DATASOURCE_PASSWORD` | Application DB password, **required** |
+| `MYSQL_ROOT_PASSWORD` | Only used to bootstrap the MySQL container |
+
+Use a dedicated least-privilege account (not `root`) scoped to the app schema:
+
+```sql
+CREATE USER 'bankapp'@'%' IDENTIFIED BY '<password-from-secret-manager>';
+GRANT SELECT, INSERT, UPDATE, DELETE ON bankappdb.* TO 'bankapp'@'%';
+```
+
+- Local / docker-compose: copy `.env.example` to `.env` (git-ignored) and fill it in.
+- Kubernetes: create the `mysql-secret` Secret out-of-band, see `kubernetes/secrets.example.yaml`.
+- Helm: pass `--set secret.data.*` at install time, or set `secret.create=false` and reference an existing Secret.
+
 ### Steps to deploy:
 
 ### Pre-requisites:
