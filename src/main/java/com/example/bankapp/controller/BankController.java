@@ -1,6 +1,7 @@
 package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
+import com.example.bankapp.service.AccountManagementService;
 import com.example.bankapp.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,10 +19,13 @@ public class BankController {
     @Autowired
     private AccountService accountService;
 
+    @Autowired
+    private AccountManagementService accountManagementService;
+
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = accountManagementService.findAccountByUsername(username);
         model.addAttribute("account", account);
         return "dashboard";
     }
@@ -34,7 +38,7 @@ public class BankController {
     @PostMapping("/register")
     public String registerAccount(@RequestParam String username, @RequestParam String password, Model model) {
         try {
-            accountService.registerAccount(username, password);
+            accountManagementService.registerAccount(username, password);
             return "redirect:/login";
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
@@ -50,7 +54,7 @@ public class BankController {
     @PostMapping("/deposit")
     public String deposit(@RequestParam BigDecimal amount) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = accountManagementService.findAccountByUsername(username);
         accountService.deposit(account, amount);
         return "redirect:/dashboard";
     }
@@ -58,7 +62,7 @@ public class BankController {
     @PostMapping("/withdraw")
     public String withdraw(@RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = accountManagementService.findAccountByUsername(username);
 
         try {
             accountService.withdraw(account, amount);
@@ -74,7 +78,7 @@ public class BankController {
     @GetMapping("/transactions")
     public String transactionHistory(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = accountManagementService.findAccountByUsername(username);
         model.addAttribute("transactions", accountService.getTransactionHistory(account));
         return "transactions";
     }
@@ -82,7 +86,7 @@ public class BankController {
     @PostMapping("/transfer")
     public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account fromAccount = accountService.findAccountByUsername(username);
+        Account fromAccount = accountManagementService.findAccountByUsername(username);
 
         try {
             accountService.transferAmount(fromAccount, toUsername, amount);
