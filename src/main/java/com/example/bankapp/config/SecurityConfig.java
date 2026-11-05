@@ -1,6 +1,6 @@
 package com.example.bankapp.config;
 
-import com.example.bankapp.service.AccountService;
+import com.example.bankapp.service.AccountUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +17,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 public class SecurityConfig {
 
     @Autowired
-    AccountService accountService;
+    AccountUserDetailsService accountUserDetailsService;
 
     @Bean
     public static PasswordEncoder passwordEncoder() {
@@ -54,7 +54,7 @@ public class SecurityConfig {
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(accountService).passwordEncoder(passwordEncoder());
+        auth.userDetailsService(accountUserDetailsService).passwordEncoder(passwordEncoder());
 
     }
 }
