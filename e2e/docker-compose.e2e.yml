@@ -1,24 +1,31 @@
 # Overrides for the end-to-end (Cypress) stack. Always used together with the
-# root docker-compose.yml:
-#   docker compose -f docker-compose.yml -f e2e/docker-compose.e2e.yml up -d --build --wait
+# root docker-compose.yml and a dedicated project name (see scripts/common.sh):
+#   docker compose -p bankapp-e2e -f docker-compose.yml -f e2e/docker-compose.e2e.yml up -d --build --wait
 #
 # - builds the application image from the working tree instead of pulling
 #   ${DUSER}/${IMAGE} from Docker Hub
 # - replaces the actuator health check (the app does not ship the actuator
 #   starter and the runtime image has no curl) with a wget probe of /login
 # - uses a throw-away database volume so every run starts from the seed data
+# - uses its own container names and host port (E2E_APP_PORT, default 8081)
+#   so a regular `docker compose up` of the root file keeps running untouched.
+#   `!override` on ports needs Docker Compose >= 2.24.
 services:
   mysql:
     image: mysql:8.0
+    container_name: bankapp-e2e-mysql
     volumes:
       - e2e-mysql:/var/lib/mysql
 
   mainapp:
     image: bankapp:e2e
+    container_name: bankapp-e2e-app
     build:
       context: .
       dockerfile: Dockerfile
     pull_policy: never
+    ports: !override
+      - "${E2E_APP_PORT:-8081}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/login || exit 1"]
       interval: 5s

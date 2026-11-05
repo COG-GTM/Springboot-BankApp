@@ -21,10 +21,11 @@ e2e/
   cypress.config.js          baseUrl, video, retries, seeded credentials (Cypress.env)
   cypress/e2e/*.cy.js        the specs, numbered in the order they run
   cypress/support/commands.js cy.login(username, password) and cy.readBalance()
-  docker-compose.e2e.yml     override for the root docker-compose.yml (build from source, wget health check, throw-away volume)
+  docker-compose.e2e.yml     override for the root docker-compose.yml (build from source, wget health check, throw-away volume, own container names and port)
   seed/seed.sql              fixture accounts and transactions
   scripts/stack-up.sh        docker compose up --build --wait, then poll /login
   scripts/seed.sh            pipes seed.sql into the mysql container
+  scripts/stack-logs.sh      docker compose logs (archived by CI on failure)
   scripts/stack-down.sh      docker compose down -v
 ```
 
@@ -48,14 +49,14 @@ and update both `seed.sql` and `seededPassword` in `cypress.config.js`.
 
 ## Running locally
 
-Requirements: Docker with the Compose v2 plugin (`docker compose`), Node 20+,
+Requirements: Docker with the Compose v2 plugin (`docker compose`, 2.24 or newer), Node 20+,
 and the usual Cypress system libraries (already present on Ubuntu desktop
 images; see <https://docs.cypress.io/app/get-started/install-cypress#Linux-Prerequisites>).
 
 ```bash
 cd e2e
 npm ci                 # installs Cypress (binary is cached under ~/.cache/Cypress)
-npm run stack:up       # builds bankapp:e2e from the working tree, starts MySQL + app, waits until healthy
+npm run stack:up       # builds bankapp:e2e from the working tree, starts MySQL + app on :8081, waits until healthy
 npm run stack:seed     # loads seed/seed.sql
 npm run cy:run         # headless run, videos in cypress/videos, screenshots on failure in cypress/screenshots
 npm run stack:down     # stops containers and drops the database volume
@@ -68,7 +69,14 @@ npm run cy:open                                   # interactive runner, pick a s
 npx cypress run --spec cypress/e2e/04-transfer.cy.js   # one spec only
 npx cypress run --browser chrome                  # a specific browser (default is Electron)
 CYPRESS_BASE_URL=http://host:8080 npm run cy:run  # point at an app that is already running
+E2E_APP_PORT=9090 npm run stack:up && CYPRESS_BASE_URL=http://localhost:9090 npm run cy:run  # another host port
 ```
+
+The stack runs as Compose project `bankapp-e2e` (containers `bankapp-e2e-app`
+and `bankapp-e2e-mysql`, host port 8081), so it does not interfere with a
+regular `docker compose up` of the root file on port 8080, and `stack:down`
+only removes the e2e containers and volume. Set `E2E_COMPOSE_PROJECT` to run
+several e2e stacks side by side.
 
 If you change Java code, rerun `npm run stack:up`; `--build` rebuilds the
 image from the working tree. If the app comes up but the specs fail with

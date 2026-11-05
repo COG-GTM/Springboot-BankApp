@@ -83,7 +83,7 @@ pipeline {
             }
             post{
                 failure{
-                    sh 'docker compose -f docker-compose.yml -f e2e/docker-compose.e2e.yml logs --no-color > e2e/stack.log 2>&1 || true'
+                    sh 'cd e2e && npm run -s stack:logs > stack.log 2>&1 || true'
                     archiveArtifacts artifacts: 'e2e/cypress/screenshots/**/*, e2e/cypress/videos/**/*, e2e/stack.log', allowEmptyArchive: true, followSymlinks: false
                 }
                 always{

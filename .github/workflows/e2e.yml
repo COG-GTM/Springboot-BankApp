@@ -52,7 +52,7 @@ jobs:
         if: failure()
         run: |
           mkdir -p logs
-          docker compose -f ../docker-compose.yml -f docker-compose.e2e.yml logs --no-color > logs/stack.log 2>&1 || true
+          npm run -s stack:logs > logs/stack.log 2>&1 || true
 
       - name: Archive screenshots, videos and logs
         if: failure()

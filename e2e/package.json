@@ -6,6 +6,7 @@
   "scripts": {
     "stack:up": "bash scripts/stack-up.sh",
     "stack:seed": "bash scripts/seed.sh",
+    "stack:logs": "bash scripts/stack-logs.sh",
     "stack:down": "bash scripts/stack-down.sh",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
