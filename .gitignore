@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local secrets (never commit) ###
+.env.local
+.env.*.local
+
+### Scan reports ###
+gitleaks-report.sarif
+trivy-fs-report.xml
+dependency-check-report.*

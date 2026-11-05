@@ -1,5 +1,7 @@
 package com.example.bankapp.service;
 
+import com.example.bankapp.audit.AuditEvent;
+import com.example.bankapp.audit.AuditLogger;
 import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
@@ -22,6 +24,10 @@ import java.util.List;
 @Service
 public class AccountService implements UserDetailsService {
 
+    private static final String DEPOSIT = "DEPOSIT";
+    private static final String WITHDRAWAL = "WITHDRAWAL";
+    private static final String TRANSFER = "TRANSFER";
+
     @Autowired
     PasswordEncoder passwordEncoder;
 
@@ -30,6 +36,9 @@ public class AccountService implements UserDetailsService {
 
     @Autowired
     private TransactionRepository transactionRepository;
+
+    @Autowired
+    private AuditLogger auditLogger;
 
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
@@ -49,32 +58,45 @@ public class AccountService implements UserDetailsService {
 
 
     public void deposit(Account account, BigDecimal amount) {
-        account.setBalance(account.getBalance().add(amount));
-        accountRepository.save(account);
+        try {
+            account.setBalance(account.getBalance().add(amount));
+            accountRepository.save(account);
 
-        Transaction transaction = new Transaction(
-                amount,
-                "Deposit",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+            Transaction transaction = new Transaction(
+                    amount,
+                    "Deposit",
+                    LocalDateTime.now(),
+                    account
+            );
+            transactionRepository.save(transaction);
+        } catch (RuntimeException e) {
+            audit(DEPOSIT, AuditEvent.Outcome.FAILURE, account, null, amount, e.getMessage());
+            throw e;
+        }
+        audit(DEPOSIT, AuditEvent.Outcome.SUCCESS, account, null, amount, null);
     }
 
     public void withdraw(Account account, BigDecimal amount) {
         if (account.getBalance().compareTo(amount) < 0) {
+            audit(WITHDRAWAL, AuditEvent.Outcome.FAILURE, account, null, amount, "INSUFFICIENT_FUNDS");
             throw new RuntimeException("Insufficient funds");
         }
-        account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
+        try {
+            account.setBalance(account.getBalance().subtract(amount));
+            accountRepository.save(account);
 
-        Transaction transaction = new Transaction(
-                amount,
-                "Withdrawal",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+            Transaction transaction = new Transaction(
+                    amount,
+                    "Withdrawal",
+                    LocalDateTime.now(),
+                    account
+            );
+            transactionRepository.save(transaction);
+        } catch (RuntimeException e) {
+            audit(WITHDRAWAL, AuditEvent.Outcome.FAILURE, account, null, amount, e.getMessage());
+            throw e;
+        }
+        audit(WITHDRAWAL, AuditEvent.Outcome.SUCCESS, account, null, amount, null);
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
@@ -102,11 +124,15 @@ public class AccountService implements UserDetailsService {
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
         if (fromAccount.getBalance().compareTo(amount) < 0) {
+            audit(TRANSFER, AuditEvent.Outcome.FAILURE, fromAccount, null, amount, "INSUFFICIENT_FUNDS");
             throw new RuntimeException("Insufficient funds");
         }
 
-        Account toAccount = accountRepository.findByUsername(toUsername)
-                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        Account toAccount = accountRepository.findByUsername(toUsername).orElse(null);
+        if (toAccount == null) {
+            audit(TRANSFER, AuditEvent.Outcome.FAILURE, fromAccount, null, amount, "RECIPIENT_NOT_FOUND");
+            throw new RuntimeException("Recipient account not found");
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
@@ -132,6 +158,19 @@ public class AccountService implements UserDetailsService {
                 toAccount
         );
         transactionRepository.save(creditTransaction);
+
+        audit(TRANSFER, AuditEvent.Outcome.SUCCESS, fromAccount, toAccount, amount, null);
+    }
+
+    private void audit(String eventType, AuditEvent.Outcome outcome, Account account, Account counterparty,
+                       BigDecimal amount, String reason) {
+        auditLogger.log(AuditEvent.builder(eventType, outcome)
+                .actor(account == null ? null : account.getUsername())
+                .accountId(account == null ? null : account.getId())
+                .counterpartyAccountId(counterparty == null ? null : counterparty.getId())
+                .amount(amount)
+                .reason(reason)
+                .build());
     }
 
 }
