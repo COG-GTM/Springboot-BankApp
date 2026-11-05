@@ -1,0 +1,35 @@
+graph TB
+    subgraph internet["Public internet"]
+        user["Browser user"]
+        cdn["Bootstrap / jQuery / Popper CDNs<br/>stackpath.bootstrapcdn.com, code.jquery.com, cdn.jsdelivr.net<br/>templates/*.html"]
+        acme["Let's Encrypt ACME v2<br/>letsencrypt-clusterissuer.yaml:7"]
+        dockerhub["Docker Hub<br/>madhupdevops / trainwithshubham images"]
+    end
+
+    subgraph eks["AWS EKS cluster (per README.md:62-85, us-west-1)"]
+        subgraph nsingress["namespace ingress-nginx"]
+            nginx["NGINX Ingress Controller<br/>+ cert-manager<br/>bankapp-ingress.yml:12"]
+        end
+        subgraph nsapp["namespace bankapp-namespace"]
+            svc["Service bankapp-service<br/>ClusterIP :8080"]
+            app["Deployment bankapp-deploy<br/>2 replicas, image trainwithshubham/bankapp-eks:v2<br/>Spring Boot 3.3.3 / Java 17 / Thymeleaf"]
+            hpa["HPA 1-5 replicas @40% CPU"]
+            cm["ConfigMap bankapp-config<br/>JDBC URL + username"]
+            sec["Secret mysql-secret<br/>committed base64 password"]
+            mysqlsvc["Service mysql-svc :3306"]
+            mysql["Deployment mysql (1 replica)<br/>mysql:8.0"]
+            pv["PersistentVolume mysql-pv<br/>hostPath /mnt/data/mysql, 10Gi"]
+        end
+    end
+
+    user -->|"HTTPS :443 megaproject.trainwithshubham.com"| nginx
+    user -.->|"static assets"| cdn
+    nginx --> svc --> app
+    hpa -.-> app
+    cm -.-> app
+    sec -.-> app
+    sec -.-> mysql
+    app -->|"JDBC MySQL :3306<br/>useSSL=false"| mysqlsvc --> mysql
+    mysql --> pv
+    nginx -.->|"HTTP-01 challenge"| acme
+    dockerhub -.->|"image pull"| app
