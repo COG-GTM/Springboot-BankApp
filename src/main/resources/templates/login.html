@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Login - Wells Fargo</title>
+    <title>Login - Harbor National Bank</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Times New Roman', Georgia, serif;
-            background-color: #F7F3E9;
+            background-color: #F4F6FA;
             color: #2E2A2B;
             margin: 0;
             padding: 0;
@@ -17,12 +17,12 @@
         }
 
         .navbar-custom {
-            background-color: #7A1216;
+            background-color: #0A2A6B;
             position: fixed;
             top: 0;
             width: 100%;
             z-index: 1000;
-            border-bottom: 2px solid #B08D57;
+            border-bottom: 2px solid #DC1431;
         }
 
         .navbar-custom a {
@@ -38,7 +38,7 @@
             padding: 28px;
             background-color: #FFFFFF;
             border-radius: 0;
-            border: 1px solid #B08D57;
+            border: 1px solid #DC1431;
             box-shadow: none;
             position: relative;
             text-align: left;
@@ -56,24 +56,24 @@
         }
 
         .form-group input {
-            border: 1px solid #B08D57;
+            border: 1px solid #DC1431;
             background-color: #FFFFFF;
             color: #2E2A2B;
         }
 
         .btn {
-            background-color: #D71921;
-            border: 1px solid #7A1216;
+            background-color: #DC1431;
+            border: 1px solid #0A2A6B;
             color: #FFFFFF;
             transition: background-color 0.2s ease;
         }
 
         .btn:hover {
-            background-color: #B5151C;
+            background-color: #B00F27;
         }
 
         .custom-link {
-            color: #7A1216;
+            color: #0A2A6B;
             text-decoration: none;
             font-weight: bold;
         }
@@ -82,8 +82,12 @@
             text-decoration: underline;
         }
 
+        .footer .custom-link {
+            color: #FFFFFF;
+        }
+
         .footer {
-            background-color: #7A1216;
+            background-color: #0A2A6B;
             color: #FFFFFF;
             padding: 12px 0;
             font-size: 13px;
@@ -91,15 +95,18 @@
             bottom: 0;
             width: 100%;
             text-align: center;
-            border-top: 2px solid #B08D57;
+            border-top: 2px solid #DC1431;
         }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-custom">
     <a class="navbar-brand d-flex align-items-center" href="#">
-        <img src="/images/wells-fargo-logo.png" alt="Wells Fargo" style="height:28px;margin-right:10px;">
-        Wells Fargo
+        <svg width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Harbor National Bank" style="height:28px;margin-right:10px;">
+            <rect width="28" height="28" rx="6" fill="#0A2A6B"/>
+            <path d="M7 6v16h3.5v-6.25h7V22H21V6h-3.5v6.25h-7V6H7Z" fill="#FFFFFF"/>
+        </svg>
+        Harbor National Bank
     </a>
 </nav>
 
@@ -124,7 +131,7 @@
 </div>
 
 <footer class="footer">
-    <p>&copy; 2024 Wells Fargo Bank, N.A. All rights reserved. | <a href="#" class="custom-link">Privacy Policy</a> | <a href="#" class="custom-link">Terms of Service</a></p>
+    <p>&copy; 2026 Harbor National Bank. All rights reserved. | <a href="#" class="custom-link">Privacy Policy</a> | <a href="#" class="custom-link">Terms of Service</a></p>
 </footer>
 
 </body>
