@@ -68,6 +68,30 @@ pipeline {
             }
         }
         
+        stage("E2E: Cypress smoke suite"){
+            steps{
+                script{
+                    dir('e2e'){
+                        sh '''
+                            npm ci
+                            npm run stack:up
+                            npm run stack:seed
+                            npm run cy:run
+                        '''
+                    }
+                }
+            }
+            post{
+                failure{
+                    sh 'docker compose -f docker-compose.yml -f e2e/docker-compose.e2e.yml logs --no-color > e2e/stack.log 2>&1 || true'
+                    archiveArtifacts artifacts: 'e2e/cypress/screenshots/**/*, e2e/cypress/videos/**/*, e2e/stack.log', allowEmptyArchive: true, followSymlinks: false
+                }
+                always{
+                    sh 'cd e2e && npm run stack:down || true'
+                }
+            }
+        }
+        
         stage("Docker: Push to DockerHub"){
             steps{
                 script{

@@ -1,0 +1,17 @@
+{
+  "name": "bankapp-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cypress end-to-end smoke suite for the Spring Boot bank application",
+  "scripts": {
+    "stack:up": "bash scripts/stack-up.sh",
+    "stack:seed": "bash scripts/seed.sh",
+    "stack:down": "bash scripts/stack-down.sh",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "test": "cypress run"
+  },
+  "devDependencies": {
+    "cypress": "^13.17.0"
+  }
+}

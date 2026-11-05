@@ -1,0 +1,30 @@
+# Overrides for the end-to-end (Cypress) stack. Always used together with the
+# root docker-compose.yml:
+#   docker compose -f docker-compose.yml -f e2e/docker-compose.e2e.yml up -d --build --wait
+#
+# - builds the application image from the working tree instead of pulling
+#   ${DUSER}/${IMAGE} from Docker Hub
+# - replaces the actuator health check (the app does not ship the actuator
+#   starter and the runtime image has no curl) with a wget probe of /login
+# - uses a throw-away database volume so every run starts from the seed data
+services:
+  mysql:
+    image: mysql:8.0
+    volumes:
+      - e2e-mysql:/var/lib/mysql
+
+  mainapp:
+    image: bankapp:e2e
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pull_policy: never
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/login || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  e2e-mysql:
