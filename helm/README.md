@@ -33,6 +33,20 @@ chmod 700 get_helm.sh
         kubectl apply -f https://raw.githubusercontent.com/kubernetes/autoscaler/vpa-release-1.0/vertical-pod-autoscaler/deploy/vpa-rbac.yaml
     ```
 
+## Database credentials
+Passwords are never stored in `values.yaml` (it is committed to Git). Either create the
+`mysql-secret` Secret out of band - External Secrets Operator, Sealed Secrets, Vault or
+`kubectl create secret generic` - and leave `secret.create=false`, or let the chart
+create it from values injected at install time by your secret manager / CI:
+```bash
+helm install bankapp bankapp/ \
+  --set secret.create=true \
+  --set secret.data.MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+  --set secret.data.SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
+```
+The app connects as the least-privilege `bankapp` user (grants limited to `BankDB`);
+root stays administrative-only.
+
 ## Run the SpringBoot Bankapp using helm
 Install Bankapp from helm chart.
 ```bash

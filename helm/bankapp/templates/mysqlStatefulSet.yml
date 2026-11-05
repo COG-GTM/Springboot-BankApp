@@ -32,6 +32,17 @@ spec:
             configMapKeyRef:
               name: {{ .Values.configmap.name }} 
               key: MYSQL_DATABASE 
+        # Least-privilege account used by the application (granted only on MYSQL_DATABASE).
+        - name: MYSQL_USER
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.configmap.name }}
+              key: SPRING_DATASOURCE_USERNAME
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: SPRING_DATASOURCE_PASSWORD
         volumeMounts:
         - name: "{{ .Values.db_statefulset.name }}-data"
           mountPath: /var/lib/mysql

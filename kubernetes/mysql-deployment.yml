@@ -31,6 +31,17 @@ spec:
             configMapKeyRef:
               name: bankapp-config
               key: MYSQL_DATABASE
+        # Least-privilege account used by the application (granted only on MYSQL_DATABASE).
+        - name: MYSQL_USER
+          valueFrom:
+            configMapKeyRef:
+              name: bankapp-config
+              key: SPRING_DATASOURCE_USERNAME
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: SPRING_DATASOURCE_PASSWORD
         volumeMounts:
         - name: mysql-pv-storage
           mountPath: /var/lib/mysql
