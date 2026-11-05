@@ -2,8 +2,8 @@
 E2E_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "$E2E_DIR/.." && pwd)"
 
-# The e2e stack runs as its own Compose project with its own container names
-# and host port so it can coexist with (and never tear down) a regular
+# The e2e stack runs as its own Compose project with project-scoped container
+# names and its own host port so it can coexist with (and never tear down) a regular
 # `docker compose up` of the root docker-compose.yml.
 E2E_PROJECT="${E2E_COMPOSE_PROJECT:-bankapp-e2e}"
 export E2E_APP_PORT="${E2E_APP_PORT:-8081}"

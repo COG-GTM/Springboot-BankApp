@@ -72,10 +72,10 @@ CYPRESS_BASE_URL=http://host:8080 npm run cy:run  # point at an app that is alre
 E2E_APP_PORT=9090 npm run stack:up && CYPRESS_BASE_URL=http://localhost:9090 npm run cy:run  # another host port
 ```
 
-The stack runs as Compose project `bankapp-e2e` (containers `bankapp-e2e-app`
-and `bankapp-e2e-mysql`, host port 8081), so it does not interfere with a
+The stack runs as Compose project `bankapp-e2e` (containers
+`bankapp-e2e-mainapp-1` and `bankapp-e2e-mysql-1`, host port 8081), so it does not interfere with a
 regular `docker compose up` of the root file on port 8080, and `stack:down`
-only removes the e2e containers and volume. Set `E2E_COMPOSE_PROJECT` to run
+only removes the e2e containers and volume. Set `E2E_COMPOSE_PROJECT` and `E2E_APP_PORT` to run
 several e2e stacks side by side.
 
 If you change Java code, rerun `npm run stack:up`; `--build` rebuilds the

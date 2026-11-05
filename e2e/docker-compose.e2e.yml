@@ -7,19 +7,21 @@
 # - replaces the actuator health check (the app does not ship the actuator
 #   starter and the runtime image has no curl) with a wget probe of /login
 # - uses a throw-away database volume so every run starts from the seed data
-# - uses its own container names and host port (E2E_APP_PORT, default 8081)
-#   so a regular `docker compose up` of the root file keeps running untouched.
-#   `!override` on ports needs Docker Compose >= 2.24.
+# - drops the fixed container names (Compose then scopes them by project, e.g.
+#   bankapp-e2e-mainapp-1) and publishes its own host port (E2E_APP_PORT,
+#   default 8081) so a regular `docker compose up` of the root file keeps
+#   running untouched and several e2e projects can run side by side.
+#   `!reset` / `!override` need Docker Compose >= 2.24.
 services:
   mysql:
     image: mysql:8.0
-    container_name: bankapp-e2e-mysql
+    container_name: !reset null
     volumes:
       - e2e-mysql:/var/lib/mysql
 
   mainapp:
     image: bankapp:e2e
-    container_name: bankapp-e2e-app
+    container_name: !reset null
     build:
       context: .
       dockerfile: Dockerfile
