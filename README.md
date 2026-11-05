@@ -7,6 +7,7 @@
 ## Tech stack used in this project:
 - GitHub (Code)
 - Docker (Containerization)
+- Chainguard Images (Hardened, minimal container base images)
 - Jenkins (CI)
 - OWASP (Dependency check)
 - SonarQube (Quality)
@@ -15,6 +16,42 @@
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
   
+## Container image
+
+The application image is a two-stage build on [Chainguard Images](https://images.chainguard.dev):
+
+| Stage   | Base image                  | Purpose                                          |
+| ------- | --------------------------- | ------------------------------------------------ |
+| builder | `cgr.dev/chainguard/jdk`    | Compiles and packages the Spring Boot fat jar     |
+| runtime | `cgr.dev/chainguard/jre`    | Runs the jar; no shell, no package manager        |
+
+The runtime image contains only the JRE and the application jar, and runs as the
+non-root user `65532`. The application still listens on port **8080**.
+
+Build and run:
+
+```bash
+# build
+docker build -t bankapp:latest .
+
+# build behind an internal artifact mirror (Artifactory/Nexus)
+docker build --build-arg MAVEN_REPO_URL=https://artifacts.example.com/maven2 -t bankapp:latest .
+
+# run the full stack (app + MySQL)
+docker compose up -d --build   # http://localhost:8080
+```
+
+Scan the image:
+
+```bash
+trivy image --scanners vuln bankapp:latest
+```
+
+> [!Note]
+> The runtime image is distroless, so it has no `curl`, `wget` or shell. Container
+> health checks must be executed from outside the container (for example an HTTP
+> probe from the orchestrator) rather than with `CMD-SHELL`.
+
 ### Steps to deploy:
 
 ### Pre-requisites:

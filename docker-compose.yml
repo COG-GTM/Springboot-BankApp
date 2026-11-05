@@ -18,6 +18,8 @@ services:
       start_period: 30s
 
   mainapp:
+    build:
+      context: .
     image: ${DUSER}/${IMAGE}
     container_name: Bankapp
     environment:
@@ -32,12 +34,6 @@ services:
     networks:
       - bankapp
     restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
 networks:
   bankapp:

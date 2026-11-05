@@ -1,37 +1,51 @@
 #----------------------------------
-# Stage 1
+# Stage 1: build
 #----------------------------------
 
-# Import docker image with maven installed
-FROM maven:3.8.3-openjdk-17 as builder 
+# Chainguard JDK: minimal, continuously rebuilt, low-CVE base image
+FROM cgr.dev/chainguard/jdk:latest AS builder
 
-# Add maintainer, so that new user will understand who had written this Dockerfile
-MAINTAINER Madhup Pandey<madhuppandey2908@gmail.com>
-
-# Add labels to the image to filter out if we have multiple application running
 LABEL app=bankapp
 
-# Set working directory
-WORKDIR /src
+# Artifact repository used for the build. Override with an internal
+# Artifactory/Nexus mirror where builds must not egress to the public internet.
+ARG MAVEN_REPO_URL=https://repo.maven.apache.org/maven2
+ENV MVNW_REPOURL=${MAVEN_REPO_URL}
+ENV MAVEN_USER_HOME=/build/.m2
 
-# Copy source code from local to container
-COPY . /src
+WORKDIR /build
 
-# Build application and skip test cases
-RUN mvn clean install -DskipTests=true
+RUN mkdir -p "${MAVEN_USER_HOME}" && \
+    printf '<settings><mirrors><mirror><id>central-mirror</id><name>central-mirror</name><url>%s</url><mirrorOf>central</mirrorOf></mirror></mirrors></settings>' \
+        "${MAVEN_REPO_URL}" > "${MAVEN_USER_HOME}/settings.xml"
+
+COPY --chown=65532:65532 .mvn/ .mvn/
+COPY --chown=65532:65532 mvnw pom.xml ./
+
+# Resolve dependencies first so they stay cached across source-only changes
+RUN sh ./mvnw -B -ntp -s "${MAVEN_USER_HOME}/settings.xml" dependency:go-offline
+
+COPY --chown=65532:65532 src/ src/
+
+RUN sh ./mvnw -B -ntp -s "${MAVEN_USER_HOME}/settings.xml" clean package -DskipTests=true && \
+    cp target/bankapp-*.jar target/bankapp.jar
 
 #--------------------------------------
-# Stage 2
+# Stage 2: runtime
 #--------------------------------------
 
-# Import small size java image
-FROM openjdk:17-alpine as deployer
+# Chainguard JRE: distroless runtime with no shell or package manager, non-root by default
+FROM cgr.dev/chainguard/jre:latest AS runtime
 
-# Copy build from stage 1 (builder)
-COPY --from=builder /src/target/*.jar /src/target/bankapp.jar
+LABEL app=bankapp
 
-# Expose application port 
+WORKDIR /app
+
+COPY --from=builder --chown=65532:65532 /build/target/bankapp.jar /app/bankapp.jar
+
+# Non-root user shipped with the Chainguard image
+USER 65532:65532
+
 EXPOSE 8080
 
-# Start the application
-ENTRYPOINT ["java", "-jar", "/src/target/bankapp.jar"]
+ENTRYPOINT ["java", "-jar", "/app/bankapp.jar"]

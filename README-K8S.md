@@ -3,6 +3,7 @@
 ## Tech stack used in this project:
 - GitHub (Code)
 - Docker (Containerization)
+- Chainguard Images (Hardened, minimal container base images)
 - Jenkins (CI)
 - OWASP (Dependency check)
 - SonarQube (Quality)
