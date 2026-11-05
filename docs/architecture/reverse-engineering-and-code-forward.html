@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Springboot-BankApp — Reverse-Engineering &amp; Code-Forward Architecture</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --ink:#1f2933; --muted:#52606d; --line:#d9dee3; --obs:#e8f1fb; --obs-b:#2f6db3; --prop:#eef7ee; --prop-b:#3b8f4a; --amber:#fff3cd; --amber-b:#c9971a; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); line-height: 1.45; margin: 0; background:#fff; }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 32px 48px; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  h2 { font-size: 1.25rem; margin: 28px 0 8px; padding-top: 10px; border-top: 2px solid var(--line); }
+  h3 { font-size: 1.02rem; margin: 18px 0 6px; }
+  p, li { font-size: 0.93rem; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 14px; }
+  .tag { display:inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; margin-left: 8px; vertical-align: middle; }
+  .tag.obs { background: var(--obs); color: var(--obs-b); border: 1px solid var(--obs-b); }
+  .tag.prop { background: var(--prop); color: var(--prop-b); border: 1px solid var(--prop-b); }
+  section.observed { border-left: 4px solid var(--obs-b); padding-left: 14px; }
+  section.proposed { border-left: 4px solid var(--prop-b); padding-left: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.83rem; margin: 8px 0 14px; }
+  th, td { border: 1px solid var(--line); padding: 5px 7px; vertical-align: top; text-align: left; }
+  th { background: #f4f6f8; font-weight: 600; }
+  td code, p code, li code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8em; background: #f4f6f8; padding: 1px 4px; border-radius: 3px; }
+  .fig { background: #fafbfc; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 4px; margin: 10px 0 14px; }
+  .fig .cap { font-size: 0.8rem; color: var(--muted); margin: 6px 0 4px; }
+  .mermaid { display: flex; justify-content: center; }
+  .mermaid svg { max-width: 100%; height: auto; }
+  .callout { background: var(--amber); border: 1px solid var(--amber-b); border-radius: 4px; padding: 8px 12px; font-size: 0.88rem; margin: 10px 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .legend { font-size: 0.8rem; color: var(--muted); }
+  .legend span { display:inline-block; width: 12px; height: 12px; border: 1px solid #999; vertical-align: -2px; margin: 0 4px 0 10px; }
+  footer { margin-top: 32px; padding-top: 12px; border-top: 2px solid var(--line); font-size: 0.8rem; color: var(--muted); }
+  @media print {
+    @page { size: A4; margin: 14mm 14mm; }
+    body { font-size: 11px; }
+    main { padding: 0; max-width: none; }
+    h2 { page-break-after: avoid; }
+    .fig, table, tr { page-break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Springboot-BankApp — Reverse-Engineering &amp; Code-Forward Architecture</h1>
+<p class="sub">Repository <code>COG-GTM/Springboot-BankApp</code> · branch <code>DevOps</code> · commit <code>305826d</code> · 2026-09-09.
+Sections 2–5 are <strong>observed</strong> from source (every row cites <code>file:line</code>); sections 6–7 are <strong>proposed</strong>.
+Detail beyond this document lives in the discovery inventory produced with it.</p>
+<p class="legend">Legend: <span style="background:var(--obs)"></span> observed &nbsp;<span style="background:var(--prop)"></span> proposed &nbsp;<span style="background:var(--amber)"></span> external / outside the application boundary</p>
+
+<!-- ============================================================ -->
+<h2>1. Goals</h2>
+<ul>
+  <li><strong>This is not a platform upgrade.</strong> The runtime (Spring Boot 3.3.3, Java 17, MySQL 8) stays as it is; no application code is changed by this exercise.</li>
+  <li>Build an evidence-backed <strong>knowledge base</strong> of the system as it actually behaves: modules, who writes which table, business rules as implemented, integration points and their contracts.</li>
+  <li>Propose a <strong>domain-driven re-architecture</strong> (bounded contexts, ownership, events) and an <strong>incremental strangler roadmap</strong> whose slices each have a measurable "done when".</li>
+  <li>Scope: one Maven module, 8 Java classes, 4 Thymeleaf templates, 2 Jenkins pipelines, raw Kubernetes manifests and a Helm chart. No mainframe, queue or file-feed artefacts exist in the repo (<code>rg -i "copybook|ebcdic|COMMAREA|@JmsListener|sftp"</code> → 0 hits), so the legacy-touchpoint section is not applicable.</li>
+</ul>
+
+<!-- ============================================================ -->
+<section class="observed">
+<h2>2. System as-is <span class="tag obs">observed</span></h2>
+<p>One deployable (<code>bankapp</code>, port 8080, entry <code>BankappApplication.main</code>, <code>pom.xml:8,30</code>, <code>Dockerfile:34</code>) plus MySQL. The same JAR is deployed three ways — docker-compose, raw manifests, Helm — and each way carries its own copy of the database contract.</p>
+
+<div class="fig">
+<div class="mermaid">
+flowchart LR
+  classDef ext fill:#fff3cd,stroke:#c9971a,color:#1f2933;
+  classDef app fill:#e8f1fb,stroke:#2f6db3,color:#1f2933;
+  classDef store fill:#f4f6f8,stroke:#52606d,color:#1f2933;
+  U["Browser<br/>form POSTs, CSRF off"]:::ext
+  subgraph RT["Runtime: docker-compose OR K8s (2 replicas, HPA 1-5) OR Helm"]
+    A["bankapp JAR :8080<br/>BankController → AccountService → JPA<br/>owns: account, transaction"]:::app
+    DB[("MySQL 8 :3306<br/>db = bankappdb | BankDB<br/>schema by ddl-auto=update")]:::store
+    A -- "JDBC, root/Test@123" --> DB
+  end
+  U --> A
+  subgraph CI["Delivery"]
+    J["Jenkins CI<br/>clones LondheShubham153 fork<br/>pushes madhupdevops/bankapp"]:::ext
+    G["Jenkins CD (GitOps)<br/>sed on bankapp-deployment.yaml"]:::ext
+    H["DockerHub<br/>3 different image names"]:::ext
+    J --> H
+    J --> G
+  end
+  G -. "manifest commit" .-> RT
+  H -. "pull" .-> A
+  P["Probe /actuator/health<br/>(no actuator in pom)"]:::ext -. "404" .-> A
+</div>
+<div class="cap">Figure 1 — Where it runs. Amber = outside the application. Sources: <code>docker-compose.yml:3-40</code>, <code>kubernetes/bankapp-deployment.yml:9,20</code>, <code>kubernetes/bankapp-hpa.yml</code>, <code>helm/bankapp/values.yaml:26</code>, <code>Jenkinsfile:26,66</code>, <code>GitOps/Jenkinsfile:21,40</code>.</div>
+</div>
+
+<h3>Data ownership</h3>
+<p>Schema is generated by Hibernate at start-up (<code>application.properties:9</code>); there is no migration tool. Both tables have one writing module, but <code>account.balance</code> has five write paths and no lock.</p>
+<table>
+<tr><th>Table</th><th>Entity</th><th>Writers</th><th>Readers</th><th>Notes</th></tr>
+<tr><td><code>account</code></td><td><code>Account</code> — also <code>implements UserDetails</code> (<code>model/Account.java:11-12</code>)</td>
+<td><code>AccountService</code>: <code>registerAccount</code> :47 · <code>deposit</code> :53 · <code>withdraw</code> :69 · <code>transferAmount</code> :113 (sender), :117 (recipient)</td>
+<td><code>findByUsername</code> :35,:39,:108; Spring Security <code>loadUserByUsername</code> :85-97; every controller action (<code>BankController.java:24,53,61,77,85</code>)</td>
+<td>Balance is stored, not derived; no <code>@Version</code>, no <code>@Transactional</code> (0 hits in <code>src</code>).</td></tr>
+<tr><td><code>transaction</code></td><td><code>Transaction</code> (<code>model/Transaction.java:7-19</code>)</td>
+<td><code>deposit</code> :61 · <code>withdraw</code> :77 · <code>transferAmount</code> :126 (debit leg), :134 (credit leg)</td>
+<td><code>getTransactionHistory</code> → <code>findByAccountId</code> :81; <code>transactions.html:116-123</code></td>
+<td><code>type</code> is free text with the counterparty embedded (:122, :130); the two legs of a transfer share no id.</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section class="observed">
+<h2>3. Business logic <span class="tag obs">observed</span></h2>
+<table>
+<tr><th>#</th><th>Rule as implemented</th><th>Source</th></tr>
+<tr><td>R1</td><td>Username unique; duplicate → <code>"Username already exists"</code></td><td><code>AccountService.java:39-41</code></td></tr>
+<tr><td>R2</td><td>New account: balance 0, password BCrypt-hashed</td><td><code>AccountService.java:45-46</code>, <code>SecurityConfig.java:22-25</code></td></tr>
+<tr><td>R3</td><td>Deposit: <code>balance += amount</code>; no sign or bound check; row <code>"Deposit"</code></td><td><code>AccountService.java:51-62</code></td></tr>
+<tr><td>R4</td><td>Withdraw: rejected only when <code>balance &lt; amount</code>; no positivity check; row <code>"Withdrawal"</code></td><td><code>AccountService.java:64-78</code></td></tr>
+<tr><td>R5</td><td>Transfer: rejected when <code>balance &lt; amount</code> or recipient unknown; debit, credit, two rows; no positivity, self-transfer, limit or approval check; not atomic</td><td><code>AccountService.java:103-135</code></td></tr>
+<tr><td>R6</td><td>History = all rows for the account id, in repository order</td><td><code>AccountService.java:80-82</code>, <code>TransactionRepository.java:9</code></td></tr>
+<tr><td>R7</td><td>Every user holds exactly one authority <code>"USER"</code>; no roles</td><td><code>AccountService.java:99-101</code></td></tr>
+<tr><td>R8</td><td><code>/register</code>, <code>/login</code> public; everything else authenticated; CSRF disabled</td><td><code>SecurityConfig.java:30-47</code></td></tr>
+<tr><td>R9</td><td>Account number shown = DB primary key; account type hard-coded "Savings"</td><td><code>dashboard.html:133-134</code></td></tr>
+<tr><td>R10</td><td>Credit/debit colour = <code>type.contains('Transfer In') || type == 'Deposit'</code></td><td><code>transactions.html:120-121</code></td></tr>
+<tr><td>Time</td><td><code>LocalDateTime.now()</code> at four sites — wall-clock, zone-less; a transfer's two legs get two different timestamps; no posting/value date</td><td><code>AccountService.java:58,74,123,131</code></td></tr>
+<tr><td>Money</td><td><code>BigDecimal</code> with no scale, rounding or currency anywhere (<code>RoundingMode|setScale</code> → 0 hits); amounts bound straight from the request</td><td><code>BankController.java:51,59,83</code>, <code>Account.java:19</code></td></tr>
+</table>
+
+<div class="fig">
+<div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant C as BankController
+  participant S as AccountService
+  participant AR as AccountRepository
+  participant TR as TransactionRepository
+  B->>C: POST /transfer (toUsername, amount)   [no CSRF token]
+  C->>S: findAccountByUsername(principal)
+  S->>AR: findByUsername
+  C->>S: transferAmount(from, toUsername, amount)
+  Note over S: reject only if balance is below amount (amount may be negative)
+  S->>AR: findByUsername(toUsername)
+  S->>AR: commit 1: save(from, balance minus amount)
+  S->>AR: commit 2: save(to, balance plus amount)
+  S->>TR: commit 3: save("Transfer Out to bob", now())
+  S->>TR: commit 4: save("Transfer In from alice", now())
+  Note over S,TR: four independent commits, no @Transactional, two now() clocks
+  S-->>C: void
+  C-->>B: 302 /dashboard
+</div>
+<div class="cap">Figure 2 — The key flow: a transfer as implemented (<code>BankController.java:82-96</code>, <code>AccountService.java:103-135</code>). Each <code>save</code> is its own database transaction.</div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section class="observed">
+<h2>4. Integration points <span class="tag obs">observed</span></h2>
+<p>No gateway or adapter layer exists: every integration is a direct call from the module that needs it, and the database contract (URL, name, credentials) is re-stated in five files.</p>
+
+<div class="fig">
+<div class="mermaid">
+flowchart LR
+  classDef ext fill:#fff3cd,stroke:#c9971a,color:#1f2933;
+  classDef app fill:#e8f1fb,stroke:#2f6db3,color:#1f2933;
+  subgraph APP["Application boundary"]
+    W["BankController<br/>+ Thymeleaf templates"]:::app
+    S["AccountService<br/>(all business rules)"]:::app
+    R["Spring Data JPA<br/>2 repositories"]:::app
+    W --> S --> R
+  end
+  BR["Browser<br/>HTTP forms"]:::ext --> W
+  CDN["Bootstrap / jQuery CDNs"]:::ext -.-> W
+  R -- "JDBC direct<br/>creds in 5 files" --> DB["MySQL 8"]:::ext
+  PRB["compose healthcheck<br/>Helm liveness/readiness"]:::ext -- "/actuator/health → 404" --> W
+  CI["Jenkins CI/CD<br/>GitHub fork · DockerHub · SMTP"]:::ext -. "builds & deploys" .-> APP
+</div>
+<div class="cap">Figure 3 — External boundary. Everything amber is outside the JAR; none of it is reached through a dedicated adapter.</div>
+</div>
+
+<table>
+<tr><th>#</th><th>Integration</th><th>Protocol / format</th><th>Direction</th><th>Caller</th><th>Gateway?</th><th>Evidence</th></tr>
+<tr><td>I1</td><td>MySQL</td><td>JDBC</td><td>app → DB</td><td>JPA repositories</td><td>direct</td><td><code>application.properties:3-6</code>, <code>pom.xml:55-58</code></td></tr>
+<tr><td>I2</td><td>End user</td><td>HTTP form POST → Thymeleaf HTML</td><td>user → app</td><td><code>BankController</code></td><td>direct, CSRF off</td><td><code>BankController.java:50,58,82</code>, <code>SecurityConfig.java:30</code></td></tr>
+<tr><td>I3</td><td>Health probe</td><td>HTTP GET <code>/actuator/health</code></td><td>runtime → app</td><td>compose, Helm</td><td>—</td><td><code>docker-compose.yml:36</code>, <code>helm/bankapp/templates/deployment.yml:45,51</code>; no actuator in <code>pom.xml:32-70</code></td></tr>
+<tr><td>I4</td><td>CDN assets</td><td>HTTPS</td><td>browser → CDN</td><td>templates</td><td>direct</td><td><code>dashboard.html:5,194-196</code></td></tr>
+<tr><td>I5</td><td>DockerHub</td><td>docker push/pull</td><td>CI → registry → runtime</td><td>Jenkins</td><td>—</td><td><code>Jenkinsfile:66,74</code> vs <code>kubernetes/bankapp-deployment.yml:20</code> vs <code>helm/bankapp/values.yaml:26</code></td></tr>
+<tr><td>I6</td><td>GitHub</td><td>git clone/push</td><td>CI/CD ↔ upstream fork</td><td>Jenkins</td><td>—</td><td><code>Jenkinsfile:26</code>, <code>GitOps/Jenkinsfile:21,62</code></td></tr>
+<tr><td>I7</td><td>E-mail</td><td>SMTP (emailext)</td><td>CD → mail</td><td>Jenkins</td><td>—</td><td><code>GitOps/Jenkinsfile:72-91</code></td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section class="observed">
+<h2>5. Findings <span class="tag obs">observed</span></h2>
+<p>Each finding is tied to one recurring root cause. Repository documentation was treated as claims: the health-endpoint, "datasource from environment", and "pipelines check out this repo" claims <strong>differ</strong> from the code; "multi-tier" and the CI→CD <code>DOCKER_TAG</code> hand-off are <strong>confirmed</strong>. The Group-Audit RACM expectations (APP-TXN-01/02/04, APP-SEC-05, ITGC-SEC-06/CM-08/DATA-10/LOG-11 failing) are confirmed by the rows below.</p>
+<table>
+<tr><th>#</th><th>Finding</th><th>Root cause</th><th>Evidence</th></tr>
+<tr><td>F1</td><td>A transfer is four independent commits; a failure between them creates or destroys money</td><td>multiple writers per store</td><td><code>AccountService.java:103-135</code>; <code>@Transactional</code> → 0 hits</td></tr>
+<tr><td>F2</td><td><code>account.balance</code> is read-modify-written from five paths with no <code>@Version</code>, while the runtime scales to 1–5 replicas on one DB → lost updates / double-spend</td><td>multiple writers per store</td><td><code>AccountService.java:47,53,69,113,117</code>, <code>Account.java:14-25</code>, <code>kubernetes/bankapp-hpa.yml</code></td></tr>
+<tr><td>F3</td><td>Amount is a raw <code>BigDecimal</code>: zero and negative values pass every check (a negative transfer pulls funds from the recipient); no scale or currency</td><td>money not a domain concept</td><td><code>AccountService.java:51-52,64-65,104</code>, <code>BankController.java:51,59,83</code>, <code>dashboard.html:147,163,183</code></td></tr>
+<tr><td>F4</td><td>Time is JVM wall-clock; the two legs of one transfer carry different timestamps; no posting date</td><td>time not a domain concept</td><td><code>AccountService.java:58,74,123,131</code></td></tr>
+<tr><td>F5</td><td>Direction and counterparty are encoded in a free-text <code>type</code>; the UI classifies by substring; transfer legs are unlinked</td><td>shared persistence model used as read model</td><td><code>AccountService.java:57,73,122,130</code>, <code>transactions.html:120-121</code></td></tr>
+<tr><td>F6</td><td><code>Account</code> is JPA entity, Spring Security principal and ledger balance in one class</td><td>shared persistence model</td><td><code>Account.java:12</code>, <code>AccountService.java:85-97</code>, <code>SecurityConfig.java:57</code></td></tr>
+<tr><td>F7</td><td>JPA entities are passed straight to templates; there is no read model</td><td>reporting reads the write model</td><td><code>BankController.java:25,67,78,91</code></td></tr>
+<tr><td>F8</td><td>DB URL/name/credentials appear in five files and drift (<code>bankappdb</code> vs <code>BankDB</code>; Helm "base64" values are plain text)</td><td>external-system knowledge outside one adapter</td><td><code>application.properties:3-5</code>, <code>docker-compose.yml:7-8,25-26</code>, <code>kubernetes/configmap.yaml:7-8</code>, <code>kubernetes/secrets.yaml:8-9</code>, <code>helm/bankapp/values.yaml:8,52-53</code></td></tr>
+<tr><td>F9</td><td>Deployment assumes <code>/actuator/health</code>; the application ships no actuator, so compose healthchecks and Helm probes cannot pass</td><td>external-system knowledge outside one adapter</td><td><code>docker-compose.yml:36</code>, <code>helm/bankapp/templates/deployment.yml:43-54</code>, <code>pom.xml:32-70</code></td></tr>
+<tr><td>F10</td><td>Delivery provenance: pipelines clone the upstream fork; CI pushes <code>madhupdevops/bankapp</code>, K8s runs <code>trainwithshubham/bankapp-eks</code>, Helm runs <code>trainwithshubham/springboot-bankapp</code>; CD edits <code>…deployment.yaml</code> but the file is <code>.yml</code></td><td>external-system knowledge outside one adapter</td><td><code>Jenkinsfile:26,66</code>, <code>GitOps/Jenkinsfile:21,40</code>, <code>kubernetes/bankapp-deployment.yml:20</code>, <code>helm/bankapp/values.yaml:26</code></td></tr>
+<tr><td>F11</td><td>Schema is written by Hibernate at runtime (<code>ddl-auto=update</code>); no migration history</td><td>multiple writers per store</td><td><code>application.properties:9</code>; no Flyway/Liquibase in <code>pom.xml</code></td></tr>
+<tr><td>F12</td><td>Single <code>"USER"</code> authority, no limits or maker-checker, CSRF disabled on every money-moving POST</td><td>shared persistence model (policy has no home)</td><td><code>AccountService.java:99-101</code>, <code>SecurityConfig.java:30</code></td></tr>
+<tr><td>F13</td><td>No domain events, audit log or log statements; the only trace of a money movement is the mutable row it wrote</td><td>reporting/audit read the write model</td><td><code>rg "Logger|log\." src/main/java</code> → 0</td></tr>
+<tr><td>F14</td><td>The only test is <code>contextLoads</code>, which needs a live MySQL; domain rules cannot be tested in isolation</td><td>shared persistence model</td><td><code>BankappApplicationTests.java:9-11</code></td></tr>
+</table>
+<p class="legend">Not applicable here: overlapping scheduled jobs (no scheduler present) and copybook/parser drift (no mainframe artefacts).</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="proposed">
+<h2>6. Re-architecture <span class="tag prop">proposed</span></h2>
+<p>The ownership table yields one core domain (money movement), one supporting domain (identity), two read models and one adapter for everything outside the JAR. Contexts talk only through commands (imperative) and events (past tense).</p>
+
+<div class="fig">
+<div class="mermaid">
+flowchart LR
+  classDef core fill:#eef7ee,stroke:#3b8f4a,color:#1f2933;
+  classDef sup fill:#f4f6f8,stroke:#52606d,color:#1f2933;
+  classDef ext fill:#fff3cd,stroke:#c9971a,color:#1f2933;
+  UI["Web UI (BFF)<br/>owns: nothing<br/>issues commands, reads views"]:::sup
+  ID["Identity &amp; Access<br/>owns: user_credential<br/>evt: UserRegistered"]:::sup
+  LG["Account Ledger (core)<br/>owns: ledger_account, ledger_entry, transfer<br/>evt: FundsDeposited, FundsWithdrawn,<br/>TransferCompleted, TransferRejected"]:::core
+  PO["Payment Policy<br/>owns: transfer_limit, transfer_approval<br/>evt: TransferHeld, TransferApproved"]:::sup
+  TH["Transaction History (read model)<br/>owns: transaction_view"]:::sup
+  AU["Audit Trail (read model)<br/>owns: audit_event"]:::sup
+  ACL["Platform ACL<br/>owns: flyway_schema_history, config binding,<br/>/actuator/health, image contract"]:::ext
+  UI -- "RegisterUser / Authenticate" --> ID
+  UI -- "DepositFunds / WithdrawFunds / TransferFunds" --> LG
+  LG -- "TransferFunds > limit" --> PO
+  PO -- "ApproveTransfer" --> LG
+  LG -. "events" .-> TH
+  LG -. "events" .-> AU
+  ID -. "events" .-> AU
+  UI -- "read" --> TH
+  ACL --- LG
+</div>
+<div class="cap">Figure 4 — Target context map (7 nodes). Ownership is written inside each node; the amber node is the single anti-corruption layer to database, runtime and delivery.</div>
+</div>
+
+<div class="grid2">
+<div>
+<h3>Design rules</h3>
+<ul>
+  <li>One writer per table; a context's tables are reachable only through its commands.</li>
+  <li><code>Money</code> value object (scale 2, currency, <code>&gt; 0</code>) at every boundary — replaces raw <code>BigDecimal</code>.</li>
+  <li>Injected <code>Clock</code>; one <code>postedAt</code> per operation; posting date is a domain field.</li>
+  <li>Every command runs in one <code>@Transactional</code> unit; balance carries <code>@Version</code>; entries are immutable and double-entry.</li>
+  <li>The security principal is never a persistence entity.</li>
+  <li>Events are the only way data crosses a context; the UI reads projections, never entities.</li>
+  <li>Schema changes only through migrations; no secret literal in the repository; one image name and one config source.</li>
+</ul>
+</div>
+<div>
+<h3>Target ownership map</h3>
+<table>
+<tr><th>Today</th><th>Target owner</th></tr>
+<tr><td><code>account.username</code>, <code>account.password</code></td><td>Identity &amp; Access → <code>user_credential</code></td></tr>
+<tr><td><code>account.balance</code></td><td>Account Ledger → <code>ledger_account</code> (+ <code>ledger_entry</code>, <code>transfer</code>)</td></tr>
+<tr><td><code>transaction</code></td><td>Transaction History → <code>transaction_view</code> (old table frozen, then dropped)</td></tr>
+<tr><td>— (new)</td><td>Payment Policy → <code>transfer_limit</code>, <code>transfer_approval</code></td></tr>
+<tr><td>— (new)</td><td>Audit Trail → <code>audit_event</code></td></tr>
+<tr><td>MySQL contract, probes, CI/CD image</td><td>Platform ACL</td></tr>
+</table>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section class="proposed">
+<h2>7. Roadmap <span class="tag prop">proposed</span></h2>
+<p>Strangler order: adapter first (highest operational risk, least business logic), then the context with the fewest dependants. No slice has been completed yet.</p>
+
+<div class="fig">
+<div class="mermaid">
+flowchart LR
+  classDef todo fill:#fff,stroke:#3b8f4a,color:#1f2933;
+  classDef acl fill:#fff3cd,stroke:#c9971a,color:#1f2933;
+  S1["S1 Platform ACL<br/>config · secrets · actuator<br/>Flyway baseline · image contract"]:::acl
+  S2["S2 Money &amp; Time types<br/>Money, Clock, amount > 0"]:::todo
+  S3["S3 Account Ledger<br/>@Transactional, Transfer id,<br/>ledger_entry, @Version"]:::todo
+  S4["S4 Identity &amp; Access<br/>user_credential, roles, CSRF on"]:::todo
+  S5["S5 History + Audit<br/>events → projections"]:::todo
+  S6["S6 Payment Policy<br/>limits, maker-checker"]:::todo
+  S1 --> S2 --> S3 --> S4 --> S5 --> S6
+</div>
+<div class="cap">Figure 5 — Six slices; each is independently shippable and leaves the application running.</div>
+</div>
+
+<table>
+<tr><th>Slice</th><th>Scope</th><th>Done when</th><th>Status</th></tr>
+<tr><td>S1 Platform ACL</td><td>Single env-driven config; secrets out of the repo; add actuator; Flyway baseline of the current schema and <code>ddl-auto=validate</code>; one image name; CD edits the file that exists; CI clones this repo</td><td>App boots with <code>ddl-auto=validate</code>; <code>/actuator/health</code> → 200 and compose/Helm probes pass; <code>rg "Test@123"</code> → 0; CI and CD reference the same image and manifest</td><td>not started</td></tr>
+<tr><td>S2 Money &amp; Time</td><td><code>Money</code> and <code>Clock</code>; reject <code>amount ≤ 0</code>; one timestamp per operation</td><td>Unit tests (no DB) show negative/zero deposit, withdraw and transfer rejected; both transfer legs share <code>postedAt</code></td><td>not started</td></tr>
+<tr><td>S3 Account Ledger</td><td><code>@Transactional</code> commands; <code>Transfer</code> aggregate with id; immutable <code>ledger_entry</code>; <code>@Version</code> on balance; reconciliation <code>sum(entries) == balance</code></td><td>Fault injected between legs leaves both balances unchanged; two concurrent withdrawals cannot overdraw; reconciliation passes on seeded data</td><td>not started</td></tr>
+<tr><td>S4 Identity &amp; Access</td><td><code>user_credential</code>; <code>UserDetails</code> adapter separate from the entity; roles <code>USER</code>/<code>APPROVER</code>; CSRF enabled</td><td><code>Account</code> no longer implements <code>UserDetails</code>; POST without CSRF token → 403; login unchanged for users</td><td>not started</td></tr>
+<tr><td>S5 History + Audit</td><td>Publish Ledger events; project <code>transaction_view</code> and <code>audit_event</code>; UI reads views</td><td><code>transactions.html</code> uses a typed <code>direction</code> column; every money event has an <code>audit_event</code> row; old <code>transaction</code> table is read-only</td><td>not started</td></tr>
+<tr><td>S6 Payment Policy</td><td>Per-transfer and daily limits; maker-checker above threshold</td><td>Transfer above limit → <code>HELD</code> until a second <code>APPROVER</code> approves; transfers below the limit are unaffected</td><td>not started</td></tr>
+</table>
+</section>
+
+<footer>
+Repository <a href="https://github.com/COG-GTM/Springboot-BankApp">COG-GTM/Springboot-BankApp</a> · commit <code>305826d755587d70eb24a7076eaf0797743548b3</code> · generated 2026-09-09 ·
+produced by the Devin playbook "Reverse-Engineering &amp; Code-Forward Architecture (any legacy service portfolio)". Diagrams rendered with Mermaid 10.
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral', flowchart: { htmlLabels: true, curve: 'basis' } });</script>
+</body>
+</html>
