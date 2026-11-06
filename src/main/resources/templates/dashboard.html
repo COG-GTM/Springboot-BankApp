@@ -26,8 +26,7 @@
             border-bottom: 2px solid #B08D57;
         }
 
-        .navbar-custom a,
-        .navbar-custom .btn-link {
+        .navbar-custom a {
             color: #ffffff !important;
         }
 
@@ -119,9 +118,8 @@
         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
         <li class="nav-item">
-            <form method="post" th:action="@{/logout}" class="form-inline">
-                <button type="submit" class="nav-link btn btn-link">Logout</button>
-            </form>
+            <form id="logout-form" method="post" th:action="@{/logout}" class="d-none"></form>
+            <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
         </li>
     </ul>
 </nav>
