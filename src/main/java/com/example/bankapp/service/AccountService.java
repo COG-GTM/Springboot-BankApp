@@ -49,6 +49,7 @@ public class AccountService implements UserDetailsService {
 
 
     public void deposit(Account account, BigDecimal amount) {
+        requirePositiveAmount(amount);
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
@@ -62,6 +63,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
+        requirePositiveAmount(amount);
         if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
@@ -101,12 +103,17 @@ public class AccountService implements UserDetailsService {
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
+        requirePositiveAmount(amount);
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
         Account toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+
+        if (isSameAccount(fromAccount, toAccount)) {
+            throw new IllegalArgumentException("Cannot transfer to your own account");
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
@@ -132,6 +139,19 @@ public class AccountService implements UserDetailsService {
                 toAccount
         );
         transactionRepository.save(creditTransaction);
+    }
+
+    private static boolean isSameAccount(Account a, Account b) {
+        if (a.getId() != null && b.getId() != null) {
+            return a.getId().equals(b.getId());
+        }
+        return a.getUsername() != null && a.getUsername().equalsIgnoreCase(b.getUsername());
+    }
+
+    private static void requirePositiveAmount(BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
     }
 
 }
