@@ -115,4 +115,16 @@ class AccountServiceDailyWithdrawalLimitTest {
         verify(transactionRepository, never()).save(any());
         verify(transactionRepository).findByAccountIdAndTimestampBetween(eq(1L), any(), any());
     }
+
+    @Test
+    void rejectsNonPositiveAmountsSoTheyCannotRestoreDailyAllowance() {
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> accountService.withdraw(account, new BigDecimal("-1000")));
+
+        assertEquals("Withdrawal amount must be positive", ex.getMessage());
+        assertThrows(RuntimeException.class, () -> accountService.withdraw(account, BigDecimal.ZERO));
+        assertEquals(new BigDecimal("10000"), account.getBalance());
+        verify(accountRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
 }

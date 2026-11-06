@@ -67,7 +67,11 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
-        if (getWithdrawnToday(account).add(amount).compareTo(dailyWithdrawalLimit) > 0) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new RuntimeException("Withdrawal amount must be positive");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (getWithdrawnOn(account, now.toLocalDate()).add(amount).compareTo(dailyWithdrawalLimit) > 0) {
             throw new RuntimeException("Daily withdrawal limit of $" + dailyWithdrawalLimit.toPlainString() + " exceeded");
         }
         if (account.getBalance().compareTo(amount) < 0) {
@@ -79,14 +83,14 @@ public class AccountService implements UserDetailsService {
         Transaction transaction = new Transaction(
                 amount,
                 "Withdrawal",
-                LocalDateTime.now(),
+                now,
                 account
         );
         transactionRepository.save(transaction);
     }
 
-    private BigDecimal getWithdrawnToday(Account account) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+    private BigDecimal getWithdrawnOn(Account account, LocalDate day) {
+        LocalDateTime startOfDay = day.atStartOfDay();
         LocalDateTime startOfNextDay = startOfDay.plusDays(1);
         return transactionRepository
                 .findByAccountIdAndTimestampBetween(account.getId(), startOfDay, startOfNextDay)
