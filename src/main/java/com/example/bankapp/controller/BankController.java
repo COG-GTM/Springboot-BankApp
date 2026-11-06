@@ -2,6 +2,9 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
+import com.example.bankapp.service.UsernameAlreadyExistsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -14,6 +17,8 @@ import java.math.BigDecimal;
 
 @Controller
 public class BankController {
+
+    private static final Logger log = LoggerFactory.getLogger(BankController.class);
 
     @Autowired
     private AccountService accountService;
@@ -35,6 +40,10 @@ public class BankController {
     public String registerAccount(@RequestParam String username, @RequestParam String password, Model model) {
         try {
             accountService.registerAccount(username, password);
+            return "redirect:/login";
+        } catch (UsernameAlreadyExistsException e) {
+            // Same response as a successful registration so the endpoint does not reveal which usernames exist.
+            log.info("Registration attempted for an existing username");
             return "redirect:/login";
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
