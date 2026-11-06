@@ -26,7 +26,8 @@
             border-bottom: 2px solid #B08D57;
         }
 
-        .navbar-custom a {
+        .navbar-custom a,
+        .navbar-custom .btn-link {
             color: #ffffff !important;
         }
 
@@ -86,6 +87,7 @@
             text-decoration: underline;
         }
     </style>
+    <noscript><style>#logout-link { display: none; }</style></noscript>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-custom">
@@ -96,7 +98,12 @@
     <ul class="navbar-nav ml-auto">
         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
-        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+        <li class="nav-item">
+            <form id="logout-form" method="post" th:action="@{/logout}" class="form-inline">
+                <a id="logout-link" class="nav-link" href="/logout" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
+                <noscript><button type="submit" class="nav-link btn btn-link">Logout</button></noscript>
+            </form>
+        </li>
     </ul>
 </nav>
 
