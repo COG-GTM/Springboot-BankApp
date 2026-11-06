@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -53,12 +54,12 @@ class UsernameEnumerationTest {
     @Test
     void registerReturnsSameResponseForExistingAndNewUsernames() throws Exception {
         MockHttpServletResponse existing = mockMvc.perform(post("/register")
-                        .param("username", "alice").param("password", "attacker-password"))
+                        .param("username", "alice").param("password", "attacker-password").with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"))
                 .andReturn().getResponse();
         MockHttpServletResponse fresh = mockMvc.perform(post("/register")
-                        .param("username", "carol").param("password", "carol-password"))
+                        .param("username", "carol").param("password", "carol-password").with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"))
                 .andReturn().getResponse();
@@ -75,7 +76,7 @@ class UsernameEnumerationTest {
     @WithMockUser(username = "alice")
     void zeroAmountTransferProbeGivesSameResultForExistingAndUnknownRecipient() throws Exception {
         for (String recipient : new String[]{"bob", "no-such-user"}) {
-            mockMvc.perform(post("/transfer").param("toUsername", recipient).param("amount", "0"))
+            mockMvc.perform(post("/transfer").param("toUsername", recipient).param("amount", "0").with(csrf()))
                     .andExpect(status().isOk())
                     .andExpect(view().name("dashboard"))
                     .andExpect(model().attribute("error", AccountService.TRANSFER_FAILED_MESSAGE));
@@ -86,7 +87,7 @@ class UsernameEnumerationTest {
     @Test
     @WithMockUser(username = "alice")
     void transferToUnknownRecipientShowsGenericErrorAndKeepsBalance() throws Exception {
-        mockMvc.perform(post("/transfer").param("toUsername", "no-such-user").param("amount", "10"))
+        mockMvc.perform(post("/transfer").param("toUsername", "no-such-user").param("amount", "10").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("dashboard"))
                 .andExpect(model().attribute("error", AccountService.TRANSFER_FAILED_MESSAGE));
@@ -98,7 +99,7 @@ class UsernameEnumerationTest {
     @Test
     @WithMockUser(username = "alice")
     void transferToExistingRecipientStillWorks() throws Exception {
-        mockMvc.perform(post("/transfer").param("toUsername", "bob").param("amount", "10"))
+        mockMvc.perform(post("/transfer").param("toUsername", "bob").param("amount", "10").with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/dashboard"));
 
