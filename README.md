@@ -1,4 +1,8 @@
 ## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
+
+For isolated local/CI testing without deployment, see the [MySQL query benchmark,
+correctness tests and reversible index migration](docs/mysql-performance.md).
+
 - This is a multi-tier bank an application written in Java (Springboot).
 
 ![Login diagram](images/login.png)
