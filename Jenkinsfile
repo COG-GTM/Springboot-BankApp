@@ -12,6 +12,16 @@ pipeline {
     
     stages {
         
+        stage("Validate: Parameters"){
+            steps{
+                script{
+                    if (!((params.DOCKER_TAG ?: '') ==~ /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/)) {
+                        error('Invalid DOCKER_TAG: must be 1-128 characters of A-Z a-z 0-9 _ . - and not start with . or -')
+                    }
+                }
+            }
+        }
+        
         stage("Workspace cleanup"){
             steps{
                 script{
