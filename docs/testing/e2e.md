@@ -13,6 +13,22 @@ and as the `E2E: Cypress smoke suite` stage of the `Jenkinsfile`.
 | `cypress/e2e/02-login.cy.js` | seeded user logs in and lands on `/dashboard`; wrong password stays on `/login?error`; anonymous `/dashboard` redirects to login |
 | `cypress/e2e/03-transactions.cy.js` | `/transactions` lists exactly the seeded rows for the signed-in account with the right sign/colour |
 | `cypress/e2e/04-transfer.cy.js` | the Transfer Money form debits the balance shown on the dashboard and writes a `Transfer Out` row; insufficient funds and unknown recipient show the error text |
+| `cypress/e2e/05-deposit-withdrawal.cy.js` | deposit $125: $500 → $625 and exactly one `Deposit` entry; withdraw $75: $500 → $425 and exactly one `Withdrawal` entry; withdraw $501: `Insufficient funds`, unchanged $500 balance and identical history |
+
+The suite has 13 tests across 5 specs. The deposit/withdrawal spec runs
+`cy.exec("npm run stack:seed")` before **each** test (including retries), and
+again after the spec, so each case starts with the same synthetic accounts,
+balances and transactions regardless of earlier transfers or spec runs.
+It checks persisted balances after a fresh page load, exact transaction type
+and amount, credit/debit colour, and preservation of all previous rows.
+These tests use whole-dollar inputs because the existing HTML number fields
+use the default integer step; they do not bypass browser validation.
+
+Reseeding deletes **all** accounts and transactions in the selected test
+database. Run this suite only against the disposable Compose stack, never
+production or shared data. The database used by `stack:seed` must be the one
+backing `CYPRESS_BASE_URL`; separate concurrent runs need separate Compose
+projects and ports.
 
 ## Layout
 
@@ -67,8 +83,9 @@ Useful variations:
 ```bash
 npm run cy:open                                   # interactive runner, pick a spec and watch it
 npx cypress run --spec cypress/e2e/04-transfer.cy.js   # one spec only
+npx cypress run --spec cypress/e2e/05-deposit-withdrawal.cy.js  # isolated money-movement regressions
 npx cypress run --browser chrome                  # a specific browser (default is Electron)
-CYPRESS_BASE_URL=http://host:8080 npm run cy:run  # point at an app that is already running
+CYPRESS_BASE_URL=http://host:8080 npm run cy:run  # only if backed by the disposable stack targeted by stack:seed
 E2E_APP_PORT=9090 npm run stack:up && CYPRESS_BASE_URL=http://localhost:9090 npm run cy:run  # another host port
 ```
 
@@ -94,9 +111,11 @@ image from the working tree. If the app comes up but the specs fail with
    `data-cy` attributes; if you add some for a new feature, prefer them.
 4. Assert on what the user sees: URL (`cy.location("pathname")`), headings,
    table rows, the `.error` paragraph on the dashboard.
-5. Tests that move money must work from the seeded balances no matter which
-   order they run in. Read the balance first (`cy.readBalance()`) and assert
-   relative to it, or register a throw-away user as `01-register.cy.js` does.
+5. For new tests that move money, reset the disposable database in `beforeEach`
+   with `cy.exec("npm run stack:seed")`, then log in and assert the initial
+   balance. Follow `05-deposit-withdrawal.cy.js`, including its final reset,
+   to avoid dependencies on spec order or previous attempts. Reading a
+   relative balance alone does not isolate server-side state.
 6. If the test needs new fixture rows, add them to `seed/seed.sql` (and to the
    table above) rather than creating them through the UI in a `before` hook,
    so every run starts from the same state.
