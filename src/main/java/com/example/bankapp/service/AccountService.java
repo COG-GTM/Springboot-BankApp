@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -100,13 +101,23 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
-    public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
+    @Transactional
+    public void transferAmount(Account sender, String toUsername, BigDecimal amount) {
+        // Reload inside the transaction so both accounts come from the same persistence context
+        // regardless of spring.jpa.open-in-view.
+        Account fromAccount = accountRepository.findById(sender.getId())
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
         Account toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+
+        if (fromAccount.getId().equals(toAccount.getId())) {
+            throw new RuntimeException("Cannot transfer to your own account");
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
