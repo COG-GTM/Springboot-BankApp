@@ -82,6 +82,21 @@ class BankControllerConcurrencyTest {
         assertThat(received).isEqualByComparingTo("100.00");
     }
 
+    @Test
+    void failedTransferRendersThePersistedBalance() throws Exception {
+        accountService.registerAccount("sender", "pw12345");
+        String longName = "r".repeat(250);
+        accountService.registerAccount(longName, "pw12345");
+        String session = login("sender", "pw12345");
+        post(session, "/deposit", "amount=100");
+
+        String page = http.send(form(session, "/transfer", "toUsername=" + longName + "&amount=40"),
+                HttpResponse.BodyHandlers.ofString()).body();
+
+        assertThat(balanceOf("sender")).isEqualByComparingTo("100.00");
+        assertThat(page).contains("Current Balance: $100.00").doesNotContain("Current Balance: $60.00");
+    }
+
     private interface Request {
         void send(int index) throws Exception;
     }
