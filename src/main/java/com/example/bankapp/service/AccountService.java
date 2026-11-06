@@ -5,6 +5,7 @@ import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,6 +32,9 @@ public class AccountService implements UserDetailsService {
 
     @Autowired
     private TransactionRepository transactionRepository;
+
+    @Value("${bankapp.daily-withdrawal-limit}")
+    private BigDecimal dailyWithdrawalLimit;
 
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
@@ -62,6 +67,9 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
+        if (getWithdrawnToday(account).add(amount).compareTo(dailyWithdrawalLimit) > 0) {
+            throw new RuntimeException("Daily withdrawal limit of $" + dailyWithdrawalLimit.toPlainString() + " exceeded");
+        }
         if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
@@ -75,6 +83,17 @@ public class AccountService implements UserDetailsService {
                 account
         );
         transactionRepository.save(transaction);
+    }
+
+    private BigDecimal getWithdrawnToday(Account account) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+        return transactionRepository
+                .findByAccountIdAndTimestampBetween(account.getId(), startOfDay, startOfNextDay)
+                .stream()
+                .filter(transaction -> "Withdrawal".equals(transaction.getType()))
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
