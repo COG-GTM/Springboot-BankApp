@@ -26,6 +26,9 @@ pipeline {
         stage('Verify: Docker Image Tags') {
             steps {
                 script{
+                    if (!((params.DOCKER_TAG ?: '') ==~ /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/)) {
+                        error('Invalid DOCKER_TAG: must be 1-128 characters of A-Z a-z 0-9 _ . - and not start with . or -')
+                    }
                     echo "DOCKER TAG RECEIVED: ${params.DOCKER_TAG}"
                 }
             }
@@ -36,9 +39,11 @@ pipeline {
             steps{
                 script{
                     dir('kubernetes'){
-                        sh """
-                            sed -i -e 's|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${params.DOCKER_TAG}|g' bankapp-deployment.yaml
-                        """
+                        withEnv(["IMAGE_TAG=${params.DOCKER_TAG}"]) {
+                            sh '''
+                                sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${IMAGE_TAG}|g" bankapp-deployment.yml
+                            '''
+                        }
                     }
                 }
             }
@@ -53,7 +58,12 @@ pipeline {
                         git status
                     
                         echo "Adding changes to git: "
-                        git add .
+                        git add kubernetes/bankapp-deployment.yml
+                        
+                        if git diff --cached --quiet -- kubernetes/bankapp-deployment.yml; then
+                            echo "Manifest already uses this image tag, nothing to commit"
+                            exit 0
+                        fi
                         
                         echo "Commiting changes: "
                         git commit -m "Updated K8s Deployment Docker Image Version"
