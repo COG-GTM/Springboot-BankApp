@@ -1,0 +1,5 @@
+.git
+target/
+e2e/node_modules/
+e2e/cypress/videos/
+e2e/cypress/screenshots/

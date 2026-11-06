@@ -1,0 +1,80 @@
+name: E2E - Cypress smoke suite
+
+on:
+  push:
+    branches: [DevOps]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cypress:
+    name: Build app, start stack, run Cypress
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: e2e
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
+
+      - name: Install Cypress
+        run: npm ci
+
+      - name: Build application image and start app + MySQL
+        run: npm run stack:up
+
+      - name: Seed database
+        run: npm run stack:seed
+
+      - name: Run smoke suite (headless)
+        run: npm run cy:run
+
+      - name: Collect container logs
+        if: failure()
+        run: |
+          mkdir -p logs
+          npm run -s stack:logs > logs/stack.log 2>&1 || true
+
+      - name: Archive screenshots, videos and logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-failure-artifacts
+          path: |
+            e2e/cypress/screenshots
+            e2e/cypress/videos
+            e2e/logs
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Archive videos (successful run)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: e2e/cypress/videos
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Tear down stack
+        if: always()
+        run: npm run stack:down
