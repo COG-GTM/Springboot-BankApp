@@ -30,6 +30,11 @@
             color: #ffffff !important;
         }
 
+        .navbar-custom .btn-link {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
         .navbar-custom .navbar-brand {
             font-weight: bold;
         }
@@ -96,7 +101,11 @@
     <ul class="navbar-nav ml-auto">
         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
-        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+        <li class="nav-item">
+            <form method="post" th:action="@{/logout}" class="form-inline">
+                <button type="submit" class="nav-link btn btn-link">Logout</button>
+            </form>
+        </li>
     </ul>
 </nav>
 
