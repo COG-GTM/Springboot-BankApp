@@ -6,7 +6,7 @@ def call(String imageName){
     withEnv(["IMAGE_NAME=${imageName}"]) {
         withCredentials([usernamePassword(credentialsId: "dockerhub", passwordVariable: 'DOCKER_PASSWD', usernameVariable: 'DOCKER_USER')]) {
             sh 'docker tag "$IMAGE_NAME" "$DOCKER_USER/springboot-application"'
-            sh 'echo "$DOCKER_PASSWD" | docker login -u "$DOCKER_USER" --password-stdin'
+            sh 'printf %s "$DOCKER_PASSWD" | docker login -u "$DOCKER_USER" --password-stdin'
             sh 'docker push "$DOCKER_USER/$IMAGE_NAME"'
         }
     }
