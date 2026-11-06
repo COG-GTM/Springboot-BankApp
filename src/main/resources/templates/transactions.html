@@ -100,7 +100,7 @@
         <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
         <li class="nav-item">
             <form id="logout-form" method="post" th:action="@{/logout}" class="form-inline">
-                <a id="logout-link" class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
+                <a id="logout-link" class="nav-link" href="/logout" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
                 <noscript><button type="submit" class="nav-link btn btn-link">Logout</button></noscript>
             </form>
         </li>
