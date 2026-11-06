@@ -4,6 +4,9 @@ import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -31,6 +34,9 @@ public class AccountService implements UserDetailsService {
 
     @Autowired
     private TransactionRepository transactionRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
@@ -95,9 +101,9 @@ public class AccountService implements UserDetailsService {
 
     @Transactional
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        // Resolve only the id: a managed entity loaded here would shadow the locked read below.
-        Long toId = accountRepository.findIdByUsername(toUsername)
-                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        Long toId = accountRepository.findByUsername(toUsername)
+                .orElseThrow(() -> new RuntimeException("Recipient account not found"))
+                .getId();
 
         // Lock both rows in ascending id order so opposite-direction transfers cannot deadlock.
         Long fromId = fromAccount.getId();
@@ -120,9 +126,15 @@ public class AccountService implements UserDetailsService {
         fromAccount.setBalance(from.getBalance());
     }
 
+    // refresh() with a lock issues SELECT ... FOR UPDATE and overwrites any stale copy already in the
+    // persistence context (open-in-view keeps the controller's Account managed for the whole request).
     private Account lockAccount(Long id) {
-        return accountRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        Account account = entityManager.find(Account.class, id);
+        if (account == null) {
+            throw new RuntimeException("Account not found");
+        }
+        entityManager.refresh(account, LockModeType.PESSIMISTIC_WRITE);
+        return account;
     }
 
 }
