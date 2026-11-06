@@ -1,0 +1,1 @@
+ALTER TABLE account DROP INDEX idx_account_username, ALGORITHM=INPLACE, LOCK=NONE;

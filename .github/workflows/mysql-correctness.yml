@@ -1,0 +1,38 @@
+name: MySQL correctness
+
+on:
+  pull_request:
+    branches: [DevOps]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - 'sql/performance/**'
+      - 'scripts/performance/**'
+      - '.github/workflows/mysql-correctness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  mysql-correctness:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-java@7a445ee88d4e23b52c33e03edaa0345e8910f4c8 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Real MySQL equivalence and rollback (no latency threshold)
+        run: mvn -B -Pmysql-performance verify -Dperf.accounts=10000 -Dperf.transactions=50000 -Dperf.samples=5
+      - name: Archive test reports, SQL, indexes and query plans
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mysql-correctness-evidence
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/mysql-performance/
+          retention-days: 14
