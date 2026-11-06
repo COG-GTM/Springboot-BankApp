@@ -7,10 +7,20 @@ pipeline {
     }
     
     parameters {
-        string(name: 'DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
+        string(name: 'DOCKER_TAG', defaultValue: '', description: 'Docker image tag to build and push (letters, digits, ".", "_", "-"; max 128 chars)')
     }
     
     stages {
+        
+        stage("Validate: Parameters"){
+            steps{
+                script{
+                    if (!(params.DOCKER_TAG ==~ /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/)) {
+                        error('Invalid DOCKER_TAG: must match ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$')
+                    }
+                }
+            }
+        }
         
         stage("Workspace cleanup"){
             steps{
@@ -63,7 +73,7 @@ pipeline {
         stage("Docker: Build Images"){
             steps{
                 script{
-                    docker_build("bankapp","${params.DOCKER_TAG}","madhupdevops")
+                    docker_build("bankapp", params.DOCKER_TAG, "madhupdevops")
                 }
             }
         }
@@ -71,7 +81,7 @@ pipeline {
         stage("Docker: Push to DockerHub"){
             steps{
                 script{
-                    docker_push("bankapp","${params.DOCKER_TAG}","madhupdevops")
+                    docker_push("bankapp", params.DOCKER_TAG, "madhupdevops")
                 }
             }
         }
@@ -80,7 +90,7 @@ pipeline {
         success{
             archiveArtifacts artifacts: '*.xml', followSymlinks: false
             build job: "BankApp-CD", parameters: [
-                string(name: 'DOCKER_TAG', value: "${params.DOCKER_TAG}")
+                string(name: 'DOCKER_TAG', value: params.DOCKER_TAG)
             ]
         }
     }
