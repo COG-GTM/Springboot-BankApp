@@ -60,6 +60,11 @@ pipeline {
                         echo "Adding changes to git: "
                         git add kubernetes/bankapp-deployment.yml
                         
+                        if git diff --cached --quiet -- kubernetes/bankapp-deployment.yml; then
+                            echo "Manifest already uses this image tag, nothing to commit"
+                            exit 0
+                        fi
+                        
                         echo "Commiting changes: "
                         git commit -m "Updated K8s Deployment Docker Image Version"
                         
