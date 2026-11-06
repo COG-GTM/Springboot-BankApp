@@ -4,6 +4,8 @@ import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,6 +24,10 @@ import java.util.List;
 @Service
 public class AccountService implements UserDetailsService {
 
+    public static final String TRANSFER_FAILED_MESSAGE = "Transfer failed";
+
+    private static final Logger log = LoggerFactory.getLogger(AccountService.class);
+
     @Autowired
     PasswordEncoder passwordEncoder;
 
@@ -36,13 +42,15 @@ public class AccountService implements UserDetailsService {
     }
 
     public Account registerAccount(String username, String password) {
+        // Hash before the lookup so taken and free usernames cost the same time.
+        String encodedPassword = passwordEncoder.encode(password);
         if (accountRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new UsernameAlreadyExistsException(username);
         }
 
         Account account = new Account();
         account.setUsername(username);
-        account.setPassword(passwordEncoder.encode(password)); // Encrypt password
+        account.setPassword(encodedPassword);
         account.setBalance(BigDecimal.ZERO); // Initial balance set to 0
         return accountRepository.save(account);
     }
@@ -84,10 +92,9 @@ public class AccountService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        Account account = findAccountByUsername(username);
-        if (account == null) {
-            throw new UsernameNotFoundException("Username or Password not found");
-        }
+        // UsernameNotFoundException lets DaoAuthenticationProvider run its dummy hash for unknown users.
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Username or Password not found"));
         return new Account(
                 account.getUsername(),
                 account.getPassword(),
@@ -101,12 +108,19 @@ public class AccountService implements UserDetailsService {
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            log.info("Transfer rejected for {}: non-positive amount {}", fromAccount.getUsername(), amount);
+            throw new RuntimeException(TRANSFER_FAILED_MESSAGE);
+        }
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
-        Account toAccount = accountRepository.findByUsername(toUsername)
-                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        Account toAccount = accountRepository.findByUsername(toUsername).orElse(null);
+        if (toAccount == null) {
+            log.info("Transfer rejected for {}: recipient not found", fromAccount.getUsername());
+            throw new RuntimeException(TRANSFER_FAILED_MESSAGE);
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
