@@ -2,13 +2,18 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
+import com.example.bankapp.service.AmountValidator;
+import com.example.bankapp.service.InvalidAmountException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.math.BigDecimal;
 
@@ -49,6 +54,7 @@ public class BankController {
 
     @PostMapping("/deposit")
     public String deposit(@RequestParam BigDecimal amount) {
+        AmountValidator.requireValid(amount);
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
         accountService.deposit(account, amount);
@@ -57,6 +63,7 @@ public class BankController {
 
     @PostMapping("/withdraw")
     public String withdraw(@RequestParam BigDecimal amount, Model model) {
+        AmountValidator.requireValid(amount);
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
 
@@ -81,6 +88,7 @@ public class BankController {
 
     @PostMapping("/transfer")
     public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
+        AmountValidator.requireValid(amount);
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account fromAccount = accountService.findAccountByUsername(username);
 
@@ -93,6 +101,15 @@ public class BankController {
         }
 
         return "redirect:/dashboard";
+    }
+
+    @ExceptionHandler(InvalidAmountException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public String handleInvalidAmount(InvalidAmountException e, Model model) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("error", e.getMessage());
+        model.addAttribute("account", accountService.findAccountByUsername(username));
+        return "dashboard";
     }
 
 }
