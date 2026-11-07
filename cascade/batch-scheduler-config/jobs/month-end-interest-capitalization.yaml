@@ -1,0 +1,12 @@
+job: month-end-interest-capitalization
+owner: Grace Kim (Core Operations)
+schedule: "50 23 L * *"
+connection: dna-core
+engine:
+  oracle: "BEGIN FOR r IN (SELECT account_id FROM accounts WHERE account_type IN ('SAV','MMA') AND status='OPEN' ORDER BY account_id) LOOP pkg_interest_engine.capitalize_interest(r.account_id); END LOOP; END;"
+  postgres: "SELECT pkg_interest_engine.capitalize_interest(account_id) FROM accounts WHERE account_type IN ('SAV','MMA') AND status='OPEN' ORDER BY account_id"
+depends_on: [month-end-fee-assessment]
+on_failure: page core-operations
+migration:
+  tranche: 1
+  status: fixture-assumption   # order (after fees) is [core operations to confirm]

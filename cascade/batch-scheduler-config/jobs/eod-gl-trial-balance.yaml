@@ -1,0 +1,16 @@
+job: eod-gl-trial-balance
+owner: Marcus Oyelaran (Finance Systems)
+schedule: "55 23 * * *"
+connection: dna-core
+engine:
+  oracle: "SELECT gl_code, pkg_gl_posting.gl_balance(gl_code) FROM gl_accounts"
+  postgres: "SELECT gl_code, pkg_gl_posting.gl_balance(gl_code), pkg_gl_posting.gl_balance_summary(gl_code) FROM gl_accounts"
+assert:
+  - "SUM(debit_amount) = SUM(credit_amount) over gl_entries"
+  - "gl_balance_summary(gl_code) = gl_balance(gl_code) for every gl_code   # DEV-GL-001"
+depends_on: [month-end-interest-capitalization]
+on_failure: page finance-systems
+migration:
+  tranche: 1
+  status: fixed-with-deviation
+  deviation: DEV-GL-001

@@ -1,0 +1,12 @@
+job: eod-interest-accrual
+owner: Grace Kim (Core Operations)
+schedule: "30 23 * * *"
+connection: dna-core
+engine:
+  oracle: "BEGIN pkg_interest_engine.accrue_daily_interest(:as_of_dt, :p_accounts, :p_total_accr); END;"
+  postgres: "SELECT p_accounts, p_total_accr FROM pkg_interest_engine.accrue_daily_interest(:as_of_dt)"
+depends_on: []
+on_failure: page core-operations
+migration:
+  tranche: 1
+  status: ready-after-pkg_interest_engine-PR

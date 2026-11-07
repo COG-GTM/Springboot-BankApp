@@ -1,0 +1,7 @@
+product_code,account_type,name,interest_rate,compounding,crediting,monthly_fee,waiver_min_balance,disclosed_apy
+CHK-BASIC,CHK,Cascade Basic Checking,0.000000,daily (actual/365),monthly,12.00,1500.00,0.00
+SAV-STD,SAV,Cascade Statement Savings,0.036500,daily (actual/365),monthly,0.00,0.00,3.72
+SAV-PLUS,SAV,Cascade Savings Plus,0.039000,daily (actual/365),monthly,0.00,0.00,3.98
+SAV-HY,SAV,Cascade High-Yield Savings,0.041000,daily (actual/365),monthly,0.00,0.00,4.18
+MMA-TIER,MMA,Cascade Money Market,0.045000,daily (actual/365),monthly,12.00,1500.00,4.60
+CD-12M,CD,Cascade 12-Month CD,0.052000,daily (actual/365),monthly,0.00,0.00,5.34

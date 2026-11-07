@@ -1,0 +1,11 @@
+server:
+  port: 8089
+spring:
+  application:
+    name: cascade-disclosure-service
+cascade:
+  disclosure:
+    # Statement figures: the core's rounded daily accrual (accrual_rec.rounded_accrual) is the "interest earned today"
+    # line; APY earned is computed from its sum per Appendix A Part II. [compliance to confirm] — see README.
+    apy-tolerance-pp: 0.05      # 12 CFR 1030.3(f)(2)
+    apr-tolerance-pp: 0.125     # 12 CFR 1026.22(a)(2), regular transactions
