@@ -1,0 +1,17 @@
+# Replaces Jenkins credential "docker" used by the shared-lib docker_push(). Also used to pull Run step images.
+connector:
+  name: dockerhub_bankapp
+  identifier: dockerhub_bankapp
+  description: DockerHub account madhupdevops
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  type: DockerRegistry
+  spec:
+    dockerRegistryUrl: https://index.docker.io/v2/
+    providerType: DockerHub
+    auth:
+      type: UsernamePassword
+      spec:
+        username: madhupdevops
+        passwordRef: dockerhub_pat
+    executeOnDelegate: false
