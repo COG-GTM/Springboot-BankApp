@@ -15,6 +15,17 @@
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
   
+## Architecture
+How a change reaches production: the Jenkins CI job scans, tests and pushes the image, the CD job commits the new tag to `kubernetes/`, and ArgoCD syncs it to EKS.
+
+![CI/CD flow](images/flow.png)
+
+What runs where on AWS: the Master EC2 machine hosts Jenkins and SonarQube; the EKS cluster runs ArgoCD, the bankapp and MySQL workloads behind ingress-nginx with cert-manager TLS, and Prometheus/Grafana for monitoring.
+
+![EKS deployment](images/eks-deployment.png)
+
+Diagram sources are in [docs/diagrams](docs/diagrams/README.md).
+
 ### Steps to deploy:
 
 ### Pre-requisites:

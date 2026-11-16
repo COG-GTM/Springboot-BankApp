@@ -1,9 +1,11 @@
 #### CICD Workflow
-- Cloning the Project code from GitHub.
-- Build docker image and push it to docker hub.
-- Pull image from docker hub and deploy application using docker compose .
+- **BankApp-CI** ([Jenkinsfile](Jenkinsfile)): workspace cleanup, Git checkout, Trivy filesystem scan, OWASP dependency check, SonarQube analysis and quality gate, Docker build, Cypress E2E smoke suite, then push of `bankapp:DOCKER_TAG` to DockerHub.
+- **BankApp-CD** ([GitOps/Jenkinsfile](GitOps/Jenkinsfile)): triggered by a successful CI run with the same `DOCKER_TAG`; updates the image tag in `kubernetes/bankapp-deployment`, commits and pushes it to the `DevOps` branch, and sends an email notification.
+- **ArgoCD** watches `kubernetes/` on the `DevOps` branch and syncs the manifests to the EKS cluster, which pulls the new image from DockerHub.
 
-    ![Login diagram](images/flow.png)
+    ![CI/CD flow](images/flow.png)
+
+    The runtime layout on EKS is shown in [images/eks-deployment.png](images/eks-deployment.png); diagram sources are in [docs/diagrams](docs/diagrams/README.md).
 #### Creating CICD pipeline 
 
  1. #### Install Jenkins and access on port 8080
