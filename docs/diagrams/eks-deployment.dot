@@ -2,9 +2,9 @@
 // Render with docs/diagrams/render.sh (writes images/eks-deployment.png).
 digraph eks_deployment {
   graph [rankdir=TB, newrank=true, compound=true, fontname="DejaVu Sans", bgcolor="#f7fbff", pad=0.4, nodesep=0.35, ranksep=0.45,
-         label="Springboot-BankApp deployment on AWS EKS (DevOps branch)", labelloc=t, fontsize=20];
-  node  [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor=white, color="#5b6b7b", penwidth=1.2];
-  edge  [fontname="DejaVu Sans", fontsize=10, color="#44546a", penwidth=1.3];
+         label="Springboot-BankApp deployment on AWS EKS (DevOps branch)", labelloc=t, fontsize=26];
+  node  [fontname="DejaVu Sans", fontsize=16, shape=box, style="rounded,filled", fillcolor=white, color="#5b6b7b", penwidth=1.2];
+  edge  [fontname="DejaVu Sans", fontsize=14, color="#44546a", penwidth=1.3];
 
   user  [label="Bank customer\n(browser)", shape=oval, fillcolor="#e8eef6"];
   admin [label="DevOps engineer", shape=oval, fillcolor="#e8eef6"];
@@ -14,31 +14,31 @@ digraph eks_deployment {
   letsencrypt [label="Let's Encrypt\n(ACME)", fillcolor="#f1f8e9"];
 
   subgraph cluster_aws {
-    label="AWS  us-west-1"; style="rounded,filled"; fillcolor="#fffaf2"; color="#ff9900"; fontsize=14;
+    label="AWS  us-west-1"; style="rounded,filled"; fillcolor="#fffaf2"; color="#ff9900"; fontsize=20;
 
     subgraph cluster_master {
-      label="Master EC2 (t2.medium)"; style="rounded,filled"; fillcolor="#fff4e5"; color="#d9822b"; fontsize=12;
+      label="Master EC2 (t2.medium)"; style="rounded,filled"; fillcolor="#fff4e5"; color="#d9822b"; fontsize=18;
       jenkins [label="Jenkins :8081\nBankApp-CI / BankApp-CD", fillcolor=white];
       sonar   [label="SonarQube :9000\n(Docker container)", fillcolor="#e6f0ff"];
       tools   [label="Docker, Trivy, OWASP DC\nkubectl, eksctl, argocd CLI, helm", fillcolor=white];
     }
 
     subgraph cluster_eks {
-      label="EKS cluster: bankapp   (eksctl, nodegroup 2 x t2.medium)"; style="rounded,filled"; fillcolor="#fff8e1"; color="#ff9900"; fontsize=13;
+      label="EKS cluster: bankapp   (eksctl, nodegroup 2 x t2.medium)"; style="rounded,filled"; fillcolor="#fff8e1"; color="#ff9900"; fontsize=19;
 
       subgraph cluster_ingress_ns {
-        label="ingress-nginx / cert-manager"; style="rounded,filled"; fillcolor="#f4f4f4"; color="#9e9e9e"; fontsize=11;
+        label="ingress-nginx / cert-manager"; style="rounded,filled"; fillcolor="#f4f4f4"; color="#9e9e9e"; fontsize=17;
         lb      [label="ingress-nginx controller\n(Service type LoadBalancer)", fillcolor="#e8f5e9"];
         certmgr [label="cert-manager\nClusterIssuer letsencrypt-prod", fillcolor="#f1f8e9"];
       }
 
       subgraph cluster_argocd {
-        label="namespace: argocd"; style="rounded,filled"; fillcolor="#fdf0e8"; color="#ef7b4d"; fontsize=11;
+        label="namespace: argocd"; style="rounded,filled"; fillcolor="#fdf0e8"; color="#ef7b4d"; fontsize=17;
         argocd [label="ArgoCD server (NodePort)\nApplication: bankapp", fillcolor="#fde7d9", color="#ef7b4d"];
       }
 
       subgraph cluster_app {
-        label="namespace: bankapp-namespace"; style="rounded,filled"; fillcolor="#eef8ee"; color="#2e7d32"; fontsize=11;
+        label="namespace: bankapp-namespace"; style="rounded,filled"; fillcolor="#eef8ee"; color="#2e7d32"; fontsize=17;
         ingress [label="Ingress bankapp-ingress\nTLS: bankapp-tls-secret"];
         svc     [label="Service bankapp-service\nClusterIP :8080"];
         deploy  [label="Deployment bankapp-deploy\nSpring Boot pods :8080\n(2 replicas)", fillcolor="#c8e6c9", color="#2e7d32"];
@@ -50,7 +50,7 @@ digraph eks_deployment {
       }
 
       subgraph cluster_mon {
-        label="namespace: prometheus  (Helm: kube-prometheus-stack)"; style="rounded,filled"; fillcolor="#f3eefb"; color="#7e57c2"; fontsize=11;
+        label="namespace: prometheus  (Helm: kube-prometheus-stack)"; style="rounded,filled"; fillcolor="#f3eefb"; color="#7e57c2"; fontsize=17;
         prom    [label="Prometheus\n(NodePort)", fillcolor="#fbe9e7", color="#e65100"];
         grafana [label="Grafana\n(NodePort)", fillcolor="#fff3e0", color="#f57c00"];
       }
@@ -85,4 +85,6 @@ digraph eks_deployment {
   admin -> grafana [style=dotted, label=" dashboards"];
 
   { rank=same; dockerhub; github; admin; user; letsencrypt; }
+  // ordering hints that keep the layout compact
+  sonar -> argocd [style=invis]; tools -> lb [style=invis];
 }
