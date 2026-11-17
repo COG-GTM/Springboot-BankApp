@@ -1,0 +1,63 @@
+name: CD Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      DOCKER_TAG:
+        description: "Docker tag of the image built by the CI job"
+        required: true
+        type: string
+  repository_dispatch:
+    types: [trigger-cd]
+
+jobs:
+  cd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: DevOps
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Docker Image Tag
+        run: echo "DOCKER TAG RECEIVED: ${{ inputs.DOCKER_TAG || github.event.client_payload.DOCKER_TAG }}"
+
+      - name: Update Kubernetes manifest
+        run: |
+          sed -i -e 's|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${{ inputs.DOCKER_TAG || github.event.client_payload.DOCKER_TAG }}|g' kubernetes/bankapp-deployment.yml
+
+      - name: Git commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Updated K8s Deployment Docker Image Version"
+          git push origin DevOps
+
+      - name: Send email notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "BankApp Application has been updated and deployed - ${{ job.status }}"
+          to: trainwithshubham@gmail.com
+          from: trainwithshubham@gmail.com
+          html_body: |
+            <html>
+            <body>
+                <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                    <p style="color: black; font-weight: bold;">Project: ${{ github.job }}</p>
+                </div>
+                <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                    <p style="color: black; font-weight: bold;">Build Number: ${{ github.run_number }}</p>
+                </div>
+                <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
+                    <p style="color: black; font-weight: bold;">URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+                </div>
+            </body>
+            </html>

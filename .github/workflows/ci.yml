@@ -1,0 +1,77 @@
+name: CI Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      DOCKER_TAG:
+        description: "Setting docker image for latest push"
+        required: true
+        type: string
+  push:
+    branches:
+      - DevOps
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: DevOps
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "bankapp"
+          path: "."
+          format: "XML"
+          out: "reports"
+
+      - name: Upload OWASP Dependency Check report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+
+      - name: SonarQube Analysis
+        uses: SonarSource/sonarqube-scan-action@master
+        with:
+          args: >
+            -Dsonar.projectKey=bankapp
+            -Dsonar.projectName=bankapp
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker Build & Push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: madhupdevops/bankapp:${{ inputs.DOCKER_TAG }}
+
+      - name: Trigger CD workflow
+        run: |
+          gh workflow run cd.yml \
+            -r DevOps \
+            -f DOCKER_TAG="${{ inputs.DOCKER_TAG }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
