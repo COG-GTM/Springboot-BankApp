@@ -48,7 +48,14 @@ public class AccountService implements UserDetailsService {
     }
 
 
+    private void validatePositiveAmount(BigDecimal amount, String operation) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(operation + " amount must be greater than zero");
+        }
+    }
+
     public void deposit(Account account, BigDecimal amount) {
+        validatePositiveAmount(amount, "Deposit");
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
@@ -62,6 +69,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
+        validatePositiveAmount(amount, "Withdrawal");
         if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
@@ -101,12 +109,18 @@ public class AccountService implements UserDetailsService {
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient funds");
+        validatePositiveAmount(amount, "Transfer");
+
+        if (toUsername == null || toUsername.equals(fromAccount.getUsername())) {
+            throw new IllegalArgumentException("Cannot transfer to the same account");
         }
 
         Account toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+
+        if (fromAccount.getBalance().compareTo(amount) < 0) {
+            throw new RuntimeException("Insufficient funds");
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
