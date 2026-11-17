@@ -46,4 +46,18 @@ helm install bankapp-dev bankapp/ --set namespace=dev-namespace --set bankapp_sv
 
 Happy Helming!
 
+## Testing
+
+Helm unit tests are located in `bankapp/tests/` and use the [helm-unittest](https://github.com/helm-unittest/helm-unittest) plugin.
+
+### Install the helm-unittest plugin
+```bash
+helm plugin install https://github.com/helm-unittest/helm-unittest
+```
+
+### Run tests
+```bash
+helm unittest helm/bankapp/
+```
+
 

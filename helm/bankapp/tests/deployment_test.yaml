@@ -1,0 +1,208 @@
+suite: Deployment tests
+templates:
+  - templates/deployment.yml
+tests:
+  - it: should be a Deployment
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should set the default name to bankapp
+    asserts:
+      - equal:
+          path: metadata.name
+          value: bankapp
+
+  - it: should set the default namespace to bankapp-namespace
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: bankapp-namespace
+
+  - it: should override namespace when set in values
+    set:
+      namespace: custom-namespace
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: custom-namespace
+
+  - it: should have app label on metadata
+    asserts:
+      - equal:
+          path: metadata.labels.app
+          value: bankapp
+
+  - it: should have app label on selector matchLabels
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: bankapp
+
+  - it: should have app label on pod template
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.app
+          value: bankapp
+
+  - it: should set replicas to 1
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should have init container named wait-for-mysql
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-mysql
+
+  - it: should use busybox 1.28 for init container
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: "busybox:1.28"
+
+  - it: should check mysql-0.mysql-headless:3306 in init container command
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: "mysql-0\\.mysql-headless 3306"
+
+  - it: should use default app image
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "trainwithshubham/springboot-bankapp:latest"
+
+  - it: should expose container port 8080
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8080
+
+  - it: should get SPRING_DATASOURCE_URL from configMapKeyRef bankapp-config
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SPRING_DATASOURCE_URL
+            valueFrom:
+              configMapKeyRef:
+                name: bankapp-config
+                key: SPRING_DATASOURCE_URL
+
+  - it: should get SPRING_DATASOURCE_USERNAME from configMapKeyRef bankapp-config
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SPRING_DATASOURCE_USERNAME
+            valueFrom:
+              configMapKeyRef:
+                name: bankapp-config
+                key: SPRING_DATASOURCE_USERNAME
+
+  - it: should get SPRING_DATASOURCE_PASSWORD from secretKeyRef mysql-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SPRING_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-secret
+                key: SPRING_DATASOURCE_PASSWORD
+
+  - it: should configure liveness probe on /actuator/health port 8080
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /actuator/health
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: 8080
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 30
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.periodSeconds
+          value: 10
+
+  - it: should configure readiness probe on /actuator/health port 8080
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /actuator/health
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: 8080
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.initialDelaySeconds
+          value: 10
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.periodSeconds
+          value: 5
+
+  - it: should set default resource requests
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 80m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 150Mi
+
+  - it: should set default resource limits
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 800m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 700Mi
+
+  - it: should use custom image when overridden
+    set:
+      image.app: myregistry/myapp:v2.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "myregistry/myapp:v2.0"
+
+  - it: should use custom resource limits when overridden
+    set:
+      app_deployment.cpu_req: 100m
+      app_deployment.cpu_limit: 1000m
+      app_deployment.mem_req: 256Mi
+      app_deployment.mem_limit: 1Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 256Mi
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 1000m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 1Gi
+
+  - it: should use custom deployment name when overridden
+    set:
+      app_deployment.name: my-bankapp
+    asserts:
+      - equal:
+          path: metadata.name
+          value: my-bankapp
+      - equal:
+          path: metadata.labels.app
+          value: my-bankapp
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: my-bankapp
+      - equal:
+          path: spec.template.metadata.labels.app
+          value: my-bankapp
