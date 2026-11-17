@@ -9,7 +9,7 @@ import org.springframework.test.context.ActiveProfiles;
 class BankappApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void context_loads() {
 	}
 
 }

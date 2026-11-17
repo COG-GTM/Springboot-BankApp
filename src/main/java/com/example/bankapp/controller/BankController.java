@@ -21,20 +21,20 @@ public class BankController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = accountService.find_account_by_username(username);
         model.addAttribute("account", account);
         return "dashboard";
     }
 
     @GetMapping("/register")
-    public String showRegistrationForm() {
+    public String show_registration_form() {
         return "register";
     }
 
     @PostMapping("/register")
-    public String registerAccount(@RequestParam String username, @RequestParam String password, Model model) {
+    public String register_account(@RequestParam String username, @RequestParam String password, Model model) {
         try {
-            accountService.registerAccount(username, password);
+            accountService.register_account(username, password);
             return "redirect:/login";
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
@@ -50,7 +50,7 @@ public class BankController {
     @PostMapping("/deposit")
     public String deposit(@RequestParam BigDecimal amount) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = accountService.find_account_by_username(username);
         accountService.deposit(account, amount);
         return "redirect:/dashboard";
     }
@@ -58,7 +58,7 @@ public class BankController {
     @PostMapping("/withdraw")
     public String withdraw(@RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
+        Account account = accountService.find_account_by_username(username);
 
         try {
             accountService.withdraw(account, amount);
@@ -72,20 +72,20 @@ public class BankController {
     }
 
     @GetMapping("/transactions")
-    public String transactionHistory(Model model) {
+    public String transaction_history(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account account = accountService.findAccountByUsername(username);
-        model.addAttribute("transactions", accountService.getTransactionHistory(account));
+        Account account = accountService.find_account_by_username(username);
+        model.addAttribute("transactions", accountService.get_transaction_history(account));
         return "transactions";
     }
 
     @PostMapping("/transfer")
-    public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
+    public String transfer_amount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Account fromAccount = accountService.findAccountByUsername(username);
+        Account fromAccount = accountService.find_account_by_username(username);
 
         try {
-            accountService.transferAmount(fromAccount, toUsername, amount);
+            accountService.transfer_amount(fromAccount, toUsername, amount);
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", fromAccount);

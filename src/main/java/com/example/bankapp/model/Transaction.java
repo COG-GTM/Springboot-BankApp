@@ -29,43 +29,43 @@ public class Transaction {
         this.account = account;
     }
 
-    public Long getId() {
+    public Long get_id() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void set_id(Long id) {
         this.id = id;
     }
 
-    public BigDecimal getAmount() {
+    public BigDecimal get_amount() {
         return amount;
     }
 
-    public void setAmount(BigDecimal amount) {
+    public void set_amount(BigDecimal amount) {
         this.amount = amount;
     }
 
-    public String getType() {
+    public String get_type() {
         return type;
     }
 
-    public void setType(String type) {
+    public void set_type(String type) {
         this.type = type;
     }
 
-    public LocalDateTime getTimestamp() {
+    public LocalDateTime get_timestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void set_timestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
     }
 
-    public Account getAccount() {
+    public Account get_account() {
         return account;
     }
 
-    public void setAccount(Account account) {
+    public void set_account(Account account) {
         this.account = account;
     }
 }
