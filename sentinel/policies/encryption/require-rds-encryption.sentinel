@@ -1,0 +1,69 @@
+# Require RDS Encryption
+# Enforcement: hard-mandatory
+#
+# All RDS instances and clusters must have storage encryption enabled.
+# The banking application uses MySQL; this policy covers RDS MySQL,
+# Aurora, PostgreSQL, and all other RDS engine types.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_db_instance ---
+
+rds_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_db_instance" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_rds_instance_encryption = rule {
+	all rds_instances as _, rc {
+		rc.change.after.storage_encrypted is true
+	}
+}
+
+# Ensure a KMS key is specified for RDS encryption (not just default).
+validate_rds_instance_kms = rule {
+	all rds_instances as _, rc {
+		kms_key = rc.change.after.kms_key_id else null
+		kms_key is not null and kms_key is not ""
+	}
+}
+
+# --- aws_rds_cluster (Aurora) ---
+
+rds_clusters = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_rds_cluster" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_rds_cluster_encryption = rule {
+	all rds_clusters as _, rc {
+		rc.change.after.storage_encrypted is true
+	}
+}
+
+# --- aws_db_instance: enforce deletion protection for production ---
+
+validate_rds_deletion_protection = rule {
+	all rds_instances as _, rc {
+		rc.change.after.deletion_protection is true
+	}
+}
+
+# --- aws_db_instance: enforce automated backups ---
+
+validate_rds_backup = rule {
+	all rds_instances as _, rc {
+		retention = rc.change.after.backup_retention_period else 0
+		retention >= 7
+	}
+}
+
+main = rule {
+	validate_rds_instance_encryption and
+		validate_rds_instance_kms and
+		validate_rds_cluster_encryption and
+		validate_rds_deletion_protection and
+		validate_rds_backup
+}

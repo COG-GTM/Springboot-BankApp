@@ -1,0 +1,43 @@
+# Require SQS and SNS Encryption
+# Enforcement: soft-mandatory
+#
+# SQS queues and SNS topics must use server-side encryption. These services
+# may carry application events, notifications, or financial transaction data.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_sqs_queue ---
+
+sqs_queues = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_sqs_queue" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_sqs_encryption = rule {
+	all sqs_queues as _, rc {
+		kms_key = rc.change.after.kms_master_key_id else null
+		sqs_managed = rc.change.after.sqs_managed_sse_enabled else false
+		(kms_key is not null and kms_key is not "") or sqs_managed is true
+	}
+}
+
+# --- aws_sns_topic ---
+
+sns_topics = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_sns_topic" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_sns_encryption = rule {
+	all sns_topics as _, rc {
+		kms_key = rc.change.after.kms_master_key_id else null
+		kms_key is not null and kms_key is not ""
+	}
+}
+
+main = rule {
+	validate_sqs_encryption and
+		validate_sns_encryption
+}

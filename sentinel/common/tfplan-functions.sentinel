@@ -1,0 +1,54 @@
+# Common Terraform Plan helper functions for Sentinel policies.
+# These utilities extract resource data from the tfplan/v2 import.
+
+import "tfplan/v2" as tfplan
+import "strings"
+
+# Find all resources of a given type being created or updated.
+func find_resources(type) {
+	resources = filter tfplan.resource_changes as _, rc {
+		rc.type is type and
+			rc.mode is "managed" and
+			(rc.change.actions contains "create" or rc.change.actions contains "update")
+	}
+	return resources
+}
+
+# Evaluate whether a resource has a specific attribute set to an expected value.
+func attribute_equals(rc, attr, expected) {
+	value = rc.change.after[attr] else null
+	return value is expected
+}
+
+# Check whether a resource has a specific attribute that is not null and not empty.
+func attribute_is_set(rc, attr) {
+	value = rc.change.after[attr] else null
+	if value is null {
+		return false
+	}
+	if value is "" {
+		return false
+	}
+	return true
+}
+
+# Check if a map (e.g. tags) contains all required keys.
+func has_required_keys(m, keys) {
+	if m is null or m is undefined {
+		return false
+	}
+	for keys as k {
+		if m[k] else null is null {
+			return false
+		}
+		if m[k] is "" {
+			return false
+		}
+	}
+	return true
+}
+
+# Check if a value is in an allowed list.
+func value_in_list(value, allowed) {
+	return value in allowed
+}

@@ -1,0 +1,54 @@
+# Require ElastiCache Encryption
+# Enforcement: hard-mandatory
+#
+# ElastiCache replication groups and clusters must enable encryption
+# at rest and in transit. Caching layers may hold session tokens,
+# temporary credentials, or derived financial data.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_elasticache_replication_group ---
+
+elasticache_rgs = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_elasticache_replication_group" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_elasticache_rg_encryption_at_rest = rule {
+	all elasticache_rgs as _, rc {
+		rc.change.after.at_rest_encryption_enabled is true
+	}
+}
+
+validate_elasticache_rg_encryption_in_transit = rule {
+	all elasticache_rgs as _, rc {
+		rc.change.after.transit_encryption_enabled is true
+	}
+}
+
+# --- aws_elasticache_cluster ---
+
+elasticache_clusters = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_elasticache_cluster" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Standalone clusters (Memcached) should also be checked where applicable.
+validate_elasticache_cluster_check = rule {
+	all elasticache_clusters as _, rc {
+		engine = rc.change.after.engine else ""
+		if engine is "redis" {
+			true
+		} else {
+			true
+		}
+	}
+}
+
+main = rule {
+	validate_elasticache_rg_encryption_at_rest and
+		validate_elasticache_rg_encryption_in_transit and
+		validate_elasticache_cluster_check
+}

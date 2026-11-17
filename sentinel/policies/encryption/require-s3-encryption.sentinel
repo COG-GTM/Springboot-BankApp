@@ -1,0 +1,64 @@
+# Require S3 Bucket Encryption
+# Enforcement: hard-mandatory
+#
+# Ensures all S3 buckets have server-side encryption enabled. Buckets storing
+# application artifacts, backups, or logs must use SSE-KMS or SSE-S3.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_s3_bucket_server_side_encryption_configuration ---
+
+s3_buckets = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+s3_sse_configs = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket_server_side_encryption_configuration" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Validate that each bucket has at minimum a default encryption rule with
+# AES256 or aws:kms algorithm.
+validate_sse_configs = rule {
+	all s3_sse_configs as _, rc {
+		rules = rc.change.after.rule else []
+		length(rules) > 0 and
+			all rules as rule {
+				sse = rule.apply_server_side_encryption_by_default else null
+				sse is not null and
+					sse.sse_algorithm in ["AES256", "aws:kms", "aws:kms:dsse"]
+			}
+	}
+}
+
+# If there are S3 buckets, there must also be SSE configurations.
+validate_sse_exists = rule when length(s3_buckets) > 0 {
+	length(s3_sse_configs) > 0
+}
+
+# --- aws_s3_bucket_public_access_block ---
+# S3 buckets should block public access by default.
+
+s3_public_access_blocks = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket_public_access_block" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_public_access_blocked = rule {
+	all s3_public_access_blocks as _, rc {
+		rc.change.after.block_public_acls is true and
+			rc.change.after.block_public_policy is true and
+			rc.change.after.ignore_public_acls is true and
+			rc.change.after.restrict_public_buckets is true
+	}
+}
+
+main = rule {
+	validate_sse_configs and
+		validate_sse_exists and
+		validate_public_access_blocked
+}

@@ -1,0 +1,97 @@
+# Restrict Public Access to Data Resources
+# Enforcement: hard-mandatory
+#
+# Prevents public accessibility on data stores, load balancers (internal),
+# and other sensitive resources. Only the ALB/NLB fronting the NGINX
+# ingress controller should be internet-facing.
+
+import "tfplan/v2" as tfplan
+
+# --- aws_db_instance (RDS must not be publicly accessible) ---
+
+rds_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_db_instance" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_rds_not_public = rule {
+	all rds_instances as _, rc {
+		rc.change.after.publicly_accessible is false
+	}
+}
+
+# --- aws_elasticsearch_domain / aws_opensearch_domain ---
+
+es_domains = filter tfplan.resource_changes as _, rc {
+	(rc.type is "aws_elasticsearch_domain" or rc.type is "aws_opensearch_domain") and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_es_not_public = rule {
+	all es_domains as _, rc {
+		vpc_options = rc.change.after.vpc_options else null
+		vpc_options is not null
+	}
+}
+
+# --- aws_redshift_cluster ---
+
+redshift_clusters = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_redshift_cluster" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_redshift_not_public = rule {
+	all redshift_clusters as _, rc {
+		rc.change.after.publicly_accessible is false
+	}
+}
+
+# --- aws_ecr_repository (no public access) ---
+
+ecr_repos = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_ecr_repository" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# ECR repos should enable image scanning on push.
+validate_ecr_scan_on_push = rule {
+	all ecr_repos as _, rc {
+		scan_config = rc.change.after.image_scanning_configuration else null
+		scan_config is not null and scan_config.scan_on_push is true
+	}
+}
+
+# ECR repos should enforce image tag immutability.
+validate_ecr_tag_immutability = rule {
+	all ecr_repos as _, rc {
+		rc.change.after.image_tag_mutability is "IMMUTABLE"
+	}
+}
+
+# --- aws_lambda_function_url (restrict auth) ---
+
+lambda_urls = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_lambda_function_url" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+validate_lambda_url_auth = rule {
+	all lambda_urls as _, rc {
+		rc.change.after.authorization_type is "AWS_IAM"
+	}
+}
+
+main = rule {
+	validate_rds_not_public and
+		validate_es_not_public and
+		validate_redshift_not_public and
+		validate_ecr_scan_on_push and
+		validate_ecr_tag_immutability and
+		validate_lambda_url_auth
+}
