@@ -4,8 +4,9 @@ services:
     image: mysql:latest
     container_name: mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=Test@123
-      - MYSQL_DATABASE=BankDB
+      # Credentials come from the shell or an untracked .env.local (see docs/configuration-contract.md).
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-BankDB}
     volumes:
       - bankapp-volume:/var/lib/mysql
     networks:
@@ -21,9 +22,9 @@ services:
     image: ${DUSER}/${IMAGE}
     container_name: Bankapp
     environment:
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - SPRING_DATASOURCE_PASSWORD=Test@123
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-BankDB}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD must be set}
     ports:
       - "8080:8080"
     depends_on:

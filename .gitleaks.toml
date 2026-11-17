@@ -1,0 +1,47 @@
+# Gitleaks configuration for the bank application (control ITGC-SEC-06:
+# no secrets or credentials committed to source or configuration).
+#
+# CI scans the working tree (`--no-git`), so the gate is "no credential may be
+# (re)introduced into the code base". Credentials that were committed historically are
+# rotated out-of-band; see docs/configuration-contract.md.
+#
+# Run locally exactly as CI does:
+#   docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:v8.18.4 \
+#     detect --source=/repo --no-git --config=/repo/.gitleaks.toml --redact --no-banner --exit-code 1
+
+title = "Springboot-BankApp secret scanning"
+
+[extend]
+useDefault = true
+
+# A database password assignment is a finding unless its value is a reference resolved
+# outside the repository: an environment/Helm/Actions interpolation ($..., {{...}}),
+# a documented placeholder (<...>) or an empty value.
+[[rules]]
+id = "database-password-assignment"
+description = "Hardcoded database password in source or configuration"
+regex = '''(?i)(?:mysql_root_password|mysql_password|spring[._]datasource[._]password)[ \t]*[=:][ \t]*([^\s#][^\n#]*)'''
+secretGroup = 1
+tags = ["password", "database"]
+
+  [rules.allowlist]
+  description = "Values resolved outside the repository"
+  regexTarget = "secret"
+  regexes = [
+      '''^["']?\$''',
+      '''^["']?\{\{''',
+      '''^["']?<''',
+      '''^["']{2}\s*$''',
+      '''^["']?\s*$''',
+  ]
+
+[allowlist]
+description = "Files that describe credential handling but contain no credentials"
+paths = [
+    '''(^|/)\.gitleaks\.toml$''',
+    '''(^|/)docs/configuration-contract\.md$''',
+    '''(^|/)\.github/workflows/ci\.yml$''',
+    '''(^|/)README(-K8S)?\.md$''',
+    '''(^|/)kubernetes/README\.md$''',
+    '''(^|/)mvnw(\.cmd)?$''',
+]

@@ -44,11 +44,17 @@ hpa:
     max_replica: 5
     cpu_utilizatoion: 40
 
-# Secret for Database connectivity
-
+# Secret for Database connectivity.
+# Values are intentionally empty: supply them at install time from the platform secret
+# store (ITGC-SEC-06), e.g.
+#   helm upgrade --install bankapp helm/bankapp \
+#     --set secret.data.MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+#     --set secret.data.SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
+# The template fails to render when a value is missing, so a release can never fall back
+# to a credential committed in this repository.
 secret:
   name: mysql-secret
-  data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
-    SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
- 
+  data:
+    MYSQL_ROOT_PASSWORD: ""
+    SPRING_DATASOURCE_PASSWORD: ""
+
