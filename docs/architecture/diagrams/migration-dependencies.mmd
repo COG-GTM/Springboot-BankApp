@@ -1,0 +1,28 @@
+graph LR
+    ws0["WS0 Landing zone<br/>accounts, network, Terraform baseline"]
+    ws1["WS1 Secrets rotation<br/>and config externalisation"]
+    ws2["WS2 Build and artefact provenance<br/>this repo, ECR, approved pipeline"]
+    ws3["WS3 Schema and data<br/>MySQL to Aurora PostgreSQL"]
+    ws4["WS4 Runtime packaging<br/>ECS Fargate task, actuator, probes"]
+    ws5["WS5 Observability and tagging"]
+    ws6["WS6 Correctness and security blockers<br/>separate app-code PRs"]
+    ws7["WS7 Dev environment live"]
+    ws8["WS8 QA environment + non-functional tests"]
+    ws9["WS9 Multi-region prod build + DR proof"]
+    ws10["WS10 Production cutover"]
+
+    ws0 --> ws2
+    ws0 --> ws1
+    ws1 --> ws4
+    ws2 --> ws4
+    ws3 --> ws4
+    ws4 --> ws7
+    ws5 --> ws7
+    ws7 --> ws8
+    ws8 --> ws9
+    ws9 --> ws10
+    ws6 --> ws10
+    ws3 -.->|"data cutover rehearsal"| ws10
+
+    classDef cp fill:#ffe0e0,stroke:#c00,stroke-width:2px;
+    class ws0,ws2,ws4,ws7,ws8,ws9,ws10 cp;
