@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Reconciliation Reports - Wells Fargo</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Times New Roman', Georgia, serif;
+            background-color: #F7F3E9;
+            color: #2E2A2B;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .navbar-custom {
+            background-color: #7A1216;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            border-bottom: 2px solid #B08D57;
+        }
+
+        .navbar-custom a {
+            color: #ffffff !important;
+        }
+
+        .navbar-custom .navbar-brand {
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin-top: 100px;
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        .table-custom {
+            background-color: #FFFFFF;
+            padding: 20px;
+            border-radius: 0;
+            border: 1px solid #B08D57;
+            box-shadow: none;
+            overflow-x: auto;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(218, 165, 50, 0.1);
+        }
+
+        .table-striped td, .table-striped th {
+            color: #2E2A2B;
+            font-weight: bold;
+            padding: 15px;
+            border-bottom: 1px solid #B08D57;
+            vertical-align: middle;
+        }
+
+        .table-striped th {
+            background-color: rgba(218, 165, 50, 0.15);
+        }
+
+        .btn-primary {
+            background-color: #D71921;
+            border: 1px solid #7A1216;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #B5151C;
+            color: #ffffff;
+        }
+
+        .badge-warning-custom {
+            background-color: #f0ad4e;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 0;
+        }
+
+        .badge-success-custom {
+            background-color: #28a745;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 0;
+        }
+
+        .badge-danger-custom {
+            background-color: #dc3545;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 0;
+        }
+
+        .custom-link {
+            color: #7A1216;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .custom-link:hover {
+            text-decoration: underline;
+        }
+
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-custom">
+    <a class="navbar-brand d-flex align-items-center" href="#">
+        <img src="/images/wells-fargo-logo.png" alt="Wells Fargo" style="height:28px;margin-right:10px;">
+        Wells Fargo
+    </a>
+    <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/transactions">Transactions</a></li>
+        <li class="nav-item"><a class="nav-link" href="/reconciliation/reports">Reconciliation</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+    <h2 class="text-center">Reconciliation Reports</h2>
+
+    <div class="actions-bar">
+        <span></span>
+        <form method="post" action="/reconciliation/run">
+            <button type="submit" class="btn btn-primary">Run Now</button>
+        </form>
+    </div>
+
+    <div class="table-responsive table-custom">
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Report Date</th>
+                <th>Total Accounts</th>
+                <th>Flagged (Negative)</th>
+                <th>Discrepancies</th>
+                <th>Status</th>
+                <th>Details</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${#lists.isEmpty(reports)}">
+                <td colspan="7" class="text-center">No reconciliation reports yet. Click "Run Now" to generate one.</td>
+            </tr>
+            <tr th:each="report : ${reports}">
+                <td th:text="${report.id}"></td>
+                <td th:text="${report.reportDate}"></td>
+                <td th:text="${report.totalAccounts}"></td>
+                <td>
+                    <span th:if="${report.flaggedAccounts > 0}" class="badge-danger-custom" th:text="${report.flaggedAccounts}"></span>
+                    <span th:if="${report.flaggedAccounts == 0}" th:text="${report.flaggedAccounts}"></span>
+                </td>
+                <td>
+                    <span th:if="${report.discrepancyAccounts > 0}" class="badge-warning-custom" th:text="${report.discrepancyAccounts}"></span>
+                    <span th:if="${report.discrepancyAccounts == 0}" th:text="${report.discrepancyAccounts}"></span>
+                </td>
+                <td>
+                    <span th:if="${report.status == 'COMPLETED'}" class="badge-success-custom" th:text="${report.status}"></span>
+                    <span th:if="${report.status != 'COMPLETED'}" class="badge-danger-custom" th:text="${report.status}"></span>
+                </td>
+                <td>
+                    <a th:href="@{'/reconciliation/reports/' + ${report.id}}" class="custom-link">View Details</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-center" style="margin-top: 20px;"><a href="/dashboard" class="custom-link">Back to Dashboard</a></p>
+</div>
+
+</body>
+</html>
