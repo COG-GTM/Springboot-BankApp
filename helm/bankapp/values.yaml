@@ -6,7 +6,7 @@ configmap:
   name: bankapp-config
   data:
       MYSQL_DATABASE: BankDB
-      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_USERNAME: bankapp
 
 ## name, label and storage size for database 
 db_statefulset:
@@ -44,11 +44,19 @@ hpa:
     max_replica: 5
     cpu_utilizatoion: 40
 
-# Secret for Database connectivity
-
+# Secret for Database connectivity.
+# NEVER put passwords in this file - it is committed to Git.
+# Either create `mysql-secret` out of band (External Secrets Operator, Sealed
+# Secrets, Vault, or `kubectl create secret generic`) and leave `create: false`,
+# or pass the values at install time from your secret manager:
+#   helm install bankapp ./helm/bankapp \
+#     --set secret.create=true \
+#     --set secret.data.MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+#     --set secret.data.SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
 secret:
   name: mysql-secret
-  data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
-    SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
- 
+  create: false
+  data:
+    MYSQL_ROOT_PASSWORD: ""
+    SPRING_DATASOURCE_PASSWORD: ""
+

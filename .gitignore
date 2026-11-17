@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secrets ###
+kubernetes/secrets.yaml
+helm/bankapp/values-secrets.yaml
+*-secrets.local.yaml
