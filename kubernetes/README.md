@@ -1,245 +1,133 @@
-# End-to-End Setup for Deploying Applications with ArgoCD and EKS
+# Kubernetes Module — Raw Manifests
 
-This README provides a complete step-by-step guide with all the commands required to set up ArgoCD on an AWS EKS cluster, deploy your applications, and configure GitOps.
+> Plain Kubernetes YAML manifests for deploying the BankApp stack on **AWS EKS**.
 
----
+## Overview
 
-## **1. Create an EKS Cluster**
+This directory contains un-templated Kubernetes manifests that deploy a Spring Boot banking application backed by MySQL 8.0. The manifests target the `bankapp-namespace` namespace and are designed to be applied with `kubectl` or synced via ArgoCD.
 
-### **Create the Cluster Without a Node Group**
+## Architecture
+
+![Kubernetes Module Dependency Graph](../docs/infrastructure/diagrams/kubernetes-module-deps.png)
+
+| Layer | Resources |
+|-------|-----------|
+| **Namespace** | `bankapp-namespace` |
+| **Data** | MySQL Deployment, PV, PVC, Secret, ConfigMap |
+| **Application** | BankApp Deployment (2 replicas) |
+| **Networking** | ClusterIP Service, NGINX Ingress with TLS |
+| **Scaling** | HorizontalPodAutoscaler (CPU-based) |
+| **TLS** | Let's Encrypt ClusterIssuer via cert-manager |
+
+## Manifest Inventory
+
+| File | Kind | Name | Description |
+|------|------|------|-------------|
+| `bankapp-namespace.yaml` | Namespace | `bankapp-namespace` | Isolated namespace for all BankApp resources |
+| `secrets.yaml` | Secret | `mysql-secret` | MySQL root and Spring datasource passwords (base64) |
+| `configmap.yaml` | ConfigMap | `bankapp-config` | Database URL, username, and database name |
+| `persistent-volume.yaml` | PersistentVolume | `mysql-pv` | 10 Gi hostPath volume at `/mnt/data/mysql` |
+| `persistent-volume-claim.yaml` | PersistentVolumeClaim | `mysql-pvc` | 10 Gi claim, `storageClassName: standard` |
+| `mysql-deployment.yml` | Deployment | `mysql` | Single-replica MySQL 8.0 with PVC mount |
+| `mysql-service.yaml` | Service | `mysql-svc` | ClusterIP service exposing MySQL on port 3306 |
+| `bankapp-deployment.yml` | Deployment | `bankapp-deploy` | 2-replica Spring Boot app on port 8080 |
+| `bankapp-service.yaml` | Service | `bankapp-service` | ClusterIP service exposing BankApp on port 8080 |
+| `bankapp-ingress.yml` | Ingress | `bankapp-ingress` | NGINX Ingress with TLS via Let's Encrypt |
+| `bankapp-hpa.yml` | HorizontalPodAutoscaler | `bankapp-hpa` | Scales 1–5 replicas at 40% CPU utilization |
+| `letsencrypt-clusterissuer.yaml` | ClusterIssuer | `letsencrypt-prod` | ACME HTTP-01 solver for automated TLS certificates |
+
+## Variable Catalog
+
+### ConfigMap Values (`bankapp-config`)
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| `MYSQL_DATABASE` | `BankDB` | MySQL database name |
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql-svc.bankapp-namespace.svc.cluster.local:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC` | JDBC connection string |
+| `SPRING_DATASOURCE_USERNAME` | `root` | MySQL username |
+
+### Secret Values (`mysql-secret`)
+
+| Key | Encoding | Description |
+|-----|----------|-------------|
+| `MYSQL_ROOT_PASSWORD` | Base64 | MySQL root password |
+| `SPRING_DATASOURCE_PASSWORD` | Base64 | Spring datasource password |
+
+### Resource Limits
+
+| Component | CPU Request | CPU Limit | Memory Request | Memory Limit |
+|-----------|-------------|-----------|----------------|--------------|
+| BankApp | 250m | 500m | 512 Mi | 1 Gi |
+| MySQL | *(none set)* | *(none set)* | *(none set)* | *(none set)* |
+
+### HPA Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Min Replicas | 1 |
+| Max Replicas | 5 |
+| Target CPU Utilization | 40% |
+
+### Ingress Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Ingress Class | `nginx` |
+| Host | `megaproject.trainwithshubham.com` |
+| TLS Secret | `bankapp-tls-secret` |
+| Cluster Issuer | `letsencrypt-prod` |
+| SSL Redirect | `true` |
+| Max Body Size | `50m` |
+
+## Prerequisites
+
+- AWS EKS cluster with `kubectl` configured
+- NGINX Ingress Controller installed (`ingress-nginx` namespace)
+- cert-manager installed for automated TLS
+- Kubernetes Metrics Server installed (required for HPA)
+- `storageClassName: standard` available in the cluster
+
+## Apply Order
+
+Resources must be applied in dependency order:
+
 ```bash
-eksctl create cluster --name=bankapp \
-                    --region=ap-south-1 \
-                    --version=1.31 \
-                    --without-nodegroup
-```
-
-### **Associate IAM OIDC Provider**
-```bash
-eksctl utils associate-iam-oidc-provider \
-  --region ap-south-1 \
-  --cluster bankapp \
-  --approve
-```
-
-### **Create a Node Group**
-```bash
-eksctl create nodegroup --cluster=bankapp \
-                     --region=ap-south-1 \
-                     --name=bankapp \
-                     --node-type=t2.medium \
-                     --nodes=2 \
-                     --nodes-min=2 \
-                     --nodes-max=2 \
-                     --node-volume-size=29 \
-                     --ssh-access \
-                     --ssh-public-key=k8s-in-one-shot
-```
-
----
-
-## **2. Deploy ArgoCD**
-
-### **Create the ArgoCD Namespace**
-```bash
-kubectl create namespace argocd
-```
-
-### **Install ArgoCD Using Official Manifests**
-```bash
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-```
-
-### **Verify ArgoCD Pods**
-```bash
-watch kubectl get pods -n argocd
-```
-
-### **Install ArgoCD CLI**
-```bash
-curl --silent --location -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.4.7/argocd-linux-amd64
-chmod +x /usr/local/bin/argocd
-argocd version
-```
-
-### **Change ArgoCD Server Service Type to NodePort**
-```bash
-kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
-```
-
-### **Verify the NodePort Service**
-```bash
-kubectl get svc -n argocd
-```
-
-### **Expose the Port on Security Groups**
-- In the AWS Console, update the security group for your EKS worker nodes to allow inbound traffic on the NodePort assigned to the `argocd-server` service.
-
-### **Access the ArgoCD Web UI**
-- Open your browser and navigate to:
-  ```
-  http://<public-ip-of-worker-node>:<NodePort>
-  ```
-
----
-
-## **3. Configure ArgoCD for EKS**
-
-### **Login to ArgoCD Using CLI**
-```bash
-argocd login <public-ip-of-worker-node>:<NodePort> --username admin
-```
-
-### **Retrieve the Default Admin Password**
-```bash
-kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
-```
-
-### **Check Available Clusters in ArgoCD**
-```bash
-argocd cluster list
-```
-
-### **Get the EKS Cluster Context**
-```bash
-kubectl config get-contexts
-```
-
-### **Add EKS Cluster to ArgoCD**
-```bash
-argocd cluster add <cluster-context-name> --name bankapp-eks-cluster
-```
-- Replace `<cluster-context-name>` with your EKS cluster context name (e.g., `Madhup@bankapp.us-west-1.eksctl.io`).
-
----
-
-## **4. Deploy Applications Using ArgoCD**
-
-### **Prepare Kubernetes Manifests in a Git Repository**
-- Organize your manifests (e.g., `namespace.yaml`, `deployment.yaml`, `service.yaml`) in a Git repository.
-
-### **Create an Application in ArgoCD**
-```bash
-argocd app create bankapp \
-  --repo <your-git-repo-url> \
-  --path <path-to-manifests> \
-  --dest-server https://kubernetes.default.svc \
-  --dest-namespace bankapp-namespace
-```
-
-### **Sync the Application**
-```bash
-argocd app sync bankapp
-```
-
-### **Monitor Application Status**
-```bash
-argocd app list
-```
-
----
-
-## **5. Deploy NGINX Ingress Controller**
-
-### **Install NGINX Ingress Controller Using Helm**
-```bash
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-helm install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx --create-namespace
-```
-
-### **Verify Installation**
-Check if the NGINX Ingress Controller pods are running:
-```bash
-kubectl get pods -n ingress-nginx
-```
-
-### **Retrieve the Load Balancer IP**
-Get the external IP assigned to the NGINX Ingress Controller:
-```bash
-kubectl get svc -n ingress-nginx
-```
-
-### **Update DNS**
-Point your domain (`junoon.trainwithshubham.com`) to the external IP of the NGINX Load Balancer.
-
----
-
-## **6. Enable HTTPS for the Application**
-
-### **Install Cert-Manager**
-```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.1/cert-manager.yaml
-```
-
-### **Create Let's Encrypt ClusterIssuer**
-Save the following as `letsencrypt-clusterissuer.yaml`:
-```yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: your-email@example.com
-    privateKeySecretRef:
-      name: letsencrypt-prod-key
-    solvers:
-    - http01:
-        ingress:
-          class: nginx
-```
-Apply the ClusterIssuer:
-```bash
+kubectl apply -f bankapp-namespace.yaml
+kubectl apply -f secrets.yaml
+kubectl apply -f configmap.yaml
+kubectl apply -f persistent-volume.yaml
+kubectl apply -f persistent-volume-claim.yaml
+kubectl apply -f mysql-deployment.yml
+kubectl apply -f mysql-service.yaml
+kubectl apply -f bankapp-deployment.yml
+kubectl apply -f bankapp-service.yaml
 kubectl apply -f letsencrypt-clusterissuer.yaml
+kubectl apply -f bankapp-ingress.yml
+kubectl apply -f bankapp-hpa.yml
 ```
 
-### **Update Ingress with TLS Configuration**
-- Modify your Ingress to include TLS and reference the `letsencrypt-prod` ClusterIssuer.
-- Apply the updated Ingress:
+Or apply all at once (kubectl resolves dependencies):
+
 ```bash
-kubectl apply -f <your-ingress-file>
+kubectl apply -f .
 ```
 
-### **Verify Certificate Issuance**
+## Verification
+
 ```bash
-kubectl get certificate -n bankapp-namespace
-```
-
----
-
-## **7. Verify Deployment**
-
-### **Check Deployed Resources**
-```bash
+# Check all resources
 kubectl get all -n bankapp-namespace
+
+# Verify MySQL is running
+kubectl get pods -n bankapp-namespace -l app=mysql
+
+# Verify BankApp is running
+kubectl get pods -n bankapp-namespace -l app=bankapp-deploy
+
+# Check Ingress and TLS
+kubectl get ingress -n bankapp-namespace
+kubectl get certificate -n bankapp-namespace
+
+# Check HPA status
+kubectl get hpa -n bankapp-namespace
 ```
-
-### **Access the Application**
-- Open your browser and navigate to:
-  ```
-  https://junoon.trainwithshubham.com
-  ```
-
----
-
-## **8. Add Autoscaling**
-
-### **Install the Metrics Server**
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-```
-
-### **Get the Top Nodes and Pods**
-```bash
-  kubectl top nodes
-  kubectl top pods -n bankapp-namespace
-```
-### **Apply HPA**
-```bash
-  kubectl apply -f bankapp-hpa.yml
-```
----
-
