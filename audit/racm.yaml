@@ -1,0 +1,355 @@
+# =============================================================================
+# Risk & Control Matrix (RACM) — Audit Ontology
+# Auditee: BankApp (Springboot-BankApp) — Cards & Payments platform
+# Owner: Group Audit (Third Line of Defence)
+# Consumed by Devin as machine-readable Knowledge to plan and execute control testing.
+#
+# Ontology model:
+#   auditable_entity --has--> risk --mitigated_by--> control --tested_by--> test_procedure
+#       --produces--> evidence --substantiates--> result --exception--> finding --tracked_to--> action
+#
+# Every control row carries: a control_id, the risk it mitigates, the regulation(s)
+# it supports, a concrete test procedure, a population, pass criteria, and the
+# evidence required. This is what makes Devin's output audit-grade and roll-up-able.
+# =============================================================================
+
+meta:
+  framework: "Three Lines of Defence — Group Audit (3rd line)"
+  auditee: "BankApp / Springboot-BankApp"
+  period: "FY in-scope period (set per engagement)"
+  testing_basis: "Design effectiveness + Operating effectiveness"
+  evidence_principle: "Every result links to file:line, PR/commit, or re-runnable command output"
+  human_in_the_loop: "Devin proposes results & drafts findings; the auditor concludes and signs off"
+
+# ----------------------------------------------------------------------------
+# Auditable entities (the slice of the audit universe in scope)
+# ----------------------------------------------------------------------------
+auditable_entities:
+  - id: AE-APP
+    name: "Core banking application logic"
+    description: "Account, deposit, withdrawal, transfer and transaction-history processing"
+    primary_source: "src/main/java/com/example/bankapp/"
+  - id: AE-IAM
+    name: "Authentication & authorisation"
+    description: "Login, password handling, role/privilege model, session controls"
+    primary_source: "src/main/java/com/example/bankapp/config/SecurityConfig.java"
+  - id: AE-SDLC
+    name: "Change management & secure SDLC"
+    description: "Branch protection, review/approval, CI pipeline, security scanning"
+    primary_source: ["Jenkinsfile", ".github/", "repo history"]
+  - id: AE-CONFIG
+    name: "Configuration & secrets"
+    description: "Application config, credential handling, schema/data controls"
+    primary_source: "src/main/resources/application.properties"
+
+# ----------------------------------------------------------------------------
+# Regulation / obligation taxonomy (controls map to these)
+# ----------------------------------------------------------------------------
+regulations:
+  - id: ICFR
+    name: "Internal Control over Financial Reporting (SOX 302/404-equivalent)"
+  - id: PRA-FCA
+    name: "PRA/FCA prudential & conduct rulebooks (e.g. SYSC)"
+  - id: SMCR
+    name: "Senior Managers & Certification Regime — individual accountability"
+  - id: CONSUMER-DUTY
+    name: "FCA Consumer Duty — avoidance of foreseeable customer harm"
+  - id: OP-RESILIENCE
+    name: "Operational Resilience / DORA-equivalent — integrity & continuity"
+  - id: GDPR
+    name: "UK GDPR / DPA — confidentiality & integrity of personal data"
+
+# ----------------------------------------------------------------------------
+# Risks (what could go wrong)
+# ----------------------------------------------------------------------------
+risks:
+  - id: R-01
+    title: "Monetary value is misappropriated or fabricated through transaction processing"
+  - id: R-02
+    title: "Account balances become inconsistent / non-reconcilable"
+  - id: R-03
+    title: "Unauthorised movement of customer funds"
+  - id: R-04
+    title: "Excessive or unsegregated access enables privilege misuse"
+  - id: R-05
+    title: "Credentials are exposed, enabling unauthorised system/data access"
+  - id: R-06
+    title: "Unauthorised or unreviewed change reaches production"
+  - id: R-07
+    title: "Defects or vulnerabilities reach production undetected"
+  - id: R-08
+    title: "Inability to detect, investigate or evidence fraudulent activity"
+
+# ----------------------------------------------------------------------------
+# Controls (the testable core)
+# ----------------------------------------------------------------------------
+controls:
+
+  - control_id: APP-TXN-01
+    title: "Transaction amount validation"
+    auditable_entity: AE-APP
+    objective: "All monetary transactions are validated to be positive and within bounds before posting."
+    risk: R-01
+    control_type: preventive
+    automation: automated
+    key: true
+    owner: "Head of Payments Engineering"
+    regulation: [ICFR, CONSUMER-DUTY]
+    test_procedure: >
+      Inspect deposit, withdraw and transfer code paths. Re-perform with boundary
+      inputs (zero, negative, very large). Confirm non-positive amounts are rejected.
+    population: "All monetary mutation methods in AccountService"
+    sample: "Full population (3 methods) + re-performance with crafted inputs"
+    pass_criteria: "Non-positive and out-of-bounds amounts are rejected on every path"
+    evidence_required: ["code citation per method", "re-performance output table"]
+    expected_demo_result:
+      status: FAIL
+      severity: high
+      detail: >
+        AccountService.deposit (L51-62), withdraw (L64-78) and transferAmount
+        (L103-135) never check amount > 0. A negative transfer credits the sender
+        and debits the recipient (fund misappropriation); a negative withdrawal
+        inflates the balance.
+
+  - control_id: APP-TXN-02
+    title: "Transfer atomicity (transactional integrity)"
+    auditable_entity: AE-APP
+    objective: "A funds transfer debits the sender and credits the recipient as a single atomic unit of work."
+    risk: R-02
+    control_type: preventive
+    automation: automated
+    key: true
+    owner: "Head of Payments Engineering"
+    regulation: [ICFR, OP-RESILIENCE]
+    test_procedure: >
+      Inspect transferAmount for transaction-boundary management (@Transactional or
+      equivalent). Reason about partial-failure behaviour between debit and credit.
+    population: "transferAmount and all multi-write mutations"
+    sample: "Full population"
+    pass_criteria: "All multi-write monetary operations execute within one transaction; partial failure rolls back"
+    evidence_required: ["code citation", "transaction-boundary analysis"]
+    expected_demo_result:
+      status: FAIL
+      severity: high
+      detail: >
+        transferAmount (L103-135) performs four separate repository writes with no
+        @Transactional boundary. A failure after the debit save (L113) but before
+        the credit save (L117) destroys money and leaves balances non-reconcilable.
+
+  - control_id: APP-TXN-03
+    title: "Authorisation & dual-control on value movement"
+    auditable_entity: AE-APP
+    objective: "High-value transfers are subject to limits and independent second-person authorisation (maker-checker)."
+    risk: R-03
+    control_type: preventive
+    automation: hybrid
+    key: true
+    owner: "Payments Operations / Engineering"
+    regulation: [SMCR, ICFR]
+    test_procedure: >
+      Determine whether per-transaction / daily limits and a second-approver step
+      exist for transfers above a threshold. Re-perform a large transfer.
+    population: "Transfer execution path"
+    sample: "Full population + re-performance"
+    pass_criteria: "Transfers above policy threshold require an independent approval and enforce limits"
+    evidence_required: ["code citation", "re-performance of high-value transfer"]
+    expected_demo_result:
+      status: FAIL
+      severity: high
+      detail: >
+        transferAmount enforces no transaction or daily limit and has no
+        maker-checker / second-approver step. Any authenticated user can move any
+        amount up to their balance in a single unreviewed action.
+
+  - control_id: APP-ACC-04
+    title: "Role-based access & least privilege"
+    auditable_entity: AE-IAM
+    objective: "Users are granted only the privileges required for their role; privileged functions are segregated."
+    risk: R-04
+    control_type: preventive
+    automation: automated
+    key: true
+    owner: "IAM / Application Security"
+    regulation: [PRA-FCA, SMCR]
+    test_procedure: >
+      Inspect the granted-authorities / role model and endpoint authorisation rules.
+      Identify whether distinct roles and segregated privileged operations exist.
+    population: "Authority assignment + endpoint authorisation config"
+    sample: "Full population"
+    pass_criteria: "Distinct least-privilege roles exist; privileged actions are restricted and segregated"
+    evidence_required: ["code citation (authorities + security config)"]
+    expected_demo_result:
+      status: FAIL
+      severity: medium
+      detail: >
+        AccountService.authorities() (L99-101) hardcodes a single "USER" authority
+        for every account. There is no admin/operator segregation and no
+        role-restricted endpoints — no basis for least privilege or SoD.
+
+  - control_id: APP-SEC-05
+    title: "Web application protections on state-changing operations"
+    auditable_entity: AE-IAM
+    objective: "State-changing requests (deposit, withdraw, transfer) are protected against CSRF and request forgery."
+    risk: R-03
+    control_type: preventive
+    automation: automated
+    key: false
+    owner: "Application Security"
+    regulation: [ICFR, GDPR]
+    test_procedure: "Inspect security configuration for CSRF protection on POST endpoints."
+    population: "SecurityConfig + state-changing endpoints"
+    sample: "Full population"
+    pass_criteria: "CSRF protection enabled for all state-changing endpoints"
+    evidence_required: ["code citation (SecurityConfig)"]
+    expected_demo_result:
+      status: FAIL
+      severity: medium
+      detail: >
+        SecurityConfig (L30) calls csrf.disable(). The /deposit, /withdraw and
+        /transfer POST endpoints are exposed to cross-site request forgery.
+
+  - control_id: ITGC-SEC-06
+    title: "Credential & secrets management"
+    auditable_entity: AE-CONFIG
+    objective: "Secrets (DB credentials, keys) are not stored in source control; they are injected from a secret store."
+    risk: R-05
+    control_type: preventive
+    automation: automated
+    key: true
+    owner: "Platform Engineering"
+    regulation: [PRA-FCA, GDPR]
+    test_procedure: "Scan configuration and source for embedded credentials/secrets across the repo and history."
+    population: "All committed configuration + repo history"
+    sample: "Full population"
+    pass_criteria: "No plaintext secrets in source; secrets sourced from env/secret manager"
+    evidence_required: ["code citation", "secret-scan output"]
+    expected_demo_result:
+      status: FAIL
+      severity: high
+      detail: >
+        application.properties (L4-5) commits DB username 'root' and password
+        'Test@123' in plaintext. Anyone with repo read access obtains DB credentials.
+
+  - control_id: ITGC-CM-07
+    title: "Change management — independent review & approval"
+    auditable_entity: AE-SDLC
+    objective: "Changes to the protected branch are independently reviewed and approved (author != approver) and traceable to a change record."
+    risk: R-06
+    control_type: preventive
+    automation: hybrid
+    key: true
+    owner: "Head of Engineering"
+    regulation: [ICFR, OP-RESILIENCE]
+    test_procedure: >
+      For a sample of changes to the protected branch in-period, confirm an
+      approving review by someone other than the author, a linked change record,
+      and that direct-to-branch pushes are prevented. Inspect branch-protection
+      and CODEOWNERS configuration as the design test.
+    population: "All changes merged/pushed to the protected branch in-period"
+    sample: "25 changes (or full population where small)"
+    pass_criteria: "100% of sampled changes independently approved + traceable; direct push prevented"
+    evidence_required: ["per-change evidence table (commit/PR links)", "branch-protection config"]
+    expected_demo_result:
+      status: FAIL
+      severity: high
+      detail: >
+        No CODEOWNERS file and no evidence of branch protection on 'DevOps'.
+        History shows direct commits to the default branch (e.g. 'Update Jenkinsfile',
+        'Update bankapp-deployment.yml') with no associated reviewed PR — i.e.
+        production pipeline & k8s manifests changed without independent approval.
+
+  - control_id: ITGC-CM-08
+    title: "Pipeline integrity & source traceability"
+    auditable_entity: AE-SDLC
+    objective: "The artifact deployed to production is built from the same reviewed source that was audited (provenance)."
+    risk: R-06
+    control_type: preventive
+    automation: automated
+    key: true
+    owner: "Platform / Release Engineering"
+    regulation: [OP-RESILIENCE, ICFR]
+    test_procedure: "Trace the CI checkout source against the audited repository; confirm build provenance."
+    population: "CI/CD pipeline definition"
+    sample: "Full population"
+    pass_criteria: "Pipeline builds from the audited, protected source; provenance is verifiable"
+    evidence_required: ["pipeline code citation", "source/branch mapping"]
+    expected_demo_result:
+      status: FAIL
+      severity: medium
+      detail: >
+        Jenkinsfile (L26) checks out a different upstream repository
+        (LondheShubham153/Springboot-BankApp.git, branch DevOps) than the repo under
+        audit. The deployed artifact's provenance is not tied to the reviewed source.
+
+  - control_id: ITGC-SDLC-09
+    title: "Secure SDLC — scanning & automated test gating"
+    auditable_entity: AE-SDLC
+    objective: "Security scanning and automated tests run and gate every release."
+    risk: R-07
+    control_type: detective
+    automation: automated
+    key: true
+    owner: "DevSecOps"
+    regulation: [ICFR, OP-RESILIENCE]
+    test_procedure: >
+      Inspect the pipeline for SAST/SCA/filesystem scanning and a test-execution
+      stage with a quality gate. Confirm tests provide meaningful coverage of
+      business logic.
+    population: "Pipeline definition + test suite"
+    sample: "Full population"
+    pass_criteria: "Scans + tests run and gate releases; business logic is covered by tests"
+    evidence_required: ["pipeline citation", "test-suite inventory"]
+    expected_demo_result:
+      status: PARTIAL
+      severity: medium
+      detail: >
+        Strengths: Jenkinsfile runs Trivy (L31), OWASP dependency-check (L39) and
+        SonarQube with a quality gate (L47-61). Gap: the only test is
+        BankappApplicationTests.contextLoads() — no tests cover deposit/withdraw/
+        transfer logic, and there is no test-execution stage in the pipeline.
+
+  - control_id: ITGC-DATA-10
+    title: "Production schema/data change control"
+    auditable_entity: AE-CONFIG
+    objective: "Database schema changes are explicit, reviewed and version-controlled — not auto-applied at runtime."
+    risk: R-02
+    control_type: preventive
+    automation: automated
+    key: false
+    owner: "Data Platform"
+    regulation: [ICFR, OP-RESILIENCE]
+    test_procedure: "Inspect ORM/schema configuration for uncontrolled auto-migration in non-dev environments."
+    population: "Persistence configuration"
+    sample: "Full population"
+    pass_criteria: "Schema changes use controlled migrations; no runtime auto-mutate in prod"
+    evidence_required: ["config citation"]
+    expected_demo_result:
+      status: FAIL
+      severity: medium
+      detail: >
+        application.properties (L9) sets spring.jpa.hibernate.ddl-auto=update,
+        letting Hibernate mutate the schema at runtime in every environment with no
+        review or migration trail.
+
+  - control_id: ITGC-LOG-11
+    title: "Logging & monitoring of financial events"
+    auditable_entity: AE-APP
+    objective: "Security-relevant and financial events are logged to support detection, investigation and audit trail."
+    risk: R-08
+    control_type: detective
+    automation: automated
+    key: true
+    owner: "Security Operations"
+    regulation: [PRA-FCA, OP-RESILIENCE]
+    test_procedure: "Inspect transaction code paths for audit logging of financial events; assess log content & integrity."
+    population: "Transaction code paths + logging config"
+    sample: "Full population"
+    pass_criteria: "Financial/security events are logged with sufficient, protected detail"
+    evidence_required: ["code citation", "logging configuration"]
+    expected_demo_result:
+      status: FAIL
+      severity: medium
+      detail: >
+        No audit logging exists around deposit/withdraw/transfer. The only logging
+        signal is spring.jpa.show-sql=true (L11), which leaks SQL to stdout but is
+        not an audit trail and risks exposing data in logs.
