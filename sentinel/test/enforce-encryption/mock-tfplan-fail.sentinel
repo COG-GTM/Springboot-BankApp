@@ -1,0 +1,57 @@
+resource_changes = {
+  "aws_db_instance.primary": {
+    "address":       "aws_db_instance.primary",
+    "mode":          "managed",
+    "type":          "aws_db_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_class":    "db.r6g.large",
+        "storage_encrypted": false,
+        "tags":              {},
+      },
+    },
+  },
+  "aws_ebs_volume.data": {
+    "address":       "aws_ebs_volume.data",
+    "mode":          "managed",
+    "type":          "aws_ebs_volume",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "encrypted": false,
+        "size":      100,
+        "tags":      {},
+      },
+    },
+  },
+  "aws_s3_bucket.assets": {
+    "address":       "aws_s3_bucket.assets",
+    "mode":          "managed",
+    "type":          "aws_s3_bucket",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "id":   "bankapp-assets-bucket",
+        "tags": {},
+      },
+    },
+  },
+  "aws_eks_cluster.main": {
+    "address":       "aws_eks_cluster.main",
+    "mode":          "managed",
+    "type":          "aws_eks_cluster",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "name":              "bankapp-cluster",
+        "encryption_config": [],
+        "tags":              {},
+      },
+    },
+  },
+}

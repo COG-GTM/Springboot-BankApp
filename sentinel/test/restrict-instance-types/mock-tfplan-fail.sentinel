@@ -1,0 +1,41 @@
+resource_changes = {
+  "aws_instance.app_server": {
+    "address":       "aws_instance.app_server",
+    "mode":          "managed",
+    "type":          "aws_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_type": "t3.micro",
+        "tags": {},
+      },
+    },
+  },
+  "aws_db_instance.primary": {
+    "address":       "aws_db_instance.primary",
+    "mode":          "managed",
+    "type":          "aws_db_instance",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_class": "db.t3.medium",
+        "tags": {},
+      },
+    },
+  },
+  "aws_eks_node_group.workers": {
+    "address":       "aws_eks_node_group.workers",
+    "mode":          "managed",
+    "type":          "aws_eks_node_group",
+    "provider_name": "registry.terraform.io/hashicorp/aws",
+    "change": {
+      "actions": ["create"],
+      "after": {
+        "instance_types": ["t3.large", "m5.xlarge"],
+        "tags": {},
+      },
+    },
+  },
+}

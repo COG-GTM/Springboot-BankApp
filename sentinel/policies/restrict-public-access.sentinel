@@ -1,0 +1,93 @@
+# restrict-public-access.sentinel
+# Blocks public EKS API endpoints, public S3 buckets, and RDS public accessibility.
+# Enforcement: hard-mandatory (security)
+
+import "tfplan/v2" as tfplan
+
+# --- EKS Public API Endpoint ---
+eks_clusters = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_eks_cluster" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+eks_private = true
+for eks_clusters as _, rc {
+	vpc_config = rc.change.after.vpc_config else []
+	for vpc_config as vc {
+		endpoint_public_access = vc.endpoint_public_access else true
+		if endpoint_public_access is true {
+			print("EKS cluster", rc.address,
+				"must not have public API endpoint.",
+				"Set endpoint_public_access = false in vpc_config")
+			eks_private = false
+		}
+	}
+}
+
+# --- S3 Public Access Block ---
+s3_public_access_blocks = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket_public_access_block" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+s3_buckets = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+s3_private = true
+for s3_public_access_blocks as _, rc {
+	block_public_acls = rc.change.after.block_public_acls else false
+	block_public_policy = rc.change.after.block_public_policy else false
+	ignore_public_acls = rc.change.after.ignore_public_acls else false
+	restrict_public_buckets = rc.change.after.restrict_public_buckets else false
+
+	if block_public_acls is not true or
+		block_public_policy is not true or
+		ignore_public_acls is not true or
+		restrict_public_buckets is not true {
+		print("S3 public access block", rc.address,
+			"must have all four public access block settings set to true")
+		s3_private = false
+	}
+}
+
+# --- S3 Bucket ACL check ---
+s3_acl_resources = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_s3_bucket_acl" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+s3_acl_private = true
+for s3_acl_resources as _, rc {
+	acl = rc.change.after.acl else "private"
+	if acl is not "private" {
+		print("S3 bucket ACL", rc.address,
+			"must use 'private' ACL, found:", acl)
+		s3_acl_private = false
+	}
+}
+
+# --- RDS Public Accessibility ---
+rds_instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_db_instance" and
+		rc.mode is "managed" and
+		rc.change.actions is not ["delete"]
+}
+
+rds_private = true
+for rds_instances as _, rc {
+	publicly_accessible = rc.change.after.publicly_accessible else false
+	if publicly_accessible is true {
+		print("RDS instance", rc.address,
+			"must not be publicly accessible.",
+			"Set publicly_accessible = false")
+		rds_private = false
+	}
+}
+
+main = rule { eks_private and s3_private and s3_acl_private and rds_private }
