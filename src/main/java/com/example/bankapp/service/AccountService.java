@@ -12,15 +12,20 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 @Service
 public class AccountService implements UserDetailsService {
+
+    private static final BigDecimal DAILY_OUTBOUND_TRANSFER_LIMIT = new BigDecimal("1000.00");
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -48,17 +53,14 @@ public class AccountService implements UserDetailsService {
     }
 
 
+    private void recordTransaction(Account account, BigDecimal amount, String description) {
+        transactionRepository.save(new Transaction(amount, description, LocalDateTime.now(), account));
+    }
+
     public void deposit(Account account, BigDecimal amount) {
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
-
-        Transaction transaction = new Transaction(
-                amount,
-                "Deposit",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        recordTransaction(account, amount, "Deposit");
     }
 
     public void withdraw(Account account, BigDecimal amount) {
@@ -67,14 +69,7 @@ public class AccountService implements UserDetailsService {
         }
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
-
-        Transaction transaction = new Transaction(
-                amount,
-                "Withdrawal",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        recordTransaction(account, amount, "Withdrawal");
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
@@ -100,13 +95,18 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
+    @Transactional
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
+        validateTransferAmount(amount);
+
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
         Account toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+
+        enforceDailyOutboundTransferLimit(fromAccount, amount);
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
@@ -117,21 +117,29 @@ public class AccountService implements UserDetailsService {
         accountRepository.save(toAccount);
 
         // Create transaction records for both accounts
-        Transaction debitTransaction = new Transaction(
-                amount,
-                "Transfer Out to " + toAccount.getUsername(),
-                LocalDateTime.now(),
-                fromAccount
-        );
-        transactionRepository.save(debitTransaction);
+        recordTransaction(fromAccount, amount, "Transfer Out to " + toAccount.getUsername());
+        recordTransaction(toAccount, amount, "Transfer In from " + fromAccount.getUsername());
+    }
 
-        Transaction creditTransaction = new Transaction(
-                amount,
-                "Transfer In from " + fromAccount.getUsername(),
-                LocalDateTime.now(),
-                toAccount
-        );
-        transactionRepository.save(creditTransaction);
+    private void validateTransferAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Transfer amount must be greater than zero");
+        }
+    }
+
+    private void enforceDailyOutboundTransferLimit(Account fromAccount, BigDecimal amount) {
+        BigDecimal todayOutboundTotal = getTodayOutboundTransferTotal(fromAccount);
+        if (todayOutboundTotal.add(amount).compareTo(DAILY_OUTBOUND_TRANSFER_LIMIT) > 0) {
+            throw new RuntimeException("Daily outbound transfer limit exceeded");
+        }
+    }
+
+    private BigDecimal getTodayOutboundTransferTotal(Account account) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+        return transactionRepository.sumOutboundTransferAmountByAccountIdAndTimestampBetween(
+                account.getId(), startOfDay, endOfDay);
     }
 
 }
