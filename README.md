@@ -1,6 +1,13 @@
 ## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
 - This is a multi-tier bank an application written in Java (Springboot).
 
+## Requirements
+- **Java 11** (JDK 11 or higher) - This application requires Java 11 to build and run
+- **Maven 3.6+** - For building the application
+- **MySQL 5.7+** - For the database
+
+See [MIGRATION_NOTES.md](MIGRATION_NOTES.md) for details on the Java 8 to Java 11 migration.
+
 ![Login diagram](images/login.png)
 ![Transactions diagram](images/transactions.png)
 
