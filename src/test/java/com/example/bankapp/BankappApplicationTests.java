@@ -12,4 +12,9 @@ class BankappApplicationTests {
 	void contextLoads() {
 	}
 
+	@Test
+	void mainMethodRuns() {
+		BankappApplication.main(new String[]{});
+	}
+
 }
