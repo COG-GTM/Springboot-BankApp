@@ -27,7 +27,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                // CSRF protection is enabled with the default HttpSessionCsrfTokenRepository.
+                // Tokens are rendered into the server-side Thymeleaf forms as hidden fields,
+                // so the token never needs to be readable by JavaScript.
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/register").permitAll()
                         .anyRequest().authenticated()
