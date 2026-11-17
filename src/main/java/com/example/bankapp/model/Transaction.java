@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "transaction", indexes = {
+    @Index(name = "idx_transaction_account_id", columnList = "account_id")
+})
 public class Transaction {
 
     @Id
