@@ -1,0 +1,68 @@
+name: CD Pipeline
+
+on:
+  repository_dispatch:
+    types: [deploy]
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: 'Docker image tag to deploy'
+        required: true
+
+env:
+  DOCKER_TAG: ${{ github.event.client_payload.docker_tag || inputs.docker_tag }}
+
+jobs:
+  update-manifests:
+    name: "Update K8s Manifests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: DevOps
+          token: ${{ secrets.GIT_PAT }}
+
+      - name: Verify Docker Tag
+        run: echo "Deploying image tag - ${{ env.DOCKER_TAG }}"
+
+      - name: Update Kubernetes Deployment Manifest
+        run: |
+          cd kubernetes
+          sed -i "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${{ env.DOCKER_TAG }}|g" bankapp-deployment.yml
+          echo "Updated manifest:"
+          grep "image:" bankapp-deployment.yml
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add kubernetes/bankapp-deployment.yml
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: update bankapp image to ${{ env.DOCKER_TAG }}"
+          git push origin DevOps
+
+      - name: Send Email Notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "BankApp Deployment - ${{ job.status }}"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          html_body: |
+            <html>
+            <body>
+              <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">Workflow: ${{ github.workflow }}</p>
+              </div>
+              <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">Run: #${{ github.run_number }}</p>
+              </div>
+              <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
+                <p style="color: black; font-weight: bold;">URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+              </div>
+            </body>
+            </html>
