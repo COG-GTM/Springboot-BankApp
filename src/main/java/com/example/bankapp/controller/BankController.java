@@ -48,7 +48,10 @@ public class BankController {
     }
 
     @PostMapping("/deposit")
-    public String deposit(@RequestParam BigDecimal amount) {
+    public String deposit(@RequestParam BigDecimal amount, Model model) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return "redirect:/dashboard?error=Amount+must+be+positive";
+        }
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
         accountService.deposit(account, amount);
@@ -57,6 +60,9 @@ public class BankController {
 
     @PostMapping("/withdraw")
     public String withdraw(@RequestParam BigDecimal amount, Model model) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return "redirect:/dashboard?error=Amount+must+be+positive";
+        }
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
 
@@ -81,6 +87,9 @@ public class BankController {
 
     @PostMapping("/transfer")
     public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return "redirect:/dashboard?error=Amount+must+be+positive";
+        }
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account fromAccount = accountService.findAccountByUsername(username);
 
