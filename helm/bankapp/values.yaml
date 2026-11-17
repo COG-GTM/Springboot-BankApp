@@ -44,11 +44,17 @@ hpa:
     max_replica: 5
     cpu_utilizatoion: 40
 
-# Secret for Database connectivity
+# Secret for Database connectivity.
+# Do NOT commit real secrets to this file. Override these at install time, e.g.:
+#   helm install bankapp ./helm/bankapp \
+#     --set secret.data.MYSQL_ROOT_PASSWORD=$(echo -n "$ROOT_PW" | base64) \
+#     --set secret.data.SPRING_DATASOURCE_PASSWORD=$(echo -n "$APP_PW" | base64)
+# Or, preferably, source them from an external secrets manager
+# (Sealed Secrets, External Secrets Operator, AWS Secrets Manager, Vault, etc.).
 
 secret:
   name: mysql-secret
-  data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
-    SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
- 
+  data:
+    MYSQL_ROOT_PASSWORD: ""       # Base64-encoded; override via --set or external secrets
+    SPRING_DATASOURCE_PASSWORD: ""       # Base64-encoded; override via --set or external secrets
+
