@@ -2,8 +2,8 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +15,11 @@ import java.math.BigDecimal;
 @Controller
 public class BankController {
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
+
+    public BankController(AccountService accountService) {
+        this.accountService = accountService;
+    }
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -37,7 +40,7 @@ public class BankController {
             accountService.registerAccount(username, password);
             return "redirect:/login";
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", extractErrorMessage(e));
             return "register";
         }
     }
@@ -48,10 +51,18 @@ public class BankController {
     }
 
     @PostMapping("/deposit")
-    public String deposit(@RequestParam BigDecimal amount) {
+    public String deposit(@RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountService.findAccountByUsername(username);
-        accountService.deposit(account, amount);
+
+        try {
+            accountService.deposit(account, amount);
+        } catch (RuntimeException e) {
+            model.addAttribute("error", extractErrorMessage(e));
+            model.addAttribute("account", account);
+            return "dashboard";
+        }
+
         return "redirect:/dashboard";
     }
 
@@ -63,7 +74,7 @@ public class BankController {
         try {
             accountService.withdraw(account, amount);
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", extractErrorMessage(e));
             model.addAttribute("account", account);
             return "dashboard";
         }
@@ -79,6 +90,13 @@ public class BankController {
         return "transactions";
     }
 
+    private String extractErrorMessage(RuntimeException e) {
+        if (e instanceof ResponseStatusException rse) {
+            return rse.getReason();
+        }
+        return e.getMessage();
+    }
+
     @PostMapping("/transfer")
     public String transferAmount(@RequestParam String toUsername, @RequestParam BigDecimal amount, Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -87,12 +105,11 @@ public class BankController {
         try {
             accountService.transferAmount(fromAccount, toUsername, amount);
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", extractErrorMessage(e));
             model.addAttribute("account", fromAccount);
             return "dashboard";
         }
 
         return "redirect:/dashboard";
     }
-
 }
