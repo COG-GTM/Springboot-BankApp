@@ -1,10 +1,25 @@
-## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
-- This is a multi-tier bank an application written in Java (Springboot).
+# Spring Boot Bank Application
+
+A multi-tier banking application built with Java and Spring Boot, demonstrating end-to-end DevSecOps deployment on AWS EKS.
+
+## Overview
+
+This project provides a complete banking application with user authentication, account management, and transaction capabilities. It serves as a reference implementation for deploying enterprise Java applications using modern DevSecOps practices including CI/CD pipelines, security scanning, and Kubernetes orchestration.
+
+## Features
+
+- User registration and authentication
+- Account management
+- Transaction processing
+- Secure session handling
+- RESTful API endpoints
+
+## Screenshots
 
 ![Login diagram](images/login.png)
 ![Transactions diagram](images/transactions.png)
 
-## Tech stack used in this project:
+## Tech Stack
 - GitHub (Code)
 - Docker (Containerization)
 - Jenkins (CI)
