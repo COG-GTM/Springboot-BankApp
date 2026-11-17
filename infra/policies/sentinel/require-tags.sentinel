@@ -1,0 +1,48 @@
+# Enforce that every taggable resource carries the mandatory governance tags.
+# Missing cost/ownership/classification tags is one of the gaps found in the
+# existing Helm/eksctl deployment (no tagging strategy at all).
+
+import "tfplan/v2" as tfplan
+import "resources"
+
+# Tag keys every managed resource that supports tagging must define.
+mandatory_tags = [
+	"Application",
+	"Environment",
+	"Owner",
+	"CostCenter",
+	"DataClassification",
+	"ManagedBy",
+]
+
+# Resource types in this plan that support a `tags` attribute and must comply.
+taggable_types = [
+	"aws_vpc",
+	"aws_subnet",
+	"aws_eks_cluster",
+	"aws_eks_node_group",
+	"aws_db_instance",
+	"aws_iam_role",
+	"aws_kms_key",
+	"aws_cloudwatch_log_group",
+	"aws_security_group",
+]
+
+violations = 0
+
+for taggable_types as t {
+	res = resources.find_resources(t)
+	for res as address, rc {
+		tags = resources.planned(rc).tags else {}
+		for mandatory_tags as key {
+			if tags[key] else "" is "" {
+				print("DENY:", address, "- missing required tag:", key)
+				violations += 1
+			}
+		}
+	}
+}
+
+main = rule {
+	violations is 0
+}

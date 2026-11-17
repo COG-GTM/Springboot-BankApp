@@ -1,0 +1,36 @@
+# Shared helper functions for the Springboot-BankApp policy set.
+# Operates on the tfplan/v2 import.
+
+import "tfplan/v2" as tfplan
+import "types"
+
+# Return all resource changes of a given type that are being created or updated
+# (i.e. ignore resources being destroyed or that are no-ops).
+find_resources = func(resource_type) {
+	resources = filter tfplan.resource_changes as _, rc {
+		rc.type is resource_type and
+			rc.mode is "managed" and
+			(rc.change.actions contains "create" or
+				rc.change.actions contains "update")
+	}
+	return resources
+}
+
+# Return the planned attribute values ("after") for a resource change.
+planned = func(rc) {
+	return rc.change.after
+}
+
+# Convert a value that may be a string or list into a flat list of strings.
+to_list = func(v) {
+	if types.type_of(v) is "list" {
+		return v
+	}
+	return [v]
+}
+
+# Print a standard violation line and keep the running boolean result.
+report = func(address, message) {
+	print("DENY:", address, "-", message)
+	return false
+}

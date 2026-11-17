@@ -1,0 +1,74 @@
+# Prevent internet-facing data planes and open security groups. The existing
+# eksctl setup gives nodes public IPs, enables SSH, and instructs opening many
+# ports in the security group.
+
+import "tfplan/v2" as tfplan
+import "resources"
+
+violations = 0
+
+# RDS must never be publicly accessible.
+rds = resources.find_resources("aws_db_instance")
+for rds as address, rc {
+	after = resources.planned(rc)
+	if after.publicly_accessible else false is true {
+		print("DENY:", address, "- RDS publicly_accessible must be false")
+		violations += 1
+	}
+}
+
+# Subnets must not auto-assign public IPs to instances (nodes stay private).
+subnets = resources.find_resources("aws_subnet")
+for subnets as address, rc {
+	after = resources.planned(rc)
+	tier = after.tags["Tier"] else ""
+	if tier is not "public" and after.map_public_ip_on_launch else false is true {
+		print("DENY:", address, "- non-public subnet must not map_public_ip_on_launch")
+		violations += 1
+	}
+}
+
+# Security group rules must not expose sensitive ports to 0.0.0.0/0.
+sensitive_ports = [22, 3306, 3389, 6443]
+
+sg_rules = resources.find_resources("aws_security_group_rule")
+for sg_rules as address, rc {
+	after = resources.planned(rc)
+	if after.type else "" is "ingress" {
+		cidrs = after.cidr_blocks else []
+		if cidrs contains "0.0.0.0/0" {
+			from = after.from_port else -1
+			to = after.to_port else -1
+			for sensitive_ports as p {
+				if from <= p and to >= p {
+					print("DENY:", address, "- sensitive port", p, "open to 0.0.0.0/0")
+					violations += 1
+				}
+			}
+		}
+	}
+}
+
+# Inline security group ingress blocks are checked too.
+sgs = resources.find_resources("aws_security_group")
+for sgs as address, rc {
+	after = resources.planned(rc)
+	ingress = after.ingress else []
+	for ingress as ing {
+		cidrs = ing.cidr_blocks else []
+		if cidrs contains "0.0.0.0/0" {
+			from = ing.from_port else -1
+			to = ing.to_port else -1
+			for sensitive_ports as p {
+				if from <= p and to >= p {
+					print("DENY:", address, "- inline ingress opens sensitive port", p, "to 0.0.0.0/0")
+					violations += 1
+				}
+			}
+		}
+	}
+}
+
+main = rule {
+	violations is 0
+}

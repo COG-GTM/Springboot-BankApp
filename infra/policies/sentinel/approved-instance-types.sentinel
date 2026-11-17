@@ -1,0 +1,52 @@
+# Restrict EKS node and RDS instance classes to a current-generation, approved
+# set. The existing deployment uses t2.medium (previous generation).
+
+import "tfplan/v2" as tfplan
+import "resources"
+
+approved_node_instance_types = [
+	"m6i.large",
+	"m6i.xlarge",
+	"m7i.large",
+	"m7i.xlarge",
+	"c6i.large",
+	"c6i.xlarge",
+]
+
+approved_db_instance_classes = [
+	"db.t3.medium",
+	"db.t3.large",
+	"db.m6i.large",
+	"db.m6i.xlarge",
+	"db.r6i.large",
+]
+
+violations = 0
+
+# EKS managed node groups.
+node_groups = resources.find_resources("aws_eks_node_group")
+for node_groups as address, rc {
+	after = resources.planned(rc)
+	types_list = after.instance_types else []
+	for types_list as it {
+		if not (approved_node_instance_types contains it) {
+			print("DENY:", address, "- node instance type", it, "is not approved")
+			violations += 1
+		}
+	}
+}
+
+# RDS instances.
+rds = resources.find_resources("aws_db_instance")
+for rds as address, rc {
+	after = resources.planned(rc)
+	ic = after.instance_class else ""
+	if ic is not "" and not (approved_db_instance_classes contains ic) {
+		print("DENY:", address, "- RDS instance class", ic, "is not approved")
+		violations += 1
+	}
+}
+
+main = rule {
+	violations is 0
+}

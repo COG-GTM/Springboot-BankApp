@@ -1,0 +1,63 @@
+# Enforce encryption at rest for data stores and secrets. The existing
+# deployment stores data on an unencrypted in-cluster MySQL hostPath volume and
+# uses default (unencrypted) EKS secret storage.
+
+import "tfplan/v2" as tfplan
+import "resources"
+
+violations = 0
+
+# RDS storage must be encrypted with a customer-managed KMS key.
+rds = resources.find_resources("aws_db_instance")
+for rds as address, rc {
+	after = resources.planned(rc)
+	if after.storage_encrypted else false is not true {
+		print("DENY:", address, "- RDS storage_encrypted must be true")
+		violations += 1
+	}
+	if after.kms_key_id else "" is "" {
+		print("DENY:", address, "- RDS must specify a KMS key (kms_key_id)")
+		violations += 1
+	}
+}
+
+# EKS clusters must define secrets envelope encryption.
+eks = resources.find_resources("aws_eks_cluster")
+for eks as address, rc {
+	after = resources.planned(rc)
+	enc = after.encryption_config else []
+	if length(enc) is 0 {
+		print("DENY:", address, "- EKS cluster must define encryption_config for secrets")
+		violations += 1
+	}
+}
+
+# EBS volumes on node launch templates must be encrypted.
+lts = resources.find_resources("aws_launch_template")
+for lts as address, rc {
+	after = resources.planned(rc)
+	bdms = after.block_device_mappings else []
+	for bdms as bdm {
+		ebs = bdm.ebs else []
+		for ebs as e {
+			if e.encrypted else "false" is not "true" and e.encrypted else false is not true {
+				print("DENY:", address, "- launch template EBS volume must be encrypted")
+				violations += 1
+			}
+		}
+	}
+}
+
+# CloudWatch log groups must be encrypted with KMS.
+lgs = resources.find_resources("aws_cloudwatch_log_group")
+for lgs as address, rc {
+	after = resources.planned(rc)
+	if after.kms_key_id else "" is "" {
+		print("DENY:", address, "- CloudWatch log group must set kms_key_id")
+		violations += 1
+	}
+}
+
+main = rule {
+	violations is 0
+}

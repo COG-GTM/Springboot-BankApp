@@ -1,0 +1,32 @@
+# Restrict deployments to governance-approved AWS regions. The existing docs
+# are inconsistent (README says us-west-1, kubernetes/README says ap-south-1);
+# this policy makes the approved set explicit and enforceable.
+
+import "tfplan/v2" as tfplan
+
+approved_regions = [
+	"us-west-1",
+	"us-east-1",
+]
+
+# The AWS provider region is surfaced in the plan's configuration. We inspect
+# every resource's provider config region where available, and fall back to the
+# provider configuration block.
+violations = 0
+
+provider_configs = tfplan.configuration.provider_config else {}
+
+for provider_configs as name, pc {
+	if pc.name else "" is "aws" {
+		region_expr = pc.expressions.region else {}
+		region = region_expr.constant_value else ""
+		if region is not "" and not (approved_regions contains region) {
+			print("DENY: provider", name, "- region", region, "is not in the approved list", approved_regions)
+			violations += 1
+		}
+	}
+}
+
+main = rule {
+	violations is 0
+}

@@ -1,0 +1,52 @@
+# ArgoCD Application for the Springboot-BankApp GitOps deployment target.
+#
+# This tracks the plain Kubernetes manifests under `kubernetes/` (the same set
+# the GitOps Jenkins pipeline updates). Update `spec.source.repoURL` to the fork
+# you actually deploy from before applying:
+#   kubectl apply -n argocd -f infra/argocd/bankapp-application.yaml
+#
+# NOTE (see infra/docs/ARGOCD-RCA.md): the CD pipeline's image-bump step is
+# broken (it seds `bankapp-deployment.yaml` while the file is `.yml`), so this
+# Application will keep reconciling a stale image tag until that is fixed.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bankapp
+  namespace: argocd
+  # Keep the app from being pruned before its children during cascading deletes.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: bankapp
+    app.kubernetes.io/part-of: springboot-bankapp
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/COG-GTM/Springboot-BankApp.git
+    targetRevision: DevOps
+    path: kubernetes
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bankapp-namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+  # Ignore replica drift caused by the HorizontalPodAutoscaler so ArgoCD does
+  # not fight the autoscaler and report the app perpetually OutOfSync.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
