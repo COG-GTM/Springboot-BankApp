@@ -2,6 +2,7 @@ package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.service.AccountService;
+import com.example.bankapp.service.TransferService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,9 @@ public class BankController {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private TransferService transferService;
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -85,7 +89,7 @@ public class BankController {
         Account fromAccount = accountService.findAccountByUsername(username);
 
         try {
-            accountService.transferAmount(fromAccount, toUsername, amount);
+            transferService.transferAmount(fromAccount, toUsername, amount);
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", fromAccount);
