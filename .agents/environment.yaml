@@ -1,0 +1,33 @@
+# See spec at https://docs.devin.ai/onboard-devin/repo-setup
+initialize: |
+  # Install Java 17 and Maven
+  sudo apt-get update -y
+  sudo apt-get install -y openjdk-17-jdk maven
+  # Download Maven dependencies and cache them
+  mvn dependency:go-offline -DskipTests=true
+maintenance: |
+  # Ensure dependencies are up to date and project compiles
+  mvn clean install -DskipTests=true
+knowledge:
+  - name: lint
+    contents: |
+      # No dedicated linter configured; Maven compilation catches issues.
+      mvn compile
+  - name: test
+    contents: |
+      # Tests require a running MySQL database (see docker-compose.yml).
+      # Start MySQL: docker compose up -d mysql
+      # Then run: mvn test
+      # To skip tests during build: mvn clean install -DskipTests=true
+  - name: startup
+    contents: |
+      # Option 1: Run with Docker Compose (recommended, includes MySQL)
+      # Set DUSER and IMAGE env vars or edit .env, then:
+      # docker compose up -d
+      #
+      # Option 2: Run locally (requires MySQL on localhost:3306)
+      # Database config is in src/main/resources/application.properties
+      # Default: root/Test@123, database bankappdb
+      # Start MySQL, then:
+      # mvn spring-boot:run
+      # App runs on http://localhost:8080
