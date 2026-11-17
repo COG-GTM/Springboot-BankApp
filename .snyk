@@ -1,0 +1,22 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  'snyk:lic:maven:com.mysql:mysql-connector-j:GPL-2.0':
+    - '*':
+        reason: >-
+          MySQL Connector/J is the official MySQL JDBC driver, licensed GPL-2.0
+          with the Universal FOSS Exception 1.0. Pre-existing in the app (was
+          mysql:mysql-connector-java@8.0.33, same license); intrinsic to the
+          MySQL backend and not resolvable by upgrade.
+        expires: 2026-07-08T20:17:33.979Z
+        created: 2026-06-08T20:17:33.981Z
+  'snyk:lic:maven:org.hibernate.orm:hibernate-core:LGPL-2.1':
+    - '*':
+        reason: >-
+          Hibernate ORM (LGPL-2.1) is the JPA provider bundled by
+          spring-boot-starter-data-jpa. LGPL permits use as a linked library;
+          pre-existing and intrinsic to the stack, not resolvable by upgrade.
+        expires: 2026-07-08T20:17:35.429Z
+        created: 2026-06-08T20:17:35.432Z
+patch: {}
