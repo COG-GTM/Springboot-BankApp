@@ -1,0 +1,78 @@
+# Reusable Pipeline Template: end-to-end CI+CD for a Maven service on Harness.
+# Wires the CI Stage Template (build_scan_and_push_maven) to the CD Stage Template
+# (gitops_deploy). A NEW team onboards by creating a pipeline FROM this template
+# and supplying the runtime inputs — no YAML authoring required.
+template:
+  name: Java Service CICD (Jenkins Converged)
+  identifier: java_service_cicd
+  versionLabel: v1
+  type: Pipeline
+  orgIdentifier: default
+  projectIdentifier: Springboot_BankApp
+  tags:
+    reusable: "true"
+    source: jenkins-migration
+  spec:
+    properties:
+      ci:
+        codebase:
+          connectorRef: <+input>
+          repoName: <+input>
+          build: <+input>
+    stages:
+      - stage:
+          identifier: ci_build_scan_push
+          name: CI - Build, Scan, Push
+          template:
+            templateRef: build_scan_and_push_maven
+            versionLabel: v1
+            # All stage inputs bubble up as pipeline runtime inputs.
+            templateInputs:
+              type: CI
+              variables:
+                - name: service_name
+                  type: String
+                  value: <+input>
+                - name: image_repo
+                  type: String
+                  value: <+input>
+                - name: docker_tag
+                  type: String
+                  value: <+input>
+                - name: sonar_host_url
+                  type: String
+                  value: <+input>
+                - name: sonar_project_key
+                  type: String
+                  value: <+input>
+      - stage:
+          identifier: cd_gitops_deploy
+          name: CD - GitOps Deploy
+          template:
+            templateRef: gitops_deploy
+            versionLabel: v1
+            templateInputs:
+              type: CI
+              variables:
+                - name: docker_tag
+                  type: String
+                  value: <+pipeline.stages.ci_build_scan_push.variables.docker_tag>
+                - name: image_repo
+                  type: String
+                  value: <+input>
+                - name: gitops_repo
+                  type: String
+                  value: <+input>
+    notificationRules:
+      - name: build_status
+        identifier: build_status
+        pipelineEvents:
+          - type: PipelineSuccess
+          - type: PipelineFailed
+        notificationMethod:
+          # Replaces the Jenkins emailext post{always} block.
+          type: Email
+          spec:
+            recipients:
+              - <+input>
+        enabled: true
