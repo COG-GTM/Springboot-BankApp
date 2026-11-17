@@ -38,8 +38,8 @@ spec:
         - name: SPRING_DATASOURCE_PASSWORD        
           valueFrom:
             secretKeyRef:
-              name: mysql-secret  
-              key: SPRING_DATASOURCE_PASSWORD      
+              name: {{ .Values.secret.name }}
+              key: SPRING_DATASOURCE_PASSWORD
         livenessProbe:
           httpGet:
             path: /actuator/health

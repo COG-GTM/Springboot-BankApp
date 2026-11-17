@@ -34,14 +34,20 @@ chmod 700 get_helm.sh
     ```
 
 ## Run the SpringBoot Bankapp using helm
-Install Bankapp from helm chart.
+Install Bankapp from helm chart. Database passwords are not stored in `values.yaml`; pass
+them at install time from your secret manager (or set `secret.create=false` and create the
+`mysql-secret` Secret yourself).
 ```bash
-helm install bankapp bankapp/
+helm install bankapp bankapp/ \
+  --set secret.data.MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+  --set secret.data.SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
 ```
 
 You can install it for multiple environments by changing values in `values.yaml` file
 ```bash
-helm install bankapp-dev bankapp/ --set namespace=dev-namespace --set bankapp_svc.nodePort=30081
+helm install bankapp-dev bankapp/ --set namespace=dev-namespace --set bankapp_svc.nodePort=30081 \
+  --set secret.data.MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+  --set secret.data.SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
 ```
 
 Happy Helming!
