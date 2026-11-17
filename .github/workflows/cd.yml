@@ -1,0 +1,96 @@
+# GitHub Actions migration of the Jenkins CD pipeline (./GitOps/Jenkinsfile).
+#
+# Original Jenkins stages (preserved as steps below):
+#   1. Workspace cleanup        -> implicit on ephemeral GitHub-hosted runners
+#   2. Git: Code Checkout       -> actions/checkout
+#   3. Verify Docker Image Tags -> echo of input value
+#   4. Update Kubernetes manifest -> sed on kubernetes/bankapp-deployment.yml
+#   5. Git: code update + push  -> commit + git push back to the source branch
+#   post.always: emailext       -> dawidd6/action-send-mail (gated on
+#                                  vars.ENABLE_EMAIL_NOTIFICATIONS == 'true')
+#
+# Triggers:
+#   - workflow_dispatch: manual run with the docker tag.
+#   - Invoked from the CI workflow via `gh workflow run cd.yml -f docker_tag=...`.
+#
+# Required repository secrets/vars when email notifications are enabled:
+#   - SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD,
+#     NOTIFY_FROM, NOTIFY_TO
+
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: "Docker image tag built by the CI job"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Update Kubernetes manifest and push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Verify Docker image tag
+        run: |
+          echo "DOCKER TAG RECEIVED: ${{ inputs.docker_tag }}"
+
+      - name: Update Kubernetes manifest
+        working-directory: kubernetes
+        run: |
+          sed -i -e "s|trainwithshubham/bankapp-eks:.*|trainwithshubham/bankapp-eks:${{ inputs.docker_tag }}|g" bankapp-deployment.yml
+
+      - name: Commit and push manifest update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "Checking repository status:"
+          git status
+          if git diff --quiet -- kubernetes/bankapp-deployment.yml; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+          echo "Adding changes to git:"
+          git add kubernetes/bankapp-deployment.yml
+          echo "Committing changes:"
+          git commit -m "Updated K8s Deployment Docker Image Version to ${{ inputs.docker_tag }}"
+          echo "Pushing changes to GitHub:"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Send email notification
+        if: ${{ always() && vars.ENABLE_EMAIL_NOTIFICATIONS == 'true' }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          from: ${{ secrets.NOTIFY_FROM }}
+          to: ${{ secrets.NOTIFY_TO }}
+          subject: "BankApp Application has been updated and deployed - '${{ job.status }}'"
+          html_body: |
+            <html>
+              <body>
+                <div style="background-color: #FFA07A; padding: 10px; margin-bottom: 10px;">
+                  <p style="color: black; font-weight: bold;">Project: ${{ github.repository }}</p>
+                </div>
+                <div style="background-color: #90EE90; padding: 10px; margin-bottom: 10px;">
+                  <p style="color: black; font-weight: bold;">Run Number: ${{ github.run_number }}</p>
+                </div>
+                <div style="background-color: #87CEEB; padding: 10px; margin-bottom: 10px;">
+                  <p style="color: black; font-weight: bold;">URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+                </div>
+              </body>
+            </html>
