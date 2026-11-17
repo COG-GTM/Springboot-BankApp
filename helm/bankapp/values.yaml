@@ -5,12 +5,12 @@ namespace: bankapp-namespace
 configmap:  
   name: bankapp-config
   data:
-      MYSQL_DATABASE: BankDB
-      SPRING_DATASOURCE_USERNAME: root
+      POSTGRES_DB: BankDB
+      SPRING_DATASOURCE_USERNAME: postgres
 
 ## name, label and storage size for database 
 db_statefulset:
-  name: mysql
+  name: postgres
   storage: 5Gi
 
 ## name and label of app deployment
@@ -24,7 +24,7 @@ app_deployment:
 ## image repository and tag of app and db.
 image:
   app: trainwithshubham/springboot-bankapp:latest
-  db: mysql:latest
+  db: postgres:15
 
 # NodePort svc for bankapp
 bankapp_svc:
@@ -34,9 +34,9 @@ bankapp_svc:
 
 
 # headless svc configuration for db
-mysql_svc:
-    port: 3306
-    targetPort: 3306
+postgres_svc:
+    port: 5432
+    targetPort: 5432
 
 # HPA minimun and maximum pods and average cpu utilization
 hpa:
@@ -47,8 +47,8 @@ hpa:
 # Secret for Database connectivity
 
 secret:
-  name: mysql-secret
+  name: postgres-secret
   data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
-    SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
+    POSTGRES_PASSWORD: Test@123
+    SPRING_DATASOURCE_PASSWORD: Test@123
  

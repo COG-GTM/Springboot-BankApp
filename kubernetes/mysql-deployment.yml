@@ -1,42 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql
+  name: postgres
   namespace: bankapp-namespace
   labels:
-    app: mysql
+    app: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mysql
+      app: postgres
   template:
     metadata:
       labels:
-        app: mysql
+        app: postgres
     spec:
       containers:
-      - name: mysql
-        image: mysql:8.0  # Use a specific, stable version for production
+      - name: postgres
+        image: postgres:15
         ports:
-        - containerPort: 3306
+        - containerPort: 5432
         env:
-        - name: MYSQL_ROOT_PASSWORD
+        - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_ROOT_PASSWORD
-        - name: MYSQL_DATABASE
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
-              key: MYSQL_DATABASE
+              key: POSTGRES_DB
         volumeMounts:
-        - name: mysql-pv-storage
-          mountPath: /var/lib/mysql
-          subPath: mysql-data  # Optional: Ensure a subdirectory is used for better volume organization
+        - name: postgres-pv-storage
+          mountPath: /var/lib/postgresql/data
+          subPath: postgres-data
       volumes:
-      - name: mysql-pv-storage
+      - name: postgres-pv-storage
         persistentVolumeClaim:
-          claimName: mysql-pvc
+          claimName: postgres-pvc
 

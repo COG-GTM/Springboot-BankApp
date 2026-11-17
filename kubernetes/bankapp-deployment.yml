@@ -31,15 +31,15 @@ spec:
             configMapKeyRef:
               name: bankapp-config
               key: SPRING_DATASOURCE_USERNAME
-        - name: MYSQL_DATABASE
+        - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
-              key: MYSQL_DATABASE
+              key: POSTGRES_DB
         - name: SPRING_DATASOURCE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-secret
+              name: postgres-secret
               key: SPRING_DATASOURCE_PASSWORD
         # readinessProbe:
         #   httpGet:

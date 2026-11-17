@@ -11,5 +11,5 @@ spec:
     app: {{ .Values.db_statefulset.name }}
   ports:
   - protocol: TCP
-    port: {{ default "3306" .Values.mysql_svc.port}}
-    targetPort: {{ default "3306" .Values.mysql_svc.targetPort}}
+    port: {{ default "5432" .Values.postgres_svc.port}}
+    targetPort: {{ default "5432" .Values.postgres_svc.targetPort}}

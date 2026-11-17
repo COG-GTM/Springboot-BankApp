@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mysql-pvc
+  name: postgres-pvc
   namespace: bankapp-namespace
 spec:
   accessModes:

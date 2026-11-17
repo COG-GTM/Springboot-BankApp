@@ -20,37 +20,35 @@ spec:
       - name: {{ .Values.db_statefulset.name }}
         image: {{ .Values.image.db }}
         ports:
-        - containerPort: 3306
+        - containerPort: 5432
         env:
-        - name: MYSQL_ROOT_PASSWORD
+        - name: POSTGRES_PASSWORD
           valueFrom:
-            secretKeyRef:                      ### CRITICAL
-              name: mysql-secret                  ### CRITICAL
-              key: MYSQL_ROOT_PASSWORD    ### CRITICAL
-        - name: MYSQL_DATABASE
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
               name: {{ .Values.configmap.name }} 
-              key: MYSQL_DATABASE 
+              key: POSTGRES_DB 
         volumeMounts:
         - name: "{{ .Values.db_statefulset.name }}-data"
-          mountPath: /var/lib/mysql
+          mountPath: /var/lib/postgresql/data
         livenessProbe:
           exec:
             command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            - pg_isready
+            - -U
+            - postgres
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           exec:
             command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            - pg_isready
+            - -U
+            - postgres
           initialDelaySeconds: 10
           periodSeconds: 5
   volumeClaimTemplates:
