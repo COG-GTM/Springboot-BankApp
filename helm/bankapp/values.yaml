@@ -44,11 +44,25 @@ hpa:
     max_replica: 5
     cpu_utilizatoion: 40
 
-# Secret for Database connectivity
-
+# Secret for Database connectivity.
+#
+# Credentials are NEVER committed to this file. By default the chart does not
+# create the Secret at all: it expects a Secret named `secret.name` to already
+# exist in the namespace, managed outside of git (External Secrets Operator,
+# Sealed Secrets, Vault Agent, cloud KMS, ...) with the keys
+# MYSQL_ROOT_PASSWORD and SPRING_DATASOURCE_PASSWORD.
+#
+# For throwaway/local clusters the chart can create the Secret instead, with
+# the values passed in at install time (never checked in):
+#
+#   helm install bankapp bankapp/ \
+#     --set secret.create=true \
+#     --set secret.data.MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+#     --set secret.data.SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD"
 secret:
   name: mysql-secret
-  data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
-    SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
- 
+  create: false
+  data:
+    MYSQL_ROOT_PASSWORD: ""
+    SPRING_DATASOURCE_PASSWORD: ""
+
