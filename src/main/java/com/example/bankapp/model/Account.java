@@ -9,16 +9,24 @@ import java.util.Collection;
 import java.util.List;
 
 @Entity
+@Table(name = "account")
 public class Account implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
+    
+    @Column(name = "username", nullable = false, unique = true, length = 100)
     private String username;
+    
+    @Column(name = "password", nullable = false, length = 255)
     private String password;
+    
+    @Column(name = "balance", nullable = false, precision = 15, scale = 2)
     private BigDecimal balance;
 
-    @OneToMany(mappedBy = "account")
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private List<Transaction> transactions;
 
     @Transient
