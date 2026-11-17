@@ -22,7 +22,7 @@ services:
     container_name: Bankapp
     environment:
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?sslMode=DISABLED&allowPublicKeyRetrieval=true&connectionTimeZone=UTC
       - SPRING_DATASOURCE_PASSWORD=Test@123
     ports:
       - "8080:8080"
