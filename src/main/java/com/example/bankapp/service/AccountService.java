@@ -4,6 +4,8 @@ import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,6 +34,9 @@ public class AccountService implements UserDetailsService {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
     }
@@ -48,6 +54,7 @@ public class AccountService implements UserDetailsService {
     }
 
 
+    @Transactional
     public void deposit(Account account, BigDecimal amount) {
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
@@ -61,18 +68,22 @@ public class AccountService implements UserDetailsService {
         transactionRepository.save(transaction);
     }
 
+    @Transactional
     public void withdraw(Account account, BigDecimal amount) {
-        if (account.getBalance().compareTo(amount) < 0) {
+        Account lockedAccount = accountRepository.findByIdForUpdate(account.getId())
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        if (lockedAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
-        account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
+        lockedAccount.setBalance(lockedAccount.getBalance().subtract(amount));
+        account.setBalance(lockedAccount.getBalance());
+        accountRepository.save(lockedAccount);
 
         Transaction transaction = new Transaction(
                 amount,
                 "Withdrawal",
                 LocalDateTime.now(),
-                account
+                lockedAccount
         );
         transactionRepository.save(transaction);
     }
@@ -100,36 +111,57 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
+    @Transactional
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
+        Account toAccount = accountRepository.findByUsername(toUsername)
+                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        Long toAccountId = toAccount.getId();
+        if (fromAccount.getId().equals(toAccountId)) {
+            throw new RuntimeException("Cannot transfer to the same account");
+        }
+        entityManager.detach(toAccount);
+
+        Account lockedFrom;
+        Account lockedTo;
+        if (fromAccount.getId().compareTo(toAccountId) < 0) {
+            lockedFrom = accountRepository.findByIdForUpdate(fromAccount.getId())
+                    .orElseThrow(() -> new RuntimeException("Account not found"));
+            lockedTo = accountRepository.findByIdForUpdate(toAccountId)
+                    .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        } else {
+            lockedTo = accountRepository.findByIdForUpdate(toAccountId)
+                    .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+            lockedFrom = accountRepository.findByIdForUpdate(fromAccount.getId())
+                    .orElseThrow(() -> new RuntimeException("Account not found"));
+        }
+
+        if (lockedFrom.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
-        Account toAccount = accountRepository.findByUsername(toUsername)
-                .orElseThrow(() -> new RuntimeException("Recipient account not found"));
-
         // Deduct from sender's account
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        accountRepository.save(fromAccount);
+        lockedFrom.setBalance(lockedFrom.getBalance().subtract(amount));
+        fromAccount.setBalance(lockedFrom.getBalance());
+        accountRepository.save(lockedFrom);
 
         // Add to recipient's account
-        toAccount.setBalance(toAccount.getBalance().add(amount));
-        accountRepository.save(toAccount);
+        lockedTo.setBalance(lockedTo.getBalance().add(amount));
+        accountRepository.save(lockedTo);
 
         // Create transaction records for both accounts
         Transaction debitTransaction = new Transaction(
                 amount,
-                "Transfer Out to " + toAccount.getUsername(),
+                "Transfer Out to " + lockedTo.getUsername(),
                 LocalDateTime.now(),
-                fromAccount
+                lockedFrom
         );
         transactionRepository.save(debitTransaction);
 
         Transaction creditTransaction = new Transaction(
                 amount,
-                "Transfer In from " + fromAccount.getUsername(),
+                "Transfer In from " + lockedFrom.getUsername(),
                 LocalDateTime.now(),
-                toAccount
+                lockedTo
         );
         transactionRepository.save(creditTransaction);
     }
