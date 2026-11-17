@@ -31,15 +31,15 @@ spec:
             configMapKeyRef:
               name: bankapp-config
               key: SPRING_DATASOURCE_USERNAME
-        - name: MYSQL_DATABASE
+        - name: MARIADB_DATABASE
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
-              key: MYSQL_DATABASE
+              key: MARIADB_DATABASE
         - name: SPRING_DATASOURCE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-secret
+              name: mariadb-secret
               key: SPRING_DATASOURCE_PASSWORD
         # readinessProbe:
         #   httpGet:
