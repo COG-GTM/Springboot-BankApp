@@ -105,7 +105,7 @@
 
 <div class="container">
     <h2 class="text-left">Login</h2>
-    <form method="post" action="/login">
+    <form method="post" th:action="@{/login}">
         <div class="form-group">
             <label>Username:</label>
             <input type="text" class="form-control" name="username" required />
