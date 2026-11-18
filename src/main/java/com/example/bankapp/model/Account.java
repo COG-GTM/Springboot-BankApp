@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Entity
+@Table(indexes = @Index(name = "idx_account_username", columnList = "username"))
 public class Account implements UserDetails {
 
     @Id
