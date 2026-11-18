@@ -14,10 +14,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AccountService implements UserDetailsService {
@@ -61,8 +64,15 @@ public class AccountService implements UserDetailsService {
         transactionRepository.save(transaction);
     }
 
+    /**
+     * Returns true when the account balance is at least {@code amount}.
+     */
+    public boolean hasSufficientFunds(Account account, BigDecimal amount) {
+        return account.getBalance().compareTo(amount) > 0;
+    }
+
     public void withdraw(Account account, BigDecimal amount) {
-        if (account.getBalance().compareTo(amount) < 0) {
+        if (!hasSufficientFunds(account, amount)) {
             throw new RuntimeException("Insufficient funds");
         }
         account.setBalance(account.getBalance().subtract(amount));
@@ -79,6 +89,19 @@ public class AccountService implements UserDetailsService {
 
     public List<Transaction> getTransactionHistory(Account account) {
         return transactionRepository.findByAccountId(account.getId());
+    }
+
+    /**
+     * Returns the account's transactions placed between {@code from} and {@code to},
+     * both days inclusive, oldest first.
+     */
+    public List<Transaction> getTransactionHistory(Account account, LocalDate from, LocalDate to) {
+        LocalDateTime start = from.atStartOfDay();
+        LocalDateTime end = to.atStartOfDay();
+        return transactionRepository.findByAccountId(account.getId()).stream()
+                .filter(t -> !t.getTimestamp().isBefore(start) && t.getTimestamp().isBefore(end))
+                .sorted(Comparator.comparing(Transaction::getTimestamp))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -101,7 +124,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
+        if (!hasSufficientFunds(fromAccount, amount)) {
             throw new RuntimeException("Insufficient funds");
         }
 
