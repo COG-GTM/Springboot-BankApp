@@ -24,6 +24,8 @@
     sudo touch /etc/nginx/sites-available/bank-app
     ```
 
+- The root `docker-compose.yml` publishes the app on `127.0.0.1:8080` only, so nginx (TLS + rate limiting) is the only way in from outside. If you run the jar directly instead, keep port 8080 closed in the firewall / security group. The session cookie is `Secure`, so log in over HTTPS.
+
 - Configure server: add the following code
    ```bash
     server {
