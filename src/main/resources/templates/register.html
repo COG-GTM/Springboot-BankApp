@@ -108,7 +108,9 @@
     <form method="post" action="/register">
         <div class="form-group">
             <label>Username:</label>
-            <input type="text" class="form-control" name="username" required />
+            <input type="text" class="form-control" name="username" required
+                   minlength="3" maxlength="30" pattern="[A-Za-z0-9._\-]{3,30}"
+                   title="3-30 characters: letters, digits, dots, dashes or underscores" />
         </div>
         <div class="form-group">
             <label>Password:</label>
@@ -118,7 +120,7 @@
     </form>
     <p class="mt-3">Already have an account? <a href="/login" class="custom-link">Login here</a></p>
 
-    <div th:if="${error}" class="alert alert-danger mt-3 text-center">
+    <div th:if="${error}" class="alert alert-danger mt-3 text-center" th:text="${error}">
         User already present.
     </div>
 </div>
