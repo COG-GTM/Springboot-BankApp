@@ -101,6 +101,16 @@ class TransactionHistorySpoofingTest {
     }
 
     @Test
+    void registerFormKeepsDuplicateUsernameMessage() throws Exception {
+        account("bob", "0");
+        String html = mockMvc.perform(post("/register").with(csrf())
+                        .param("username", "bob").param("password", "pw"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("User already present.");
+    }
+
+    @Test
     void transferStoresDirectionAndCounterpartySeparately() {
         Account alice = account("alice", "500");
         account("bob", "0");
