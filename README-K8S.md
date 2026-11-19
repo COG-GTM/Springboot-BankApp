@@ -327,9 +327,9 @@ chmod 777 /var/run/docker.sock
 - <b>Congratulations, your application is deployed on AWS EKS Cluster</b>
 ![image](https://github.com/user-attachments/assets/03f3b69a-d6e0-42ad-992e-11124e7d0898)
 
-- <b>Open port 30080 on worker node and Access it on browser</b>
+- <b>Access it on browser over HTTPS through the Ingress host (the bankapp Service is ClusterIP; no NodePort is exposed)</b>
 ```bash
-<worker-public-ip>:30080
+https://<ingress-host>
 ```
 - <b>Email Notification</b>
 ![image](https://github.com/user-attachments/assets/407f94ed-bf67-441a-bd28-881b6b8739b2)
