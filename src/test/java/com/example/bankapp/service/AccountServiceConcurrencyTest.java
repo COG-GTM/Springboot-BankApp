@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -142,6 +143,21 @@ class AccountServiceConcurrencyTest {
         assertThat(balanceOf(longName)).isEqualByComparingTo("0.00");
         assertThat(transactionRepository.findByAccountId(sender.getId())).isEmpty();
         assertThat(transactionRepository.findByAccountId(recipient.getId())).isEmpty();
+    }
+
+    @Test
+    void savingAStaleAccountCopyIsRejected() {
+        createAccount("carol", "100.00");
+        Account first = accountService.findAccountByUsername("carol");
+        Account stale = accountService.findAccountByUsername("carol");
+
+        first.setBalance(new BigDecimal("150.00"));
+        accountRepository.save(first);
+
+        stale.setBalance(new BigDecimal("90.00"));
+        assertThatThrownBy(() -> accountRepository.save(stale))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+        assertThat(balanceOf("carol")).isEqualByComparingTo("150.00");
     }
 
     private Account createAccount(String username, String balance) {
