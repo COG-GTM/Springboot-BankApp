@@ -1,6 +1,7 @@
 package com.example.bankapp.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -9,6 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Entity
+@Check(constraints = "balance >= 0")
 public class Account implements UserDetails {
 
     @Id

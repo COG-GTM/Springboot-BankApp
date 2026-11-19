@@ -22,6 +22,8 @@ import java.util.List;
 @Service
 public class AccountService implements UserDetailsService {
 
+    static final BigDecimal MAX_AMOUNT = new BigDecimal("1000000.00");
+
     @Autowired
     PasswordEncoder passwordEncoder;
 
@@ -49,6 +51,7 @@ public class AccountService implements UserDetailsService {
 
 
     public void deposit(Account account, BigDecimal amount) {
+        requireValidAmount(amount);
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
@@ -62,6 +65,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public void withdraw(Account account, BigDecimal amount) {
+        requireValidAmount(amount);
         if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
@@ -101,12 +105,17 @@ public class AccountService implements UserDetailsService {
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
+        requireValidAmount(amount);
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
 
         Account toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+
+        if (isSameAccount(fromAccount, toAccount)) {
+            throw new IllegalArgumentException("Cannot transfer to your own account");
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
@@ -132,6 +141,25 @@ public class AccountService implements UserDetailsService {
                 toAccount
         );
         transactionRepository.save(creditTransaction);
+    }
+
+    private static boolean isSameAccount(Account a, Account b) {
+        if (a.getId() != null && b.getId() != null) {
+            return a.getId().equals(b.getId());
+        }
+        return a.getUsername() != null && a.getUsername().equalsIgnoreCase(b.getUsername());
+    }
+
+    static void requireValidAmount(BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+        if (amount.compareTo(MAX_AMOUNT) > 0) {
+            throw new IllegalArgumentException("Amount must not exceed " + MAX_AMOUNT.toPlainString());
+        }
+        if (amount.stripTrailingZeros().scale() > 2) {
+            throw new IllegalArgumentException("Amount must have at most two decimal places");
+        }
     }
 
 }
