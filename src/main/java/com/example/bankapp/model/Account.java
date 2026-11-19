@@ -1,6 +1,7 @@
 package com.example.bankapp.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -17,6 +18,11 @@ public class Account implements UserDetails {
     private String username;
     private String password;
     private BigDecimal balance;
+
+    @Version
+    @ColumnDefault("0")
+    @Column(nullable = false)
+    private long version;
 
     @OneToMany(mappedBy = "account")
     private List<Transaction> transactions;
