@@ -28,6 +28,9 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<!-- Security patch overrides of Boot-managed versions (Snyk) -->
+		<jackson-bom.version>3.1.8</jackson-bom.version>
+		<logback.version>1.6.5</logback.version>
 	</properties>
 	<dependencies>
 		<dependency>
