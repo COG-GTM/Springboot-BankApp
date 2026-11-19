@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,6 +22,9 @@ import java.util.List;
 
 @Service
 public class AccountService implements UserDetailsService {
+
+    // BCrypt only uses the first 72 bytes of a password (CVE-2025-22228)
+    public static final int MAX_PASSWORD_BYTES = 72;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -36,6 +40,9 @@ public class AccountService implements UserDetailsService {
     }
 
     public Account registerAccount(String username, String password) {
+        if (password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
+            throw new IllegalArgumentException("Password must be at most " + MAX_PASSWORD_BYTES + " bytes");
+        }
         if (accountRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("Username already exists");
         }

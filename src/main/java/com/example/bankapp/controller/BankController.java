@@ -36,6 +36,9 @@ public class BankController {
         try {
             accountService.registerAccount(username, password);
             return "redirect:/login";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("passwordError", e.getMessage());
+            return "register";
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             return "register";
