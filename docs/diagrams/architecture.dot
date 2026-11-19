@@ -1,0 +1,48 @@
+// Application architecture of the bankapp Spring Boot service (branch DevOps).
+// Render with: docs/diagrams/render-architecture.sh
+digraph bankapp {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=18, labelloc=t, nodesep=0.5, ranksep=0.6, pad=0.3,
+         label="bankapp: Spring Boot 3.3 monolith (Java 17), one JVM on port 8080"];
+  node  [shape=box, style="rounded,filled", fillcolor=white, fontname="DejaVu Sans", fontsize=16, margin="0.2,0.1"];
+  edge  [fontname="DejaVu Sans", fontsize=13, color="#444444"];
+
+  browser [label="Browser\nBootstrap 4.5 + jQuery from public CDNs", shape=box, fillcolor="#fff4d6"];
+
+  subgraph cluster_app {
+    label="Spring Boot application (com.example.bankapp)"; style="rounded,filled"; fillcolor="#eef4fb"; color="#4a78b5"; fontsize=16;
+
+    security [label="SecurityConfig: Spring Security filter chain\nform login /login -> /dashboard, /register public,\nGET /logout, CSRF disabled, BCrypt passwords", fillcolor="#fde2e2"];
+
+    controller [label="BankController (@Controller)\nGET  /login  /register  /dashboard  /transactions\nPOST /register  /deposit  /withdraw  /transfer"];
+
+    views [label="Thymeleaf templates\nlogin  register  dashboard  transactions", fillcolor="#e8f5e9"];
+
+    service [label="AccountService\nregister, deposit, withdraw, transfer, history\nalso the UserDetailsService for login"];
+
+    subgraph cluster_data {
+      label="Spring Data JPA / Hibernate 6 (ddl-auto=update)"; style="rounded"; color="#4a78b5"; fontsize=14;
+      {rank=same; accrepo; txrepo;}
+      accrepo [label="AccountRepository\nfindByUsername"];
+      txrepo  [label="TransactionRepository\nfindByAccountId"];
+    }
+  }
+
+  subgraph cluster_db {
+    label="MySQL (mysql:latest in Compose, mysql:8.0 on Kubernetes)"; style="rounded,filled"; fillcolor="#f3eefb"; color="#7a4ab5"; fontsize=16;
+    {rank=same; account; transaction;}
+    account     [label="account\nid, username, password (bcrypt), balance", shape=cylinder];
+    transaction [label="transaction\nid, amount, type, timestamp, account_id", shape=cylinder];
+  }
+
+  browser -> security [label="HTTP form posts\n+ session cookie"];
+  security -> controller [label="authenticated\nrequests"];
+  security -> service [label="loadUserByUsername", style=dashed];
+  controller -> service;
+  controller -> views [label="model: account,\ntransactions, error"];
+  views -> browser [label="HTML", style=dashed, constraint=false];
+  service -> accrepo;
+  service -> txrepo;
+  accrepo -> account [label="JDBC\nSPRING_DATASOURCE_*"];
+  txrepo -> transaction;
+  account -> transaction [label="1 : many (account_id)", dir=none, style=dotted, constraint=false];
+}

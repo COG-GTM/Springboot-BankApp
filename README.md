@@ -1,8 +1,23 @@
 ## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
-- This is a multi-tier bank an application written in Java (Springboot).
+- This is a bank application written in Java (Spring Boot 3.3, Thymeleaf, Spring Security, Spring Data JPA) backed by MySQL. Users register, sign in, deposit, withdraw, transfer money to another user and view their transaction history.
+- How the code is put together: [Application architecture](docs/architecture.md).
 
 ![Login diagram](images/login.png)
 ![Transactions diagram](images/transactions.png)
+
+## Repository layout
+- `src/` - Spring Boot application and its context test (`src/test`, H2 `test` profile)
+- `e2e/` - Cypress end-to-end suite and its Compose stack ([docs/testing/e2e.md](docs/testing/e2e.md))
+- `Dockerfile`, `docker-compose.yml` - container image and local app + MySQL stack
+- `Jenkinsfile`, `vars/` - Jenkins CI pipeline and its shared library steps
+- `GitOps/Jenkinsfile` - Jenkins CD job that bumps the image tag in `kubernetes/`
+- `kubernetes/` - manifests ArgoCD deploys to EKS; `helm/bankapp/` - Helm chart for the same app
+- `.github/workflows/e2e.yml` - GitHub Actions run of the Cypress suite
+
+## Run and test locally
+- Build and run the context test (uses in-memory H2, no database needed): `./mvnw clean test`
+- Run the app with MySQL: `docker build -t <dockerhub-user>/bankapp .` then `DUSER=<dockerhub-user> IMAGE=bankapp docker compose up -d`, and open `http://localhost:8080/login` (`docker-compose.yml` only pulls `${DUSER}/${IMAGE}`, it does not build)
+- Run the Cypress suite: see [docs/testing/e2e.md](docs/testing/e2e.md)
 
 ## Tech stack used in this project:
 - GitHub (Code)
@@ -44,10 +59,10 @@ sudo su
 
 - Install **kubectl**(<a href="https://github.com/DevMadhup/DevOps-Tools-Installations/blob/main/Kubectl/Kubectl.sh">Setup kubectl </a>)
   ```bash
-  curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
+  curl -LO https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl
   chmod +x ./kubectl
   sudo mv ./kubectl /usr/local/bin
-  kubectl version --short --client
+  kubectl version --client
   ```
 
 - Install **eksctl**(<a href="https://github.com/DevMadhup/DevOps-Tools-Installations/blob/main/eksctl%20/eksctl.sh">Setup eksctl</a>)
@@ -222,7 +237,7 @@ sudo apt-get install trivy -y
   - Docker
   - Pipeline: Stage View
 #
-- <b id="Owasp">Configure OWASP, move to <mark>Manage Jenkins --> Plugins --> Available plugins</mark>b>
+- <b id="Owasp">Configure OWASP, move to <mark>Manage Jenkins --> Plugins --> Available plugins</mark></b>
 ![image](https://github.com/user-attachments/assets/da6a26d3-f742-4ea8-86b7-107b1650a7c2)
 
 - <b id="Sonar">After OWASP plugin is installed, Now move to <mark>Manage jenkins --> Tools</mark></b>
@@ -253,7 +268,7 @@ sudo apt-get install trivy -y
 - <b>Go to <mark> Manage Jenkins --> System</mark> and search for SonarQube installations:</b>
 ![image](https://github.com/user-attachments/assets/ae866185-cb2b-4e83-825b-a125ec97243a)
 #
-- <b>Now again, Go to <mark> Manage Jenkins --> System</mark> and search for Global Trusted Pipeline Libraries:</b
+- <b>Now again, Go to <mark> Manage Jenkins --> System</mark> and search for Global Trusted Pipeline Libraries:</b>
 ![image](https://github.com/user-attachments/assets/874b2e03-49b9-4c26-9b0f-bd07ce70c0f1)
 ![image](https://github.com/user-attachments/assets/1ca83b43-ce85-4970-941d-9a819ce4ecfd)
 #
@@ -331,10 +346,12 @@ chmod 777 /var/run/docker.sock
 - <b>Congratulations, your application is deployed on AWS EKS Cluster</b>
 ![image](https://github.com/user-attachments/assets/03f3b69a-d6e0-42ad-992e-11124e7d0898)
 
-- <b>Open port 30080 on worker node and Access it on browser</b>
+- <b>Access the application through the ingress</b>: ArgoCD deploys `kubernetes/`, where `bankapp-service` is a ClusterIP service behind `bankapp-ingress`. Install the ingress-nginx controller ([Ingress.md](Ingress.md)), point the host in `kubernetes/bankapp-ingress.yml` at its load balancer and open that host in the browser:
 ```bash
-<worker-public-ip>:30080
+kubectl get ingress -n bankapp-namespace
+kubectl get svc -n ingress-nginx
 ```
+  Port 30080 on a worker node only applies if you install the `helm/bankapp` chart instead, which uses a NodePort service.
 - <b>Email Notification</b>
 ![image](https://github.com/user-attachments/assets/407f94ed-bf67-441a-bd28-881b6b8739b2)
 
