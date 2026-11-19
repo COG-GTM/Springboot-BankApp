@@ -1,0 +1,22 @@
+# Only the bankapp pods may connect to MySQL on port 3306.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mysql-allow-bankapp
+  namespace: bankapp-namespace
+  labels:
+    app: mysql
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: bankapp-deploy
+    ports:
+    - protocol: TCP
+      port: 3306

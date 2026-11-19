@@ -115,6 +115,20 @@ argocd cluster add <cluster-context-name> --name bankapp-eks-cluster
 
 ## **4. Deploy Applications Using ArgoCD**
 
+### **Create the Database Secret**
+No database passwords are stored in this repository. Before syncing the manifests,
+create `mysql-secret` with two different, random values (or have External Secrets /
+Sealed Secrets create it):
+```bash
+kubectl create secret generic mysql-secret -n bankapp-namespace \
+  --from-literal=MYSQL_ROOT_PASSWORD="$(openssl rand -base64 24)" \
+  --from-literal=SPRING_DATASOURCE_PASSWORD="$(openssl rand -base64 24)"
+```
+The app connects as the MySQL user `bankapp` (rights on `BankDB` only), `root` only
+accepts logins from inside the MySQL pod, and `mysql-networkpolicy.yaml` lets only the
+bankapp pods reach port 3306. On an existing MySQL volume, create the `bankapp` user by
+hand, rotate the old root password and drop `'root'@'%'`.
+
 ### **Prepare Kubernetes Manifests in a Git Repository**
 - Organize your manifests (e.g., `namespace.yaml`, `deployment.yaml`, `service.yaml`) in a Git repository.
 
