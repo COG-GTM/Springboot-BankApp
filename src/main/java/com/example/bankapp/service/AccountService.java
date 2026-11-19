@@ -2,6 +2,7 @@ package com.example.bankapp.service;
 
 import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
+import com.example.bankapp.model.TransactionDirection;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +19,12 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 public class AccountService implements UserDetailsService {
+
+    public static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{3,30}$");
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -36,6 +40,10 @@ public class AccountService implements UserDetailsService {
     }
 
     public Account registerAccount(String username, String password) {
+        if (username == null || !USERNAME_PATTERN.matcher(username).matches()) {
+            throw new IllegalArgumentException(
+                    "Username must be 3-30 characters: letters, digits, dots, dashes or underscores");
+        }
         if (accountRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
@@ -55,6 +63,8 @@ public class AccountService implements UserDetailsService {
         Transaction transaction = new Transaction(
                 amount,
                 "Deposit",
+                TransactionDirection.CREDIT,
+                null,
                 LocalDateTime.now(),
                 account
         );
@@ -71,6 +81,8 @@ public class AccountService implements UserDetailsService {
         Transaction transaction = new Transaction(
                 amount,
                 "Withdrawal",
+                TransactionDirection.DEBIT,
+                null,
                 LocalDateTime.now(),
                 account
         );
@@ -119,7 +131,9 @@ public class AccountService implements UserDetailsService {
         // Create transaction records for both accounts
         Transaction debitTransaction = new Transaction(
                 amount,
-                "Transfer Out to " + toAccount.getUsername(),
+                "Transfer Out",
+                TransactionDirection.DEBIT,
+                toAccount.getUsername(),
                 LocalDateTime.now(),
                 fromAccount
         );
@@ -127,7 +141,9 @@ public class AccountService implements UserDetailsService {
 
         Transaction creditTransaction = new Transaction(
                 amount,
-                "Transfer In from " + fromAccount.getUsername(),
+                "Transfer In",
+                TransactionDirection.CREDIT,
+                fromAccount.getUsername(),
                 LocalDateTime.now(),
                 toAccount
         );
