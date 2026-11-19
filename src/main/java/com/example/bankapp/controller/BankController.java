@@ -64,7 +64,7 @@ public class BankController {
             accountService.withdraw(account, amount);
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
-            model.addAttribute("account", account);
+            model.addAttribute("account", accountService.findAccountByUsername(username));
             return "dashboard";
         }
 
@@ -88,7 +88,7 @@ public class BankController {
             accountService.transferAmount(fromAccount, toUsername, amount);
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
-            model.addAttribute("account", fromAccount);
+            model.addAttribute("account", accountService.findAccountByUsername(username));
             return "dashboard";
         }
 
