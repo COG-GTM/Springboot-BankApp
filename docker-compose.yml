@@ -1,7 +1,9 @@
 version: "3.8"
 services:
   mysql:
-    image: mysql:latest
+    # Pinned to a version and the multi-arch index digest so the database
+    # image cannot change without a commit to this file.
+    image: mysql:8.4.13@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902
     container_name: mysql
     environment:
       - MYSQL_ROOT_PASSWORD=Test@123
@@ -18,7 +20,10 @@ services:
       start_period: 30s
 
   mainapp:
-    image: ${DUSER}/${IMAGE}
+    # DUSER must be a registry namespace your organisation controls and TAG an
+    # explicit release tag (optionally pinned as TAG=<tag>@sha256:<digest>).
+    # Compose refuses to start when either is missing; see .env.
+    image: ${DUSER:?set DUSER to a registry namespace your organisation controls}/${IMAGE:-bankapp}:${TAG:?set TAG to an explicit image tag, optionally tag@sha256 digest}
     container_name: Bankapp
     environment:
       - SPRING_DATASOURCE_USERNAME=root

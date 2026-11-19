@@ -17,11 +17,16 @@ spec:
     spec:
       initContainers:
       - name: "wait-for-{{ .Values.db_statefulset.name }}"
-        image: busybox:1.28
+        image: {{ .Values.image.waitForDb }}
         command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 3306; do echo waiting for mysql; sleep 5; done;']
       containers:
       - name: {{ .Values.app_deployment.name }}
-        image: {{ .Values.image.app }}
+        {{- $app := .Values.image.app }}
+        {{- $tag := required "image.app.tag is required: set an explicit release tag" $app.tag }}
+        {{- if eq $tag "latest" }}
+        {{- fail "image.app.tag must be an explicit release tag, not \"latest\"" }}
+        {{- end }}
+        image: "{{ required "image.app.repository is required: use a registry your organisation controls" $app.repository }}:{{ $tag }}{{ with $app.digest }}@{{ . }}{{ end }}"
         ports:
         - containerPort: 8080
         env:

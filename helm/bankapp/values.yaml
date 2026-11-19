@@ -21,10 +21,19 @@ app_deployment:
   mem_req: 150Mi
   mem_limit: 700Mi
 
-## image repository and tag of app and db.
+## images of app, db and the init container.
+## app: repository must be in a registry your organisation controls and tag must
+## be an explicit release tag (not "latest"); digest (sha256:...) is optional and
+## pins the exact content. Both repository and tag are required, e.g.
+##   helm install bankapp bankapp/ --set image.app.repository=registry.example.com/bank/bankapp --set image.app.tag=v1.4.2
+## db / waitForDb: pinned to a version and multi-arch index digest.
 image:
-  app: trainwithshubham/springboot-bankapp:latest
-  db: mysql:latest
+  app:
+    repository: ""
+    tag: ""
+    digest: ""
+  db: mysql:8.4.13@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902
+  waitForDb: busybox:1.37.0@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
 
 # NodePort svc for bankapp
 bankapp_svc:

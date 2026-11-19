@@ -3,7 +3,8 @@
 #   docker compose -p bankapp-e2e -f docker-compose.yml -f e2e/docker-compose.e2e.yml up -d --build --wait
 #
 # - builds the application image from the working tree instead of pulling
-#   ${DUSER}/${IMAGE} from Docker Hub
+#   ${DUSER}/${IMAGE}:${TAG} from the registry (scripts/common.sh sets
+#   placeholder values so the root file's required variables resolve)
 # - replaces the actuator health check (the app does not ship the actuator
 #   starter and the runtime image has no curl) with a wget probe of /login
 # - uses a throw-away database volume so every run starts from the seed data
@@ -14,7 +15,6 @@
 #   `!reset` / `!override` need Docker Compose >= 2.24.
 services:
   mysql:
-    image: mysql:8.0
     container_name: !reset null
     volumes:
       - e2e-mysql:/var/lib/mysql

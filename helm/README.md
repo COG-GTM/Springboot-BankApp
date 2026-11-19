@@ -36,12 +36,12 @@ chmod 700 get_helm.sh
 ## Run the SpringBoot Bankapp using helm
 Install Bankapp from helm chart.
 ```bash
-helm install bankapp bankapp/
+helm install bankapp bankapp/ --set image.app.repository=<your-org-registry>/bankapp --set image.app.tag=<release-tag>
 ```
 
 You can install it for multiple environments by changing values in `values.yaml` file
 ```bash
-helm install bankapp-dev bankapp/ --set namespace=dev-namespace --set bankapp_svc.nodePort=30081
+helm install bankapp-dev bankapp/ --set image.app.repository=<your-org-registry>/bankapp --set image.app.tag=<release-tag> --set namespace=dev-namespace --set bankapp_svc.nodePort=30081
 ```
 
 Happy Helming!

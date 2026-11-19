@@ -8,6 +8,11 @@ REPO_ROOT="$(cd "$E2E_DIR/.." && pwd)"
 E2E_PROJECT="${E2E_COMPOSE_PROJECT:-bankapp-e2e}"
 export E2E_APP_PORT="${E2E_APP_PORT:-8081}"
 
+# The root docker-compose.yml requires DUSER and TAG for the deployed image.
+# docker-compose.e2e.yml replaces that image with a local build, so
+# placeholders are enough to satisfy the interpolation.
+export DUSER="${DUSER:-local}" IMAGE="${IMAGE:-bankapp}" TAG="${TAG:-e2e}"
+
 COMPOSE=(docker compose -p "$E2E_PROJECT" -f "$REPO_ROOT/docker-compose.yml" -f "$E2E_DIR/docker-compose.e2e.yml")
 BASE_URL="${CYPRESS_BASE_URL:-http://localhost:$E2E_APP_PORT}"
 DB_NAME="${E2E_DB_NAME:-BankDB}"
