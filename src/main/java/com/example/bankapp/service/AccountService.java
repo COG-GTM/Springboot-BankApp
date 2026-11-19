@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +22,9 @@ import java.util.List;
 
 @Service
 public class AccountService implements UserDetailsService {
+
+    static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("1000000.00");
+    private static final int MAX_AMOUNT_SCALE = 2;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -48,7 +52,21 @@ public class AccountService implements UserDetailsService {
     }
 
 
+    private static void validateAmount(BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+        if (amount.stripTrailingZeros().scale() > MAX_AMOUNT_SCALE) {
+            throw new IllegalArgumentException("Amount cannot have more than two decimal places");
+        }
+        if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+            throw new IllegalArgumentException("Amount exceeds the maximum allowed per transaction");
+        }
+    }
+
+    @Transactional
     public void deposit(Account account, BigDecimal amount) {
+        validateAmount(amount);
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
@@ -61,7 +79,9 @@ public class AccountService implements UserDetailsService {
         transactionRepository.save(transaction);
     }
 
+    @Transactional
     public void withdraw(Account account, BigDecimal amount) {
+        validateAmount(amount);
         if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
@@ -100,7 +120,9 @@ public class AccountService implements UserDetailsService {
         return Arrays.asList(new SimpleGrantedAuthority("USER"));
     }
 
+    @Transactional
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
+        validateAmount(amount);
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient funds");
         }
