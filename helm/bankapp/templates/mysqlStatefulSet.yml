@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
       - name: {{ .Values.db_statefulset.name }}
-        image: {{ .Values.image.db }}
+        image: {{ include "bankapp.image" (dict "name" "db" "image" .Values.image.db) }}
+        imagePullPolicy: {{ .Values.image.db.pullPolicy | default "IfNotPresent" }}
         ports:
         - containerPort: 3306
         env:
