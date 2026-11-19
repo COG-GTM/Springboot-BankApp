@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,7 +35,10 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -160,6 +164,16 @@ class LoginEnumerationAndThrottlingTest {
         login(user, PASSWORD, newIp())
                 .andExpect(redirectedUrl("/dashboard"))
                 .andExpect(authenticated().withUsername(user));
+    }
+
+    @Test
+    void anonymousUserSeesTheErrorAndLockoutMessages() throws Exception {
+        mockMvc.perform(get("/login").param("error", ""))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Invalid username or password.")));
+        mockMvc.perform(get("/login").param("locked", ""))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Too many failed sign-in attempts.")));
     }
 
     @Test

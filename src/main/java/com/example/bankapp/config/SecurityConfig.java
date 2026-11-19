@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .addFilterBefore(new LoginThrottleFilter(loginAttemptService), UsernamePasswordAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/register").permitAll()
+                        .requestMatchers("/register", "/login").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
