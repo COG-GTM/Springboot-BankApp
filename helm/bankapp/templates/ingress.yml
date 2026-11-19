@@ -5,9 +5,19 @@ metadata:
   namespace: {{ default "bankapp-namespace" .Values.namespace }}
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    {{- with .Values.ingress.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ . | quote }}
+    {{- end }}
 spec:
+  ingressClassName: {{ default "nginx" .Values.ingress.className }}
+  tls:
+  - hosts:
+    - {{ required "ingress.host is required" .Values.ingress.host | quote }}
+    secretName: {{ required "ingress.tlsSecretName is required" .Values.ingress.tlsSecretName | quote }}
   rules:
-  - host: bankapp.local # add 
+  - host: {{ .Values.ingress.host | quote }}
     http:
       paths:
       - path: /
@@ -17,4 +27,3 @@ spec:
             name: "{{ .Values.app_deployment.name }}-service"
             port:
               number: {{ default "8080" .Values.bankapp_svc.port}} 
-

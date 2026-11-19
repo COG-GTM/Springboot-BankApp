@@ -26,11 +26,19 @@ image:
   app: trainwithshubham/springboot-bankapp:latest
   db: mysql:latest
 
-# NodePort svc for bankapp
+# ClusterIP svc for bankapp (cluster-internal; published only through the TLS Ingress)
 bankapp_svc:
     port: 8080
     targetPort: 8080
-    nodePort: 30080 
+
+# HTTPS Ingress for bankapp (plain HTTP is redirected to HTTPS)
+ingress:
+    className: nginx
+    host: bankapp.local
+    # TLS secret (tls.crt/tls.key) served for the host above
+    tlsSecretName: bankapp-tls-secret
+    # cert-manager ClusterIssuer that creates tlsSecretName (e.g. letsencrypt-prod); leave empty to supply the secret yourself
+    clusterIssuer: ""
 
 
 # headless svc configuration for db

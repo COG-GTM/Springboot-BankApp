@@ -39,10 +39,22 @@ Install Bankapp from helm chart.
 helm install bankapp bankapp/
 ```
 
+The app is published only over HTTPS through the Ingress (the Service is `ClusterIP`; there is no NodePort).
+Set the host and TLS secret for your environment, either letting cert-manager issue the certificate:
+```bash
+helm install bankapp bankapp/ --set ingress.host=bank.example.com --set ingress.clusterIssuer=letsencrypt-prod
+```
+or creating the TLS secret yourself (named by `ingress.tlsSecretName`, default `bankapp-tls-secret`):
+```bash
+kubectl -n bankapp-namespace create secret tls bankapp-tls-secret --cert=tls.crt --key=tls.key
+```
+
 You can install it for multiple environments by changing values in `values.yaml` file
 ```bash
-helm install bankapp-dev bankapp/ --set namespace=dev-namespace --set bankapp_svc.nodePort=30081
+helm install bankapp-dev bankapp/ --set namespace=dev-namespace --set ingress.host=dev.bankapp.local
 ```
+
+The session cookie is marked `Secure`, so log in through `https://<ingress host>` (or `kubectl port-forward` to `http://localhost:8080` for local debugging).
 
 Happy Helming!
 

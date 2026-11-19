@@ -1,6 +1,13 @@
 
-Now you can access Bankapp using NodePort service.
+Bankapp is published only over HTTPS through the Ingress (the Service is ClusterIP).
 
-open browser and hit the URL: HTTP://<Instanace_IP>:{{ default "30080" .Values.bankapp_svc.nodePort}}
+open browser and hit the URL: https://{{ .Values.ingress.host }}
 
-Additionally, you can configure Ingress for better traffic routing
+TLS certificate secret: {{ .Values.ingress.tlsSecretName }} in namespace {{ default "bankapp-namespace" .Values.namespace }}
+{{- if .Values.ingress.clusterIssuer }} (issued by cert-manager ClusterIssuer "{{ .Values.ingress.clusterIssuer }}")
+{{- else }} (create it yourself, e.g. kubectl -n {{ default "bankapp-namespace" .Values.namespace }} create secret tls {{ .Values.ingress.tlsSecretName }} --cert=tls.crt --key=tls.key)
+{{- end }}
+
+For local debugging without the Ingress:
+  kubectl -n {{ default "bankapp-namespace" .Values.namespace }} port-forward svc/{{ .Values.app_deployment.name }}-service 8080:{{ default "8080" .Values.bankapp_svc.port }}
+  then open http://localhost:8080

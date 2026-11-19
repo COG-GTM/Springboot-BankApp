@@ -6,11 +6,12 @@ metadata:
   labels:
     app: {{ .Values.app_deployment.name }}
 spec:
-  type: NodePort
+  # Cluster-internal only: the app speaks plain HTTP, so it is published solely
+  # through the TLS-terminating Ingress (see ingress.yml).
+  type: ClusterIP
   selector:
     app: {{ .Values.app_deployment.name }}
   ports:
   - protocol: TCP
     port: {{ default "8080" .Values.bankapp_svc.port}} 
     targetPort: {{ default "8080" .Values.bankapp_svc.targetPort}} 
-    nodePort: {{ default "30080" .Values.bankapp_svc.nodePort}}  # Exposes the app on this port of the host
