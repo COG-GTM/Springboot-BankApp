@@ -346,7 +346,7 @@ chmod 777 /var/run/docker.sock
 - <b>Congratulations, your application is deployed on AWS EKS Cluster</b>
 ![image](https://github.com/user-attachments/assets/03f3b69a-d6e0-42ad-992e-11124e7d0898)
 
-- <b>Access the application through the ingress</b>: ArgoCD deploys `kubernetes/`, where `bankapp-service` is a ClusterIP service behind `bankapp-ingress`. Install the ingress-nginx controller ([Ingress.md](Ingress.md)), point the host in `kubernetes/bankapp-ingress.yml` at its load balancer and open that host in the browser:
+- <b>Access the application through the ingress</b>: ArgoCD deploys `kubernetes/`, where `bankapp-service` is a ClusterIP service behind `bankapp-ingress`. Install the ingress-nginx controller ([Ingress.md](Ingress.md)) and cert-manager ([kubernetes/README.md](kubernetes/README.md#install-cert-manager); `bankapp-ingress` forces HTTPS with the `letsencrypt-prod` ClusterIssuer), point the host in `kubernetes/bankapp-ingress.yml` at its load balancer and open that host in the browser:
 ```bash
 kubectl get ingress -n bankapp-namespace
 kubectl get svc -n ingress-nginx
