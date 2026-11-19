@@ -21,7 +21,8 @@ spec:
         command: ['sh', '-c', 'until nc -z {{ .Values.db_statefulset.name }}-0.{{ .Values.db_statefulset.name }}-headless 3306; do echo waiting for mysql; sleep 5; done;']
       containers:
       - name: {{ .Values.app_deployment.name }}
-        image: {{ .Values.image.app }}
+        image: {{ include "bankapp.image" (dict "name" "app" "image" .Values.image.app) }}
+        imagePullPolicy: {{ .Values.image.app.pullPolicy | default "IfNotPresent" }}
         ports:
         - containerPort: 8080
         env:

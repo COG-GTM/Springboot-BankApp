@@ -21,10 +21,25 @@ app_deployment:
   mem_req: 150Mi
   mem_limit: 700Mi
 
-## image repository and tag of app and db.
+## Images are rendered as <repository>:<tag>@<digest>. The chart refuses to render
+## without a fixed tag and a sha256 digest, and rejects the "latest" tag.
 image:
-  app: trainwithshubham/springboot-bankapp:latest
-  db: mysql:latest
+  app:
+    # Built and pushed by this repo's Jenkinsfile (docker_build/docker_push -> madhupdevops/bankapp:<DOCKER_TAG>).
+    # Point this at a registry you control if you build elsewhere.
+    repository: madhupdevops/bankapp
+    # Required at install time: the DOCKER_TAG built by CI and the digest printed by `docker push`, e.g.
+    #   helm install bankapp ./helm/bankapp --set image.app.tag=v1.4.2 --set image.app.digest=sha256:<64 hex>
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  db:
+    repository: mysql
+    # MySQL 8.4 LTS, multi-arch index digest (docker-library/repo-info repos/mysql/remote/8.4.13.md).
+    # Keep the major version fixed; bump tag and digest together.
+    tag: "8.4.13"
+    digest: "sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902"
+    pullPolicy: IfNotPresent
 
 # NodePort svc for bankapp
 bankapp_svc:
