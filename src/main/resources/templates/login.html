@@ -121,6 +121,9 @@
     <div th:if="${param.error}" class="alert alert-danger mt-3 text-center">
         Invalid username or password.
     </div>
+    <div th:if="${param.locked}" class="alert alert-danger mt-3 text-center">
+        Too many failed sign-in attempts. Try again later.
+    </div>
 </div>
 
 <footer class="footer">
