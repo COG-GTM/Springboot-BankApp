@@ -83,9 +83,11 @@ sudo su
 > [!Note]
 >  Make sure the ssh-public-key "eks-nodegroup-key is available in your aws account"
 - <b>Install Jenkins</b>
+> [!Note]
+> This JRE only runs the Jenkins server (Jenkins supports Java 21). The bankapp itself is built and run on Java 25 inside its Docker image, so the Jenkins host does not need JDK 25.
 ```bash
 sudo apt update -y
-sudo apt install fontconfig openjdk-17-jre -y
+sudo apt install fontconfig openjdk-21-jre -y
 
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key

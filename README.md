@@ -1,5 +1,5 @@
 ## End-to-End Bank Application Deployment using DevSecOps on AWS EKS
-- This is a multi-tier bank an application written in Java (Springboot).
+- This is a multi-tier bank an application written in Java 25 (Spring Boot 4.1).
 
 ![Login diagram](images/login.png)
 ![Transactions diagram](images/transactions.png)
@@ -14,6 +14,10 @@
 - ArgoCD (CD)
 - AWS EKS (Kubernetes)
 - Helm (Monitoring using grafana and prometheus)
+
+## Requirements
+- JDK 25 (the app targets Java 25 / Spring Boot 4.1; the Docker image builds and runs on Java 25)
+- Maven via the bundled wrapper (`./mvnw clean test`, `./mvnw spring-boot:run`); no separate Maven install needed
   
 ### Steps to deploy:
 
@@ -87,9 +91,11 @@ sudo su
 > [!Note]
 >  Make sure the ssh-public-key "eks-nodegroup-key is available in your aws account"
 - <b>Install Jenkins</b>
+> [!Note]
+> This JRE only runs the Jenkins server (Jenkins supports Java 21). The bankapp itself is built and run on Java 25 inside its Docker image, so the Jenkins host does not need JDK 25.
 ```bash
 sudo apt update -y
-sudo apt install fontconfig openjdk-17-jre -y
+sudo apt install fontconfig openjdk-21-jre -y
 
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
