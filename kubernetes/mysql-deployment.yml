@@ -26,11 +26,25 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: MYSQL_ROOT_PASSWORD
+        # root may only log in from inside the MySQL container.
+        - name: MYSQL_ROOT_HOST
+          value: localhost
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
               name: bankapp-config
               key: MYSQL_DATABASE
+        # Application user, created on first start with rights on MYSQL_DATABASE only.
+        - name: MYSQL_USER
+          valueFrom:
+            configMapKeyRef:
+              name: bankapp-config
+              key: SPRING_DATASOURCE_USERNAME
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: SPRING_DATASOURCE_PASSWORD
         volumeMounts:
         - name: mysql-pv-storage
           mountPath: /var/lib/mysql

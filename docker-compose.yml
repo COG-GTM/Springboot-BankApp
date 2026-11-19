@@ -4,8 +4,11 @@ services:
     image: mysql:latest
     container_name: mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=Test@123
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD (see .env.example)}
+      - MYSQL_ROOT_HOST=localhost
       - MYSQL_DATABASE=BankDB
+      - MYSQL_USER=bankapp
+      - MYSQL_PASSWORD=${BANKAPP_DB_PASSWORD:?set BANKAPP_DB_PASSWORD (see .env.example)}
     volumes:
       - bankapp-volume:/var/lib/mysql
     networks:
@@ -21,9 +24,9 @@ services:
     image: ${DUSER}/${IMAGE}
     container_name: Bankapp
     environment:
-      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_USERNAME=bankapp
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/BankDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - SPRING_DATASOURCE_PASSWORD=Test@123
+      - SPRING_DATASOURCE_PASSWORD=${BANKAPP_DB_PASSWORD:?set BANKAPP_DB_PASSWORD (see .env.example)}
     ports:
       - "8080:8080"
     depends_on:

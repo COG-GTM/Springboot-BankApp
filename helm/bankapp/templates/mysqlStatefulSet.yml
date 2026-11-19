@@ -24,14 +24,28 @@ spec:
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
-            secretKeyRef:                      ### CRITICAL
-              name: mysql-secret                  ### CRITICAL
-              key: MYSQL_ROOT_PASSWORD    ### CRITICAL
+            secretKeyRef:
+              name: {{ include "bankapp.dbSecretName" . }}
+              key: MYSQL_ROOT_PASSWORD
+        # root may only log in from inside the MySQL container.
+        - name: MYSQL_ROOT_HOST
+          value: localhost
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
               name: {{ .Values.configmap.name }} 
               key: MYSQL_DATABASE 
+        # Application user, created on first start with rights on MYSQL_DATABASE only.
+        - name: MYSQL_USER
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.configmap.name }}
+              key: SPRING_DATASOURCE_USERNAME
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "bankapp.dbSecretName" . }}
+              key: SPRING_DATASOURCE_PASSWORD
         volumeMounts:
         - name: "{{ .Values.db_statefulset.name }}-data"
           mountPath: /var/lib/mysql

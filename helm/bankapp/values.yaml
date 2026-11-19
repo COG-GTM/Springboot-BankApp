@@ -6,7 +6,9 @@ configmap:
   name: bankapp-config
   data:
       MYSQL_DATABASE: BankDB
-      SPRING_DATASOURCE_USERNAME: root
+      # Least-privilege application user (all rights on MYSQL_DATABASE only).
+      # The chart refuses to render with "root".
+      SPRING_DATASOURCE_USERNAME: bankapp
 
 ## name, label and storage size for database 
 db_statefulset:
@@ -44,11 +46,22 @@ hpa:
     max_replica: 5
     cpu_utilizatoion: 40
 
-# Secret for Database connectivity
-
+# Secret for Database connectivity.
+# No passwords are shipped with the chart, and `helm template`/`helm install`
+# fail until they are supplied. Either:
+#   - reference a Secret created out of band (External Secrets, Sealed Secrets,
+#     `kubectl create secret ...`) that has the keys MYSQL_ROOT_PASSWORD and
+#     SPRING_DATASOURCE_PASSWORD:   --set secret.existingSecret=<name>
+#   - or pass two different passwords at install time:
+#       --set-string secret.data.MYSQL_ROOT_PASSWORD="$(openssl rand -base64 24)"
+#       --set-string secret.data.SPRING_DATASOURCE_PASSWORD="$(openssl rand -base64 24)"
 secret:
   name: mysql-secret
-  data: 
-    MYSQL_ROOT_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
-    SPRING_DATASOURCE_PASSWORD: Test@123       # (Base64 encoded 'Test@123')
- 
+  existingSecret: ""
+  data:
+    MYSQL_ROOT_PASSWORD: ""
+    SPRING_DATASOURCE_PASSWORD: ""
+
+# Only the bankapp pods may connect to MySQL on port 3306.
+networkPolicy:
+  enabled: true

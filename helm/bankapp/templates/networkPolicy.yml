@@ -1,0 +1,23 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: "{{ .Values.db_statefulset.name }}-allow-bankapp"
+  namespace: {{ default "bankapp-namespace" .Values.namespace }}
+  labels:
+    app: {{ .Values.db_statefulset.name }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.db_statefulset.name }}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Values.app_deployment.name }}
+    ports:
+    - protocol: TCP
+      port: {{ default 3306 .Values.mysql_svc.targetPort }}
+{{- end }}
