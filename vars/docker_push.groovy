@@ -9,9 +9,13 @@ def call(String Project, String ImageTag, String DockerHubUser){
     error('Invalid image tag: must match ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$')
   }
   withCredentials([usernamePassword(credentialsId: 'docker', passwordVariable: 'dockerhubpass', usernameVariable: 'dockerhubuser')]) {
-      sh 'printf "%s" "$dockerhubpass" | docker login -u "$dockerhubuser" --password-stdin'
-  }
-  withEnv(["DOCKER_IMAGE_REF=${DockerHubUser}/${Project}:${ImageTag}"]) {
-    sh 'docker push "$DOCKER_IMAGE_REF"'
+    withEnv(["DOCKER_IMAGE_REF=${DockerHubUser}/${Project}:${ImageTag}"]) {
+      try {
+        sh 'printf "%s" "$dockerhubpass" | docker login -u "$dockerhubuser" --password-stdin'
+        sh 'docker push "$DOCKER_IMAGE_REF"'
+      } finally {
+        sh 'docker logout || true'
+      }
+    }
   }
 }
