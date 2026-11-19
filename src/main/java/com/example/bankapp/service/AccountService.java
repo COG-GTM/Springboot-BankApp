@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,6 +22,10 @@ import java.util.List;
 
 @Service
 public class AccountService implements UserDetailsService {
+
+    static final int MIN_PASSWORD_LENGTH = 8;
+    static final int MAX_PASSWORD_BYTES = 72;
+    static final int MAX_USERNAME_LENGTH = 50;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -36,8 +41,10 @@ public class AccountService implements UserDetailsService {
     }
 
     public Account registerAccount(String username, String password) {
+        username = validateUsername(username);
+        validatePassword(password);
         if (accountRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new UsernameAlreadyExistsException();
         }
 
         Account account = new Account();
@@ -45,6 +52,26 @@ public class AccountService implements UserDetailsService {
         account.setPassword(passwordEncoder.encode(password)); // Encrypt password
         account.setBalance(BigDecimal.ZERO); // Initial balance set to 0
         return accountRepository.save(account);
+    }
+
+    private static String validateUsername(String username) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required.");
+        }
+        username = username.trim();
+        if (username.length() > MAX_USERNAME_LENGTH) {
+            throw new IllegalArgumentException("Username must be at most " + MAX_USERNAME_LENGTH + " characters.");
+        }
+        return username;
+    }
+
+    private static void validatePassword(String password) {
+        if (password == null || password.isBlank() || password.length() < MIN_PASSWORD_LENGTH) {
+            throw new IllegalArgumentException("Password must be at least " + MIN_PASSWORD_LENGTH + " non-blank characters.");
+        }
+        if (password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
+            throw new IllegalArgumentException("Password is too long.");
+        }
     }
 
 
@@ -84,10 +111,8 @@ public class AccountService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        Account account = findAccountByUsername(username);
-        if (account == null) {
-            throw new UsernameNotFoundException("Username or Password not found");
-        }
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Username or Password not found"));
         return new Account(
                 account.getUsername(),
                 account.getPassword(),

@@ -1,7 +1,10 @@
 package com.example.bankapp.controller;
 
 import com.example.bankapp.model.Account;
+import com.example.bankapp.security.LoginAttemptService;
 import com.example.bankapp.service.AccountService;
+import com.example.bankapp.service.UsernameAlreadyExistsException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -18,6 +21,9 @@ public class BankController {
     @Autowired
     private AccountService accountService;
 
+    @Autowired
+    private LoginAttemptService loginAttemptService;
+
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -32,10 +38,20 @@ public class BankController {
     }
 
     @PostMapping("/register")
-    public String registerAccount(@RequestParam String username, @RequestParam String password, Model model) {
+    public String registerAccount(@RequestParam String username, @RequestParam String password, Model model,
+                                  HttpServletRequest request) {
+        String clientAddress = request.getRemoteAddr();
+        if (loginAttemptService.isClientBlocked(clientAddress)) {
+            model.addAttribute("error", "Too many attempts. Try again later.");
+            return "register";
+        }
         try {
             accountService.registerAccount(username, password);
             return "redirect:/login";
+        } catch (UsernameAlreadyExistsException e) {
+            loginAttemptService.clientFailed(clientAddress);
+            model.addAttribute("error", e.getMessage());
+            return "register";
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             return "register";
