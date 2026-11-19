@@ -2,11 +2,11 @@
 # Stage 1
 #----------------------------------
 
-# Import docker image with maven installed
-FROM maven:3.8.3-openjdk-17 as builder 
+# Import docker image with maven and JDK 25 installed
+FROM maven:3.9-eclipse-temurin-25 AS builder
 
 # Add maintainer, so that new user will understand who had written this Dockerfile
-MAINTAINER Madhup Pandey<madhuppandey2908@gmail.com>
+LABEL maintainer="Madhup Pandey <madhuppandey2908@gmail.com>"
 
 # Add labels to the image to filter out if we have multiple application running
 LABEL app=bankapp
@@ -25,7 +25,7 @@ RUN mvn clean install -DskipTests=true
 #--------------------------------------
 
 # Import small size java image
-FROM eclipse-temurin:17-jre-alpine as deployer
+FROM eclipse-temurin:25-jre-alpine AS deployer
 
 # Copy build from stage 1 (builder)
 COPY --from=builder /src/target/*.jar /src/target/bankapp.jar

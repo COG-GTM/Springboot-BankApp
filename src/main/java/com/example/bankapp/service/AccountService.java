@@ -4,7 +4,6 @@ import com.example.bankapp.model.Account;
 import com.example.bankapp.model.Transaction;
 import com.example.bankapp.repository.AccountRepository;
 import com.example.bankapp.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,21 +14,23 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 @Service
 public class AccountService implements UserDetailsService {
 
-    @Autowired
-    PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
+    public AccountService(PasswordEncoder passwordEncoder,
+                          AccountRepository accountRepository,
+                          TransactionRepository transactionRepository) {
+        this.passwordEncoder = passwordEncoder;
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+    }
 
     public Account findAccountByUsername(String username) {
         return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account not found"));
@@ -40,25 +41,17 @@ public class AccountService implements UserDetailsService {
             throw new RuntimeException("Username already exists");
         }
 
-        Account account = new Account();
+        var account = new Account();
         account.setUsername(username);
         account.setPassword(passwordEncoder.encode(password)); // Encrypt password
         account.setBalance(BigDecimal.ZERO); // Initial balance set to 0
         return accountRepository.save(account);
     }
 
-
     public void deposit(Account account, BigDecimal amount) {
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
-
-        Transaction transaction = new Transaction(
-                amount,
-                "Deposit",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        transactionRepository.save(new Transaction(amount, "Deposit", LocalDateTime.now(), account));
     }
 
     public void withdraw(Account account, BigDecimal amount) {
@@ -67,14 +60,7 @@ public class AccountService implements UserDetailsService {
         }
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
-
-        Transaction transaction = new Transaction(
-                amount,
-                "Withdrawal",
-                LocalDateTime.now(),
-                account
-        );
-        transactionRepository.save(transaction);
+        transactionRepository.save(new Transaction(amount, "Withdrawal", LocalDateTime.now(), account));
     }
 
     public List<Transaction> getTransactionHistory(Account account) {
@@ -83,11 +69,7 @@ public class AccountService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-        Account account = findAccountByUsername(username);
-        if (account == null) {
-            throw new UsernameNotFoundException("Username or Password not found");
-        }
+        var account = findAccountByUsername(username);
         return new Account(
                 account.getUsername(),
                 account.getPassword(),
@@ -97,7 +79,7 @@ public class AccountService implements UserDetailsService {
     }
 
     public Collection<? extends GrantedAuthority> authorities() {
-        return Arrays.asList(new SimpleGrantedAuthority("USER"));
+        return List.of(new SimpleGrantedAuthority("USER"));
     }
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
@@ -105,7 +87,7 @@ public class AccountService implements UserDetailsService {
             throw new RuntimeException("Insufficient funds");
         }
 
-        Account toAccount = accountRepository.findByUsername(toUsername)
+        var toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
 
         // Deduct from sender's account
@@ -117,21 +99,16 @@ public class AccountService implements UserDetailsService {
         accountRepository.save(toAccount);
 
         // Create transaction records for both accounts
-        Transaction debitTransaction = new Transaction(
+        transactionRepository.save(new Transaction(
                 amount,
                 "Transfer Out to " + toAccount.getUsername(),
                 LocalDateTime.now(),
-                fromAccount
-        );
-        transactionRepository.save(debitTransaction);
-
-        Transaction creditTransaction = new Transaction(
+                fromAccount));
+        transactionRepository.save(new Transaction(
                 amount,
                 "Transfer In from " + fromAccount.getUsername(),
                 LocalDateTime.now(),
-                toAccount
-        );
-        transactionRepository.save(creditTransaction);
+                toAccount));
     }
 
 }
