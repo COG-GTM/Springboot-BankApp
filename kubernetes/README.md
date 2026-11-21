@@ -162,7 +162,7 @@ kubectl get svc -n ingress-nginx
 ```
 
 ### **Update DNS**
-Point the host in `bankapp-ingress.yml` (`megaproject.trainwithshubham.com`; change it to your own domain) to the external IP of the NGINX Load Balancer.
+Point the host in `bankapp-ingress.yml` (`megaproject.trainwithshubham.com`; change it to your own domain) to the NGINX load balancer: an A record for its external IP, or a CNAME for its hostname (EKS load balancers usually give a hostname).
 
 ---
 
@@ -220,7 +220,7 @@ kubectl get all -n bankapp-namespace
 ### **Access the Application**
 - Open your browser and navigate to:
   ```
-  https://megaproject.trainwithshubham.com
+  https://megaproject.trainwithshubham.com   # or the domain you set in bankapp-ingress.yml
   ```
 
 ---

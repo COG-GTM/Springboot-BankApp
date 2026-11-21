@@ -319,6 +319,9 @@ chmod 777 /var/run/docker.sock
 ![image](https://github.com/user-attachments/assets/d5b08e06-6256-4f46-afdc-fc43a9e44562)
 
 > [!Important]
+> Install cert-manager first ([kubernetes/README.md](kubernetes/README.md#install-cert-manager)): the app syncs `kubernetes/letsencrypt-clusterissuer.yaml`, and without cert-manager's CRDs that `ClusterIssuer` fails to apply.
+
+> [!Important]
 > Make sure to click on the <mark>Auto-Create Namespace</mark> option while creating argocd application
 
 ![image](https://github.com/user-attachments/assets/6a828910-41ba-4f0c-af05-19297321a41b)
@@ -332,7 +335,7 @@ chmod 777 /var/run/docker.sock
 kubectl port-forward -n bankapp-namespace svc/bankapp-service 8080:8080
 ```
   then tunnel to it from your workstation with `ssh -L 8080:localhost:8080 ubuntu@<master-public-ip>` and open `http://localhost:8080`, so the login form never crosses the internet unencrypted.
-  For permanent access use `bankapp-ingress`, which needs an ingress controller ([Ingress.md](Ingress.md)), cert-manager with the `letsencrypt-prod` ClusterIssuer ([kubernetes/README.md](kubernetes/README.md)), and a DNS record for the host in `kubernetes/bankapp-ingress.yml` pointing at the controller's load balancer. The ArgoCD app syncs `kubernetes/letsencrypt-clusterissuer.yaml` too, so install cert-manager before the sync; without its CRDs the `ClusterIssuer` fails to apply.
+  For permanent access use `bankapp-ingress`, which needs an ingress controller ([Ingress.md](Ingress.md)), cert-manager with the `letsencrypt-prod` ClusterIssuer ([kubernetes/README.md](kubernetes/README.md)), and a DNS record for the host in `kubernetes/bankapp-ingress.yml` pointing at the controller's load balancer.
 - <b>Email Notification</b>
 ![image](https://github.com/user-attachments/assets/407f94ed-bf67-441a-bd28-881b6b8739b2)
 
