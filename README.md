@@ -44,11 +44,13 @@ sudo su
 
 - Install **kubectl**(<a href="https://github.com/DevMadhup/DevOps-Tools-Installations/blob/main/Kubectl/Kubectl.sh">Setup kubectl </a>)
   ```bash
-  curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
+  curl -LO https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl
   chmod +x ./kubectl
   sudo mv ./kubectl /usr/local/bin
-  kubectl version --short --client
+  kubectl version --client
   ```
+> [!Note]
+> Use a kubectl within one minor version of the EKS cluster (`--version=1.30` below); the old 1.19 client is outside the supported version skew.
 
 - Install **eksctl**(<a href="https://github.com/DevMadhup/DevOps-Tools-Installations/blob/main/eksctl%20/eksctl.sh">Setup eksctl</a>)
   ```bash
@@ -89,10 +91,10 @@ sudo su
 - <b>Install Jenkins</b>
 ```bash
 sudo apt update -y
-sudo apt install fontconfig openjdk-17-jre -y
+sudo apt install fontconfig openjdk-21-jre -y
 
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
   
 echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
   https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
@@ -143,7 +145,7 @@ sudo apt-get install trivy -y
   ```
   - <b>Apply argocd manifest</b>
   ```bash
-  kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
   ```
   - <b>Make sure all pods are running in argocd namespace</b>
   ```bash
@@ -331,10 +333,11 @@ chmod 777 /var/run/docker.sock
 - <b>Congratulations, your application is deployed on AWS EKS Cluster</b>
 ![image](https://github.com/user-attachments/assets/03f3b69a-d6e0-42ad-992e-11124e7d0898)
 
-- <b>Open port 30080 on worker node and Access it on browser</b>
+- <b>Access the application</b>: `kubernetes/bankapp-service.yaml` is a ClusterIP service, so nothing listens on a worker node port. Reach it through `bankapp-ingress` (see [Ingress.md](Ingress.md)), or for a quick check forward the port and open `http://localhost:8080`:
 ```bash
-<worker-public-ip>:30080
+kubectl port-forward -n bankapp-namespace svc/bankapp-service 8080:8080
 ```
+  Port 30080 on a worker node only applies to the `helm/bankapp` chart, which uses a NodePort service.
 - <b>Email Notification</b>
 ![image](https://github.com/user-attachments/assets/407f94ed-bf67-441a-bd28-881b6b8739b2)
 
