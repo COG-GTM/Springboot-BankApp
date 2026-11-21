@@ -319,7 +319,7 @@ chmod 777 /var/run/docker.sock
 ![image](https://github.com/user-attachments/assets/d5b08e06-6256-4f46-afdc-fc43a9e44562)
 
 > [!Important]
-> Install cert-manager first ([kubernetes/README.md](kubernetes/README.md#install-cert-manager)): the app syncs `kubernetes/letsencrypt-clusterissuer.yaml`, and without cert-manager's CRDs that `ClusterIssuer` fails to apply.
+> Install cert-manager first ([kubernetes/README.md](kubernetes/README.md#install-cert-manager)) and wait for `kubectl -n cert-manager wait --for=condition=Available deploy --all --timeout=300s`: the app syncs `kubernetes/letsencrypt-clusterissuer.yaml`, and without cert-manager's CRDs that `ClusterIssuer` fails to apply.
 
 > [!Important]
 > Make sure to click on the <mark>Auto-Create Namespace</mark> option while creating argocd application
