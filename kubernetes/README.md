@@ -162,7 +162,7 @@ kubectl get svc -n ingress-nginx
 ```
 
 ### **Update DNS**
-Point the host in `bankapp-ingress.yml` (`megaproject.trainwithshubham.com`; change it to your own domain) to the NGINX load balancer: an A record for its external IP, or a CNAME for its hostname (EKS load balancers usually give a hostname).
+Point the host in `bankapp-ingress.yml` (`megaproject.trainwithshubham.com`; change it to your own domain) to the NGINX load balancer: an A record for its external IP, or a CNAME for its hostname (EKS load balancers usually give a hostname; for an apex domain, which cannot be a CNAME, use a Route 53 alias record).
 
 ---
 
