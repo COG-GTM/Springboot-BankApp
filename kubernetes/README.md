@@ -47,7 +47,7 @@ kubectl create namespace argocd
 
 ### **Install ArgoCD Using Official Manifests**
 ```bash
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
 ### **Verify ArgoCD Pods**
@@ -162,7 +162,7 @@ kubectl get svc -n ingress-nginx
 ```
 
 ### **Update DNS**
-Point your domain (`junoon.trainwithshubham.com`) to the external IP of the NGINX Load Balancer.
+Point the host in `bankapp-ingress.yml` (`megaproject.trainwithshubham.com`; to use your own domain, change it under both `tls.hosts` and `rules.host` so the certificate matches) to the NGINX load balancer: an A record for its external IP, or a CNAME for its hostname (EKS load balancers usually give a hostname; for an apex domain, which cannot be a CNAME, use a Route 53 alias record).
 
 ---
 
@@ -220,7 +220,7 @@ kubectl get all -n bankapp-namespace
 ### **Access the Application**
 - Open your browser and navigate to:
   ```
-  https://junoon.trainwithshubham.com
+  https://megaproject.trainwithshubham.com   # or the domain you set in bankapp-ingress.yml
   ```
 
 ---
