@@ -40,10 +40,10 @@ sudo su
 
 - Install **kubectl**(<a href="https://github.com/DevMadhup/DevOps-Tools-Installations/blob/main/Kubectl/Kubectl.sh">Setup kubectl </a>)
   ```bash
-  curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
+  curl -LO https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl
   chmod +x ./kubectl
   sudo mv ./kubectl /usr/local/bin
-  kubectl version --short --client
+  kubectl version --client
   ```
 
 - Install **eksctl**(<a href="https://github.com/DevMadhup/DevOps-Tools-Installations/blob/main/eksctl%20/eksctl.sh">Setup eksctl</a>)
@@ -57,7 +57,7 @@ sudo su
   ```bash
   eksctl create cluster --name=bankapp \
                       --region=us-west-1 \
-                      --version=1.30 \
+                      --version=1.35 \
                       --without-nodegroup
   ```
 - <b>Associate IAM OIDC Provider</b>
@@ -85,10 +85,10 @@ sudo su
 - <b>Install Jenkins</b>
 ```bash
 sudo apt update -y
-sudo apt install fontconfig openjdk-17-jre -y
+sudo apt install fontconfig openjdk-21-jre -y
 
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
   
 echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
   https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
@@ -139,7 +139,7 @@ sudo apt-get install trivy -y
   ```
   - <b>Apply argocd manifest</b>
   ```bash
-  kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
   ```
   - <b>Make sure all pods are running in argocd namespace</b>
   ```bash
@@ -327,10 +327,11 @@ chmod 777 /var/run/docker.sock
 - <b>Congratulations, your application is deployed on AWS EKS Cluster</b>
 ![image](https://github.com/user-attachments/assets/03f3b69a-d6e0-42ad-992e-11124e7d0898)
 
-- <b>Open port 30080 on worker node and Access it on browser</b>
+- <b>Access the application</b>: `kubernetes/bankapp-service.yaml` is a ClusterIP service, so nothing listens on worker node port 30080 (that port only applies to the `helm/bankapp` chart, which uses a NodePort service). For a quick check, forward the port on the master machine, allow inbound 8080 in its security group, and open `http://<master-public-ip>:8080`:
 ```bash
-<worker-public-ip>:30080
+kubectl port-forward --address 0.0.0.0 -n bankapp-namespace svc/bankapp-service 8080:8080
 ```
+  For permanent access use `bankapp-ingress`, which needs an ingress controller ([Ingress.md](Ingress.md)), cert-manager with the `letsencrypt-prod` ClusterIssuer ([kubernetes/README.md](kubernetes/README.md)), and a DNS record for the host in `kubernetes/bankapp-ingress.yml` pointing at the controller's load balancer.
 - <b>Email Notification</b>
 ![image](https://github.com/user-attachments/assets/407f94ed-bf67-441a-bd28-881b6b8739b2)
 
