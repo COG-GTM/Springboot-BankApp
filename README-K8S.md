@@ -327,11 +327,12 @@ chmod 777 /var/run/docker.sock
 - <b>Congratulations, your application is deployed on AWS EKS Cluster</b>
 ![image](https://github.com/user-attachments/assets/03f3b69a-d6e0-42ad-992e-11124e7d0898)
 
-- <b>Access the application</b>: `kubernetes/bankapp-service.yaml` is a ClusterIP service, so nothing listens on worker node port 30080 (that port only applies to the `helm/bankapp` chart, which uses a NodePort service). For a quick check, forward the port on the master machine, allow inbound 8080 in its security group, and open `http://<master-public-ip>:8080`:
+- <b>Access the application</b>: `kubernetes/bankapp-service.yaml` is a ClusterIP service, so nothing listens on worker node port 30080 (that port only applies to the `helm/bankapp` chart, which uses a NodePort service). For a quick check, forward the port on the master machine:
 ```bash
-kubectl port-forward --address 0.0.0.0 -n bankapp-namespace svc/bankapp-service 8080:8080
+kubectl port-forward -n bankapp-namespace svc/bankapp-service 8080:8080
 ```
-  For permanent access use `bankapp-ingress`, which needs an ingress controller ([Ingress.md](Ingress.md)), cert-manager with the `letsencrypt-prod` ClusterIssuer ([kubernetes/README.md](kubernetes/README.md)), and a DNS record for the host in `kubernetes/bankapp-ingress.yml` pointing at the controller's load balancer.
+  then tunnel to it from your workstation with `ssh -L 8080:localhost:8080 ubuntu@<master-public-ip>` and open `http://localhost:8080`, so the login form never crosses the internet unencrypted.
+  For permanent access use `bankapp-ingress`, which needs an ingress controller ([Ingress.md](Ingress.md)), cert-manager with the `letsencrypt-prod` ClusterIssuer ([kubernetes/README.md](kubernetes/README.md)), and a DNS record for the host in `kubernetes/bankapp-ingress.yml` pointing at the controller's load balancer. The ArgoCD app syncs `kubernetes/letsencrypt-clusterissuer.yaml` too, so install cert-manager before the sync; without its CRDs the `ClusterIssuer` fails to apply.
 - <b>Email Notification</b>
 ![image](https://github.com/user-attachments/assets/407f94ed-bf67-441a-bd28-881b6b8739b2)
 
