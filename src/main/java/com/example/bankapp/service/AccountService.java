@@ -68,7 +68,7 @@ public class AccountService implements UserDetailsService {
      * Returns true when the account balance is at least {@code amount}.
      */
     public boolean hasSufficientFunds(Account account, BigDecimal amount) {
-        return account.getBalance().compareTo(amount) > 0;
+        return account.getBalance().compareTo(amount) >= 0;
     }
 
     public void withdraw(Account account, BigDecimal amount) {
@@ -97,7 +97,7 @@ public class AccountService implements UserDetailsService {
      */
     public List<Transaction> getTransactionHistory(Account account, LocalDate from, LocalDate to) {
         LocalDateTime start = from.atStartOfDay();
-        LocalDateTime end = to.atStartOfDay();
+        LocalDateTime end = to.plusDays(1).atStartOfDay();
         return transactionRepository.findByAccountId(account.getId()).stream()
                 .filter(t -> !t.getTimestamp().isBefore(start) && t.getTimestamp().isBefore(end))
                 .sorted(Comparator.comparing(Transaction::getTimestamp))
@@ -107,10 +107,8 @@ public class AccountService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        Account account = findAccountByUsername(username);
-        if (account == null) {
-            throw new UsernameNotFoundException("Username or Password not found");
-        }
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Username or Password not found"));
         return new Account(
                 account.getUsername(),
                 account.getPassword(),
