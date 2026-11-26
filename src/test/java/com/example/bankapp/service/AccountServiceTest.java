@@ -21,6 +21,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -127,6 +128,20 @@ class AccountServiceTest {
         assertThatThrownBy(() -> accountService.deposit(alice, new BigDecimal("-50.00")))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(alice.getBalance()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void zeroAmountsAreRejectedWithoutWritingHistory() {
+        Account alice = account(1L, "alice", "100.00");
+
+        assertThatThrownBy(() -> accountService.deposit(alice, BigDecimal.ZERO))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> accountService.withdraw(alice, BigDecimal.ZERO))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> accountService.transferAmount(alice, "bob", BigDecimal.ZERO))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(transactionRepository);
+        assertThat(alice.getBalance()).isEqualByComparingTo("100.00");
     }
 
     @Test
