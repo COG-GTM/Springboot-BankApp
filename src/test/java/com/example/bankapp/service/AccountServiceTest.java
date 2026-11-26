@@ -125,7 +125,7 @@ class AccountServiceTest {
         Account alice = account(1L, "alice", "0.00");
 
         assertThatThrownBy(() -> accountService.deposit(alice, new BigDecimal("-50.00")))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(IllegalArgumentException.class);
         assertThat(alice.getBalance()).isEqualByComparingTo("0.00");
     }
 
