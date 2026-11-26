@@ -54,7 +54,7 @@ public class BankController {
 
         try {
             accountService.deposit(account, amount);
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("account", account);
             return "dashboard";
