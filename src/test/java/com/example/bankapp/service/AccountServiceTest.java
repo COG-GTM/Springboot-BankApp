@@ -130,6 +130,18 @@ class AccountServiceTest {
     }
 
     @Test
+    void transferToOwnAccountUnderDifferentUsernameCaseIsRejected() {
+        Account alice = account(1L, "alice", "100.00");
+        Account aliceAgain = account(1L, "alice", "100.00");
+        when(accountRepository.findByUsername("ALICE")).thenReturn(Optional.of(aliceAgain));
+
+        assertThatThrownBy(() -> accountService.transferAmount(alice, "ALICE", new BigDecimal("40.00")))
+                .isInstanceOf(RuntimeException.class);
+        assertThat(alice.getBalance()).isEqualByComparingTo("100.00");
+        assertThat(aliceAgain.getBalance()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
     void loadUserByUsernameThrowsUsernameNotFoundExceptionForUnknownUser() {
         when(accountRepository.findByUsername("ghost")).thenReturn(Optional.empty());
 

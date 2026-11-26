@@ -53,7 +53,7 @@ public class AccountService implements UserDetailsService {
 
     private static void requirePositive(BigDecimal amount) {
         if (amount == null || amount.signum() <= 0) {
-            throw new RuntimeException("Amount must be greater than zero");
+            throw new IllegalArgumentException("Amount must be greater than zero");
         }
     }
 
@@ -131,15 +131,15 @@ public class AccountService implements UserDetailsService {
 
     public void transferAmount(Account fromAccount, String toUsername, BigDecimal amount) {
         requirePositive(amount);
-        if (fromAccount.getUsername().equals(toUsername)) {
-            throw new RuntimeException("Cannot transfer to your own account");
-        }
         if (!hasSufficientFunds(fromAccount, amount)) {
             throw new RuntimeException("Insufficient funds");
         }
 
         Account toAccount = accountRepository.findByUsername(toUsername)
                 .orElseThrow(() -> new RuntimeException("Recipient account not found"));
+        if (toAccount.getId().equals(fromAccount.getId())) {
+            throw new RuntimeException("Cannot transfer to your own account");
+        }
 
         // Deduct from sender's account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
