@@ -96,8 +96,8 @@ only removes the e2e containers and volume. Set `E2E_COMPOSE_PROJECT` and `E2E_A
 several e2e stacks side by side.
 
 If you change Java code, rerun `npm run stack:up`; `--build` rebuilds the
-image from the working tree. If the app comes up but the specs fail with
-`Account not found`, you forgot `npm run stack:seed`.
+image from the working tree. If the app comes up but the specs fail at login
+(redirected to `/login?error`), you forgot `npm run stack:seed`.
 
 ## Adding a test
 
