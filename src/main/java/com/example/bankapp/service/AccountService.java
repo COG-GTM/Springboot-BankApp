@@ -38,11 +38,11 @@ public class AccountService implements UserDetailsService {
 
     public Account registerAccount(String username, String password) {
         if (accountRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("User already present.");
+            throw new IllegalArgumentException("User already present.");
         }
         // BCrypt only accepts up to 72 bytes; Spring Security rejects longer passwords
         if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
-            throw new RuntimeException("Password must be at most 72 bytes.");
+            throw new IllegalArgumentException("Password must be at most 72 bytes.");
         }
 
         Account account = new Account();
