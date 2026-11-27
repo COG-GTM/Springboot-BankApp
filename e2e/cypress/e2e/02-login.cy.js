@@ -15,7 +15,7 @@ describe("Login", () => {
     cy.get("nav").within(() => {
       cy.contains("a", "Dashboard").should("have.attr", "href", "/dashboard");
       cy.contains("a", "Transactions").should("have.attr", "href", "/transactions");
-      cy.contains("a", "Logout").should("have.attr", "href", "/logout");
+      cy.contains("form[action='/logout'] button", "Logout").should("be.visible");
     });
   });
 
