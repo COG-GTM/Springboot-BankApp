@@ -7,6 +7,8 @@ metadata:
     app: mysql
 spec:
   replicas: 1
+  strategy:
+    type: Recreate  # the data dir is single-writer; stop the old pod before starting the new one
   selector:
     matchLabels:
       app: mysql
