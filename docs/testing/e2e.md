@@ -34,7 +34,7 @@ projects and ports.
 
 ```
 e2e/
-  cypress.config.js          baseUrl, video, retries, seeded credentials (Cypress.env)
+  cypress.config.js          baseUrl, video, retries, seeded usernames and E2E_SEEDED_PASSWORD (Cypress.env)
   cypress/e2e/*.cy.js        the specs, numbered in the order they run
   cypress/support/commands.js cy.login(username, password) and cy.readBalance()
   docker-compose.e2e.yml     override for the root docker-compose.yml (build from source, wget health check, throw-away volume, own container names and port)
@@ -61,7 +61,12 @@ The password hash is bcrypt cost 10, the same encoder `SecurityConfig` uses.
 To seed a different password, generate a new hash
 (`htpasswd -bnBC 10 "" 'NewPassword' | tr -d ':\n'` or
 `python3 -c "import bcrypt;print(bcrypt.hashpw(b'NewPassword',bcrypt.gensalt(10)).decode())"`)
-and update both `seed.sql` and `seededPassword` in `cypress.config.js`.
+and update `seed.sql` and the `E2E_SEEDED_PASSWORD` value used by CI.
+
+`cypress.config.js` reads the seeded password from the `E2E_SEEDED_PASSWORD`
+environment variable instead of hardcoding it. GitHub Actions uses the
+`E2E_SEEDED_PASSWORD` repository secret when set and otherwise the fixture
+password above; the `Jenkinsfile` does the same with its environment.
 
 ## Running locally
 
@@ -74,6 +79,7 @@ cd e2e
 npm ci                 # installs Cypress (binary is cached under ~/.cache/Cypress)
 npm run stack:up       # builds bankapp:e2e from the working tree, starts MySQL + app on :8081, waits until healthy
 npm run stack:seed     # loads seed/seed.sql
+export E2E_SEEDED_PASSWORD='Password123!'   # password of the seeded accounts
 npm run cy:run         # headless run, videos in cypress/videos, screenshots on failure in cypress/screenshots
 npm run stack:down     # stops containers and drops the database volume
 ```

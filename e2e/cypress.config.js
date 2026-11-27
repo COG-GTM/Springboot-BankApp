@@ -13,10 +13,11 @@ module.exports = defineConfig({
     pageLoadTimeout: 60000,
     retries: { runMode: 1, openMode: 0 },
     env: {
-      // Accounts created by seed/seed.sql
+      // Accounts created by seed/seed.sql; their password comes from the
+      // environment so it is not hardcoded in source (see docs/testing/e2e.md).
       seededUser: "alice",
       seededRecipient: "bob",
-      seededPassword: "Password123!",
+      seededPassword: process.env.E2E_SEEDED_PASSWORD,
     },
   },
 });

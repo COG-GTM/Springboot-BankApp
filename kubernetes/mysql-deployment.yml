@@ -15,9 +15,26 @@ spec:
       labels:
         app: mysql
     spec:
+      # Runs MySQL as a non-root UID. The data directory must be writable by it:
+      # fsGroup covers dynamically provisioned volumes; for the hostPath PV run
+      # `chown -R 10001:10001 /mnt/data/mysql` on the node once.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
       containers:
       - name: mysql
         image: mysql:8.0  # Use a specific, stable version for production
+        imagePullPolicy: Always
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         ports:
         - containerPort: 3306
         env:
@@ -31,12 +48,32 @@ spec:
             configMapKeyRef:
               name: bankapp-config
               key: MYSQL_DATABASE
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
         volumeMounts:
         - name: mysql-pv-storage
           mountPath: /var/lib/mysql
           subPath: mysql-data  # Optional: Ensure a subdirectory is used for better volume organization
+        - name: mysql-run  # writable dirs needed with a read-only root filesystem
+          mountPath: /var/run/mysqld
+        - name: tmp
+          mountPath: /tmp
       volumes:
       - name: mysql-pv-storage
         persistentVolumeClaim:
           claimName: mysql-pvc
+      - name: mysql-run
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
 
