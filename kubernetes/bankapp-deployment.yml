@@ -67,6 +67,11 @@ spec:
         #     port: 8080
         #   initialDelaySeconds: 30
         #   periodSeconds: 10
+        startupProbe:  # allows up to 5 min for first start before liveness applies
+          tcpSocket:
+            port: 8080
+          periodSeconds: 10
+          failureThreshold: 30
         livenessProbe:
           tcpSocket:
             port: 8080

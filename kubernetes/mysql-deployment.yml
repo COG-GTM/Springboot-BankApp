@@ -49,6 +49,11 @@ spec:
             configMapKeyRef:
               name: bankapp-config
               key: MYSQL_DATABASE
+        startupProbe:  # allows up to 5 min for first start before liveness applies
+          tcpSocket:
+            port: 3306
+          periodSeconds: 10
+          failureThreshold: 30
         livenessProbe:
           tcpSocket:
             port: 3306
