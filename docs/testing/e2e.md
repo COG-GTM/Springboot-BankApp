@@ -61,12 +61,12 @@ The password hash is bcrypt cost 10, the same encoder `SecurityConfig` uses.
 To seed a different password, generate a new hash
 (`htpasswd -bnBC 10 "" 'NewPassword' | tr -d ':\n'` or
 `python3 -c "import bcrypt;print(bcrypt.hashpw(b'NewPassword',bcrypt.gensalt(10)).decode())"`)
-and update `seed.sql` and the `E2E_SEEDED_PASSWORD` value used by CI.
+and update `seed.sql` together with the `E2E_SEEDED_PASSWORD` value in
+`.github/workflows/e2e.yml` and the `Jenkinsfile`.
 
 `cypress.config.js` reads the seeded password from the `E2E_SEEDED_PASSWORD`
-environment variable instead of hardcoding it. GitHub Actions uses the
-`E2E_SEEDED_PASSWORD` repository secret when set and otherwise the fixture
-password above; the `Jenkinsfile` does the same with its environment.
+environment variable instead of hardcoding it, and stops with an error when it
+is not set.
 
 ## Running locally
 

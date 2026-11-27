@@ -4,8 +4,8 @@ pipeline {
     
     environment{
         SONAR_HOME = tool "Sonar"
-        // Password of the seeded e2e accounts (must match the bcrypt hash in e2e/seed/seed.sql)
-        E2E_SEEDED_PASSWORD = "${env.E2E_SEEDED_PASSWORD ?: 'Password123!'}"
+        // Fixture password of the seeded e2e accounts (must match the bcrypt hash in e2e/seed/seed.sql)
+        E2E_SEEDED_PASSWORD = 'Password123!'
     }
     
     parameters {

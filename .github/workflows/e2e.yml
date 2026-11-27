@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Password of the seeded e2e accounts (must match the bcrypt hash in e2e/seed/seed.sql)
-      E2E_SEEDED_PASSWORD: ${{ secrets.E2E_SEEDED_PASSWORD || 'Password123!' }}
+      # Fixture password of the seeded e2e accounts (must match the bcrypt hash in e2e/seed/seed.sql)
+      E2E_SEEDED_PASSWORD: 'Password123!'
     defaults:
       run:
         working-directory: e2e
