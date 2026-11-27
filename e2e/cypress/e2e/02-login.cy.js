@@ -40,6 +40,15 @@ describe("Login", () => {
     cy.location("pathname").should("eq", "/login");
   });
 
+  it("rejects a logout POST without a CSRF token and keeps the session", () => {
+    cy.login(user, password);
+    cy.request({ method: "POST", url: "/logout", failOnStatusCode: false, followRedirect: false })
+      .its("status")
+      .should("eq", 403);
+    cy.visit("/dashboard");
+    cy.location("pathname").should("eq", "/dashboard");
+  });
+
   it("redirects anonymous visitors from the dashboard to the login page", () => {
     cy.visit("/dashboard");
     cy.location("pathname").should("eq", "/login");

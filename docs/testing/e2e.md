@@ -10,12 +10,12 @@ and as the `E2E: Cypress smoke suite` stage of the `Jenkinsfile`.
 | Spec | Checks |
 | --- | --- |
 | `cypress/e2e/01-register.cy.js` | `/register` renders; a new user can register, log in and land on the dashboard with a `$0` balance; duplicate usernames are rejected |
-| `cypress/e2e/02-login.cy.js` | seeded user logs in and lands on `/dashboard`; wrong password stays on `/login?error`; anonymous `/dashboard` redirects to login; the dashboard Logout form ends the session |
+| `cypress/e2e/02-login.cy.js` | seeded user logs in and lands on `/dashboard`; wrong password stays on `/login?error`; anonymous `/dashboard` redirects to login; the dashboard Logout form ends the session, and a logout POST without a CSRF token gets 403 |
 | `cypress/e2e/03-transactions.cy.js` | `/transactions` lists exactly the seeded rows for the signed-in account with the right sign/colour; its Logout form ends the session |
 | `cypress/e2e/04-transfer.cy.js` | the Transfer Money form debits the balance shown on the dashboard and writes a `Transfer Out` row; insufficient funds and unknown recipient show the error text |
 | `cypress/e2e/05-deposit-withdrawal.cy.js` | deposit $125: $500 → $625 and exactly one `Deposit` entry; withdraw $75: $500 → $425 and exactly one `Withdrawal` entry; withdraw $501: `Insufficient funds`, unchanged $500 balance and identical history |
 
-The suite has 15 tests across 5 specs. The deposit/withdrawal spec runs
+The suite has 16 tests across 5 specs. The deposit/withdrawal spec runs
 `cy.exec("npm run stack:seed")` before **each** test (including retries), and
 again after the spec, so each case starts with the same synthetic accounts,
 balances and transactions regardless of earlier transfers or spec runs.
