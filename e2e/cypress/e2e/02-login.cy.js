@@ -29,6 +29,17 @@ describe("Login", () => {
     cy.location("search").should("eq", "?error");
   });
 
+  it("logs out through the dashboard Logout form", () => {
+    cy.login(user, password);
+    cy.visit("/dashboard");
+    cy.contains("form[action='/logout'] button", "Logout").click();
+
+    cy.location("pathname").should("eq", "/login");
+    cy.location("search").should("eq", "?logout");
+    cy.visit("/dashboard");
+    cy.location("pathname").should("eq", "/login");
+  });
+
   it("redirects anonymous visitors from the dashboard to the login page", () => {
     cy.visit("/dashboard");
     cy.location("pathname").should("eq", "/login");
