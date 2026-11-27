@@ -23,6 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -108,6 +111,7 @@ class AccountServiceTest {
                 () -> accountService.transferAmount(alice, "bob", new BigDecimal("-30.00")));
         assertEquals(0, alice.getBalance().compareTo(new BigDecimal("100.00")));
         assertEquals(0, bob.getBalance().compareTo(new BigDecimal("50.00")));
+        assertNoWrites();
     }
 
     @Test
@@ -115,6 +119,7 @@ class AccountServiceTest {
         assertThrows(RuntimeException.class,
                 () -> accountService.withdraw(alice, new BigDecimal("-30.00")));
         assertEquals(0, alice.getBalance().compareTo(new BigDecimal("100.00")));
+        assertNoWrites();
     }
 
     @Test
@@ -122,5 +127,11 @@ class AccountServiceTest {
         assertThrows(RuntimeException.class,
                 () -> accountService.deposit(alice, new BigDecimal("-30.00")));
         assertEquals(0, alice.getBalance().compareTo(new BigDecimal("100.00")));
+        assertNoWrites();
+    }
+
+    private void assertNoWrites() {
+        verify(accountRepository, never()).save(any(Account.class));
+        verifyNoInteractions(transactionRepository);
     }
 }
