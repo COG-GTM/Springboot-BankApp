@@ -15,7 +15,7 @@ describe("Login", () => {
     cy.get("nav").within(() => {
       cy.contains("a", "Dashboard").should("have.attr", "href", "/dashboard");
       cy.contains("a", "Transactions").should("have.attr", "href", "/transactions");
-      cy.contains("a", "Logout").should("have.attr", "href", "/logout");
+      cy.contains("form[action='/logout'] button", "Logout").should("be.visible");
     });
   });
 
@@ -27,6 +27,26 @@ describe("Login", () => {
 
     cy.location("pathname").should("eq", "/login");
     cy.location("search").should("eq", "?error");
+  });
+
+  it("logs out through the dashboard Logout form", () => {
+    cy.login(user, password);
+    cy.visit("/dashboard");
+    cy.contains("form[action='/logout'] button", "Logout").click();
+
+    cy.location("pathname").should("eq", "/login");
+    cy.location("search").should("eq", "?logout");
+    cy.visit("/dashboard");
+    cy.location("pathname").should("eq", "/login");
+  });
+
+  it("rejects a logout POST without a CSRF token and keeps the session", () => {
+    cy.login(user, password);
+    cy.request({ method: "POST", url: "/logout", failOnStatusCode: false, followRedirect: false })
+      .its("status")
+      .should("eq", 403);
+    cy.visit("/dashboard");
+    cy.location("pathname").should("eq", "/dashboard");
   });
 
   it("redirects anonymous visitors from the dashboard to the login page", () => {

@@ -14,3 +14,11 @@ spec:
   hostPath:
     path: /mnt/data/mysql
     type: DirectoryOrCreate
+  nodeAffinity:  # node-local data: keep MySQL on the labelled node that holds it
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: bankapp/mysql-data
+          operator: In
+          values:
+          - "true"

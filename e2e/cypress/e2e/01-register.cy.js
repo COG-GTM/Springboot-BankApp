@@ -12,7 +12,7 @@ describe("Register", () => {
 
   it("creates a user who can then sign in", () => {
     const username = `cy_user_${Date.now()}`;
-    const password = "Secret123!";
+    const password = `Pw-${Cypress._.random(1e9)}-${Date.now()}`;
 
     cy.visit("/register");
     cy.get('input[name="username"]').type(username);

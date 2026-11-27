@@ -36,8 +36,11 @@ public class BankController {
         try {
             accountService.registerAccount(username, password);
             return "redirect:/login";
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage());
+            return "register";
+        } catch (RuntimeException e) {
+            model.addAttribute("error", "Registration failed.");
             return "register";
         }
     }

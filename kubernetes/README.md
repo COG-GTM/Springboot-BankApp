@@ -127,6 +127,14 @@ argocd app create bankapp \
   --dest-namespace bankapp-namespace
 ```
 
+### **Prepare the MySQL Node**
+MySQL runs as UID 10001 and `fsGroup` does not change hostPath ownership, so before the first sync pick one worker for the data, label it (`mysql-pv` only binds on that node, so MySQL always returns to its data) and run this once on it:
+```bash
+kubectl label node <node-name> bankapp/mysql-data=true
+sudo mkdir -p /mnt/data/mysql/mysql-data && sudo chown -R 10001:10001 /mnt/data/mysql
+```
+For an existing volume created by the old root-run MySQL, the same `chown` migrates its files.
+
 ### **Sync the Application**
 ```bash
 argocd app sync bankapp

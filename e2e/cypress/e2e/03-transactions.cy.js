@@ -27,4 +27,14 @@ describe("Transactions", () => {
 
     cy.contains("a", "Back to Dashboard").should("have.attr", "href", "/dashboard");
   });
+
+  it("logs out through the Transactions page Logout form", () => {
+    cy.visit("/transactions");
+    cy.contains("form[action='/logout'] button", "Logout").click();
+
+    cy.location("pathname").should("eq", "/login");
+    cy.location("search").should("eq", "?logout");
+    cy.visit("/transactions");
+    cy.location("pathname").should("eq", "/login");
+  });
 });

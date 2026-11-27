@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,8 +37,12 @@ public class AccountService implements UserDetailsService {
     }
 
     public Account registerAccount(String username, String password) {
+        // BCrypt only accepts up to 72 bytes; Spring Security rejects longer passwords
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException("Password must be at most 72 bytes.");
+        }
         if (accountRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new IllegalArgumentException("User already present.");
         }
 
         Account account = new Account();

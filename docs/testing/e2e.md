@@ -10,12 +10,12 @@ and as the `E2E: Cypress smoke suite` stage of the `Jenkinsfile`.
 | Spec | Checks |
 | --- | --- |
 | `cypress/e2e/01-register.cy.js` | `/register` renders; a new user can register, log in and land on the dashboard with a `$0` balance; duplicate usernames are rejected |
-| `cypress/e2e/02-login.cy.js` | seeded user logs in and lands on `/dashboard`; wrong password stays on `/login?error`; anonymous `/dashboard` redirects to login |
-| `cypress/e2e/03-transactions.cy.js` | `/transactions` lists exactly the seeded rows for the signed-in account with the right sign/colour |
+| `cypress/e2e/02-login.cy.js` | seeded user logs in and lands on `/dashboard`; wrong password stays on `/login?error`; anonymous `/dashboard` redirects to login; the dashboard Logout form ends the session, and a logout POST without a CSRF token gets 403 |
+| `cypress/e2e/03-transactions.cy.js` | `/transactions` lists exactly the seeded rows for the signed-in account with the right sign/colour; its Logout form ends the session |
 | `cypress/e2e/04-transfer.cy.js` | the Transfer Money form debits the balance shown on the dashboard and writes a `Transfer Out` row; insufficient funds and unknown recipient show the error text |
 | `cypress/e2e/05-deposit-withdrawal.cy.js` | deposit $125: $500 → $625 and exactly one `Deposit` entry; withdraw $75: $500 → $425 and exactly one `Withdrawal` entry; withdraw $501: `Insufficient funds`, unchanged $500 balance and identical history |
 
-The suite has 13 tests across 5 specs. The deposit/withdrawal spec runs
+The suite has 16 tests across 5 specs. The deposit/withdrawal spec runs
 `cy.exec("npm run stack:seed")` before **each** test (including retries), and
 again after the spec, so each case starts with the same synthetic accounts,
 balances and transactions regardless of earlier transfers or spec runs.
@@ -34,7 +34,7 @@ projects and ports.
 
 ```
 e2e/
-  cypress.config.js          baseUrl, video, retries, seeded credentials (Cypress.env)
+  cypress.config.js          baseUrl, video, retries, seeded usernames and E2E_SEEDED_PASSWORD (Cypress.env)
   cypress/e2e/*.cy.js        the specs, numbered in the order they run
   cypress/support/commands.js cy.login(username, password) and cy.readBalance()
   docker-compose.e2e.yml     override for the root docker-compose.yml (build from source, wget health check, throw-away volume, own container names and port)
@@ -61,7 +61,12 @@ The password hash is bcrypt cost 10, the same encoder `SecurityConfig` uses.
 To seed a different password, generate a new hash
 (`htpasswd -bnBC 10 "" 'NewPassword' | tr -d ':\n'` or
 `python3 -c "import bcrypt;print(bcrypt.hashpw(b'NewPassword',bcrypt.gensalt(10)).decode())"`)
-and update both `seed.sql` and `seededPassword` in `cypress.config.js`.
+and update `seed.sql` together with the `E2E_SEEDED_PASSWORD` value in
+`.github/workflows/e2e.yml` and the `Jenkinsfile`.
+
+`cypress.config.js` reads the seeded password from the `E2E_SEEDED_PASSWORD`
+environment variable instead of hardcoding it, and stops with an error when it
+is not set.
 
 ## Running locally
 
@@ -74,6 +79,7 @@ cd e2e
 npm ci                 # installs Cypress (binary is cached under ~/.cache/Cypress)
 npm run stack:up       # builds bankapp:e2e from the working tree, starts MySQL + app on :8081, waits until healthy
 npm run stack:seed     # loads seed/seed.sql
+export E2E_SEEDED_PASSWORD='Password123!'   # password of the seeded accounts
 npm run cy:run         # headless run, videos in cypress/videos, screenshots on failure in cypress/screenshots
 npm run stack:down     # stops containers and drops the database volume
 ```
