@@ -16,8 +16,9 @@ spec:
         app: mysql
     spec:
       # Runs MySQL as a non-root UID. The data directory must be writable by it:
-      # fsGroup covers dynamically provisioned volumes; for the hostPath PV run
-      # `chown -R 10001:10001 /mnt/data/mysql` on the node once.
+      # fsGroup covers dynamically provisioned volumes; for the hostPath PV create
+      # the subPath dir first (kubelet would create it root-owned) on the node once:
+      # `mkdir -p /mnt/data/mysql/mysql-data && chown -R 10001:10001 /mnt/data/mysql`
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
