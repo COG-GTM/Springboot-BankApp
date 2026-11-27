@@ -128,7 +128,7 @@ argocd app create bankapp \
 ```
 
 ### **Prepare the MySQL Node**
-MySQL runs as UID 10001 and `fsGroup` does not change hostPath ownership, so before the first sync run this once on the node that hosts `mysql-pv`:
+MySQL runs as UID 10001 and `fsGroup` does not change hostPath ownership, so before the first sync run this once on every worker node (the hostPath `mysql-pv` is not pinned to a node, so MySQL can be scheduled on any of them):
 ```bash
 sudo mkdir -p /mnt/data/mysql/mysql-data && sudo chown -R 10001:10001 /mnt/data/mysql
 ```
