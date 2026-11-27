@@ -5,7 +5,7 @@
  */
 Cypress.Commands.add("login", (username, password) => {
   cy.session(
-    [username, password],
+    username,
     () => {
       cy.visit("/login");
       cy.get('input[name="username"]').type(username);
