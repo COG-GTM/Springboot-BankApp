@@ -1,5 +1,11 @@
 const { defineConfig } = require("cypress");
 
+if (!process.env.E2E_SEEDED_PASSWORD) {
+  throw new Error(
+    "E2E_SEEDED_PASSWORD is not set; export the seeded accounts' password (see docs/testing/e2e.md)"
+  );
+}
+
 module.exports = defineConfig({
   e2e: {
     baseUrl: process.env.CYPRESS_BASE_URL || "http://localhost:8081",
